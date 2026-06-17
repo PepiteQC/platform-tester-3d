@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EtherWorld Platform Tester 3D</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-top-left">
+      <div id="player-info">
+        <span id="player-name">Player</span>
+        <span id="player-pos">[0, 0, 0]</span>
+      </div>
+      <div id="fps-counter">FPS: 60</div>
+      <div id="player-count">Players: 1</div>
+    </div>
+
+    <div id="hud-top-right">
+      <button id="btn-editor" class="hud-btn" title="Level Editor (E)">🔧 Editor</button>
+      <button id="btn-generate" class="hud-btn" title="Generate New Level">🎲 Generate</button>
+      <button id="btn-save" class="hud-btn" title="Save Level">💾 Save</button>
+      <button id="btn-load" class="hud-btn" title="Load Level">📂 Load</button>
+      <button id="btn-export" class="hud-btn" title="Export GLTF">📤 Export</button>
+      <button id="btn-import" class="hud-btn" title="Import GLTF">📥 Import</button>
+    </div>
+
+    <div id="crosshair">+</div>
+
+    <div id="hud-bottom">
+      <div id="controls-hint">
+        WASD: Move | SPACE: Jump | SHIFT: Sprint | E: Editor | MOUSE: Look | ESC: Release
+      </div>
+    </div>
+  </div>
+
+  <!-- Panneau Éditeur -->
+  <div id="editor-panel" class="panel hidden">
+    <div class="panel-header">
+      <h2>🔧 Level Editor</h2>
+      <button id="editor-close" class="close-btn">✕</button>
+    </div>
+    <div class="panel-body">
+      <div class="editor-section">
+        <h3>Add Platform</h3>
+        <label>Type:
+          <select id="ed-type">
+            <option value="static">Static</option>
+            <option value="moving">Moving</option>
+            <option value="falling">Falling</option>
+            <option value="bouncy">Bouncy</option>
+            <option value="rotating">Rotating</option>
+          </select>
+        </label>
+        <label>Color: <input type="color" id="ed-color" value="#6688cc"></label>
+        <div class="vector-input">
+          <label>Position:</label>
+          <input type="number" id="ed-px" value="0" step="0.5">
+          <input type="number" id="ed-py" value="5" step="0.5">
+          <input type="number" id="ed-pz" value="0" step="0.5">
+        </div>
+        <div class="vector-input">
+          <label>Size:</label>
+          <input type="number" id="ed-sx" value="3" step="0.5" min="0.5">
+          <input type="number" id="ed-sy" value="0.4" step="0.1" min="0.1">
+          <input type="number" id="ed-sz" value="3" step="0.5" min="0.5">
+        </div>
+        <button id="ed-add" class="editor-btn">➕ Add Platform</button>
+      </div>
+
+      <div class="editor-section">
+        <h3>Selection</h3>
+        <div id="ed-selection-info">Click a platform to select it</div>
+        <button id="ed-delete" class="editor-btn danger" disabled>🗑️ Delete Selected</button>
+      </div>
+
+      <div class="editor-section">
+        <h3>Procedural Generation</h3>
+        <label>Seed: <input type="number" id="ed-seed" value="42"></label>
+        <label>Count: <input type="number" id="ed-count" value="30" min="5" max="200"></label>
+        <button id="ed-generate" class="editor-btn">🎲 Generate</button>
+      </div>
+
+      <div class="editor-section">
+        <h3>Platform List</h3>
+        <div id="ed-platform-list" class="platform-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panneau Sauvegarde/Chargement -->
+  <div id="save-panel" class="panel hidden">
+    <div class="panel-header">
+      <h2>💾 Save / Load</h2>
+      <button id="save-close" class="close-btn">✕</button>
+    </div>
+    <div class="panel-body">
+      <div class="editor-section">
+        <h3>Save Current Level</h3>
+        <label>Name: <input type="text" id="save-name" value="my_level" maxlength="50"></label>
+        <button id="save-confirm" class="editor-btn">💾 Save</button>
+      </div>
+      <div class="editor-section">
+        <h3>Saved Levels</h3>
+        <div id="saves-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div id="chat-container">
+    <div id="chat-messages"></div>
+    <input type="text" id="chat-input" placeholder="Press T to chat..." maxlength="200">
+  </div>
+
+  <!-- Notifications -->
+  <div id="notifications"></div>
+
+  <!-- Import file input caché -->
+  <input type="file" id="import-file" accept=".gltf,.json" style="display:none">
+
+  <!-- Three.js et Cannon-ES via CDN -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+      "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+    }
+  }
+  </script>
+  <script type="module" src="game.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

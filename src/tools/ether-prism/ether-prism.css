@@ -1,0 +1,32 @@
+/* ============================================================
+   EtherPrism — Styles
+   Organe visuel de TroxT
+   ============================================================ */
+
+.ether-prism {
+  /* TODO: Styles du composant principal */
+}
+
+.ether-prism__dropzone {
+  /* TODO: Styles de la zone de drop */
+}
+
+.ether-prism__preview {
+  /* TODO: Styles de la prévisualisation */
+}
+
+.ether-prism__toolbar {
+  /* TODO: Barre d'outils */
+}
+
+.ether-prism__results {
+  /* TODO: Zone de résultats */
+}
+
+.ether-prism__loading {
+  /* TODO: État de chargement */
+}
+
+.ether-prism__error {
+  /* TODO: État d'erreur */
+}

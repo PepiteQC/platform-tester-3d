@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TroxT — EtherWorld Neural Core</title>
+  <link rel="stylesheet" href="landing.css">
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+
+  <nav class="nav">
+    <div class="nav-logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">ETHER<strong>WORLD</strong></span>
+    </div>
+    <div class="nav-links">
+      <a href="#about">About</a>
+      <a href="#modules">Modules</a>
+      <a href="#prism">EtherPrism</a>
+      <a href="#troxt">TroxT</a><a href="/etherforge">EtherForge</a>
+    </div>
+    <a href="/game" class="nav-cta">Launch Tester →</a>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-content">
+      <div class="hero-badge"><span class="badge-dot"></span>NEURAL CORE v1.0</div>
+      <h1 class="hero-title">
+        <span class="title-top">Meet</span>
+        <span class="title-main">TroxT</span>
+        <span class="title-bot">The Brain of EtherWorld</span>
+      </h1>
+      <p class="hero-desc">TroxT is the central intelligence of the EtherWorld ecosystem — connecting, analyzing, and orchestrating every module in real time.</p>
+      <div class="hero-actions">
+        <a href="/game" class="btn-primary">Launch Platform Tester
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </a>
+        <a href="#about" class="btn-ghost">Learn More</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-val">4</span><span class="stat-label">Core Modules</span></div>
+        <div class="stat-div"></div>
+        <div class="stat"><span class="stat-val">∞</span><span class="stat-label">Possibilities</span></div>
+        <div class="stat-div"></div>
+        <div class="stat"><span class="stat-val">1</span><span class="stat-label">Neural Core</span></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="ring ring-a"></div><div class="ring ring-b"></div><div class="ring ring-c"></div>
+      <svg class="lines" viewBox="0 0 400 400">
+        <line class="line" x1="200" y1="200" x2="200" y2="55"/><line class="line" x1="200" y1="200" x2="345" y2="200"/>
+        <line class="line" x1="200" y1="200" x2="200" y2="345"/><line class="line" x1="200" y1="200" x2="55" y2="200"/>
+      </svg>
+      <div class="node node-top" data-name="EtherPrism">👁️</div>
+      <div class="node node-right" data-name="EtherForge">⚒️</div>
+      <div class="node node-bottom" data-name="EtherWeave">🧵</div>
+      <div class="node node-left" data-name="EtherLens">🔬</div>
+      <div class="core-center"><span class="core-hex">⬡</span><span class="core-name">TroxT</span></div>
+    </div>
+  </section>
+
+  <section class="about" id="about">
+    <div class="s-label">// ABOUT TROXT</div>
+    <h2 class="s-title">One Brain.<br>Every Module.</h2>
+    <p class="s-desc">TroxT is not just an AI — it's the nervous system of EtherWorld. Every tool, every module, every action passes through TroxT's neural bridge.</p>
+    <div class="cards-grid">
+      <div class="card"><div class="card-icon">🧠</div><h3>Neural Processing</h3><p>Real-time decision making across all connected modules simultaneously.</p></div>
+      <div class="card"><div class="card-icon">🔗</div><h3>Bridge System</h3><p>TroxT Bridge connects every module through a unified event architecture.</p></div>
+      <div class="card"><div class="card-icon">💾</div><h3>Shared Memory</h3><p>Persistent memory layer accessible by all modules in the ecosystem.</p></div>
+      <div class="card"><div class="card-icon">📡</div><h3>Event Bus</h3><p>Decentralized communication — every module speaks, TroxT listens.</p></div>
+    </div>
+  </section>
+
+  <section class="modules" id="modules">
+    <div class="s-label">// CORE MODULES</div>
+    <h2 class="s-title">The EtherWorld<br>Ecosystem</h2>
+    <div class="modules-grid">
+      <div class="mod-card" data-color="#7b6fff">
+        <div class="mod-top"><span class="mod-emoji">🗄️</span><span class="mod-tag">DATABASE</span></div>
+        <h3 class="mod-name">EtherPrism</h3>
+        <p class="mod-desc">RP database management system. Players, vehicles, houses, shops, jobs, factions — full CRUD admin like Prisma.</p>
+        <ul class="mod-list"><li>Players & Characters</li><li>Vehicles & Properties</li><li>Jobs & Factions</li><li>Inventory & Banking</li></ul>
+        <div class="mod-status"><span class="mod-dot" style="background:#43e97b"></span>Live</div>
+      </div>
+      <div class="mod-card" data-color="#ff6b6b">
+        <div class="mod-top"><span class="mod-emoji">⚒️</span><span class="mod-tag">3D</span></div>
+        <h3 class="mod-name">EtherForge</h3>
+        <p class="mod-desc">The 3D creation workshop of EtherWorld. Build, sculpt and export 3D assets controlled by TroxT.</p>
+        <ul class="mod-list"><li>3D Scene Builder</li><li>PBR Material Editor</li><li>GLTF / GLB Export</li><li>Real-time Preview</li></ul>
+        <div class="mod-status"><span class="mod-dot"></span>In Development</div>
+      </div>
+      <div class="mod-card" data-color="#43e97b">
+        <div class="mod-top"><span class="mod-emoji">🧵</span><span class="mod-tag">TEXTURE</span></div>
+        <h3 class="mod-name">EtherWeave</h3>
+        <p class="mod-desc">Procedural texture weaver. Create seamless, tileable patterns and materials from scratch.</p>
+        <ul class="mod-list"><li>Noise & Voronoi</li><li>Seamless Tiling</li><li>Layer System</li><li>PNG / WebP Export</li></ul>
+        <div class="mod-status"><span class="mod-dot"></span>In Development</div>
+      </div>
+      <div class="mod-card" data-color="#f7971e">
+        <div class="mod-top"><span class="mod-emoji">🔬</span><span class="mod-tag">ANALYSIS</span></div>
+        <h3 class="mod-name">EtherLens</h3>
+        <p class="mod-desc">The analytical eye of TroxT. Detect, measure and report on any visual target in real time.</p>
+        <ul class="mod-list"><li>Object Detection</li><li>OCR Text Scan</li><li>Precision Measure</li><li>PDF / JSON Report</li></ul>
+        <div class="mod-status"><span class="mod-dot"></span>In Development</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ETHERPRISM — RP DATABASE ADMIN -->
+  <section class="prism-sec" id="prism">
+    <div class="prism-grid-bg"></div>
+    <div class="prism-inner">
+      <div class="s-label">// ETHERPRISM — RP DATABASE</div>
+      <h2 class="s-title">EtherPrism<br>Database Admin</h2>
+      <p class="s-desc">Full database management for your RP server. Players, vehicles, houses, shops, jobs, factions — all managed from here with real-time CRUD.</p>
+
+      <div class="prism-status-bar">
+        <div class="prism-status-item"><span class="prism-status-dot online"></span><span>Database: <strong id="prism-db-status">—</strong></span></div>
+        <div class="prism-status-item"><span>📋</span><span>Tables: <strong id="prism-table-count">—</strong></span></div>
+        <div class="prism-status-item"><span>📊</span><span>Total Rows: <strong id="prism-row-count">—</strong></span></div>
+        <div class="prism-status-item"><span>🔄</span><span>Queries: <strong id="prism-query-count">—</strong></span></div>
+      </div>
+
+      <div class="prism-admin-bar">
+        <button class="prism-admin-btn seed" id="btn-seed">🌱 Seed Database</button>
+        <button class="prism-admin-btn create" id="btn-create-table">➕ New Table</button>
+        <button class="prism-admin-btn" id="btn-refresh-prism">🔄 Refresh</button>
+      </div>
+
+      <div class="prism-modal hidden" id="modal-create-table">
+        <div class="prism-modal-content">
+          <h3>➕ Create New Table</h3>
+          <label>Table Name:<input type="text" id="new-table-name" placeholder="e.g. weapons, warrants..."></label>
+          <div class="prism-modal-actions">
+            <button class="prism-admin-btn create" id="confirm-create-table">Create</button>
+            <button class="prism-admin-btn" id="cancel-create-table">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="prism-modal hidden" id="modal-insert-row">
+        <div class="prism-modal-content">
+          <h3>➕ Insert Row into <span id="insert-table-name"></span></h3>
+          <div id="insert-fields"></div>
+          <div class="prism-modal-actions">
+            <button class="prism-admin-btn create" id="confirm-insert">Insert</button>
+            <button class="prism-admin-btn" id="cancel-insert">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="prism-modal hidden" id="modal-edit-row">
+        <div class="prism-modal-content">
+          <h3>✏️ Edit Row <span id="edit-row-id"></span> in <span id="edit-table-name"></span></h3>
+          <div id="edit-fields"></div>
+          <div class="prism-modal-actions">
+            <button class="prism-admin-btn create" id="confirm-edit">Save</button>
+            <button class="prism-admin-btn" id="cancel-edit">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="prism-tabs" id="prism-table-tabs">
+        <span class="prism-tabs-loading">Loading tables...</span>
+      </div>
+
+      <div class="prism-table-area" id="prism-table-area">
+        <div class="prism-empty">Click "Seed Database" to populate with GTA RP data</div>
+      </div>
+
+      <div class="prism-refresh"><span class="prism-refresh-dot"></span>Live data — refreshes every 5 seconds</div>
+    </div>
+  </section>
+
+  <section class="troxt-sec" id="troxt">
+    <div class="grid-bg"></div>
+    <div class="troxt-inner">
+      <div class="s-label">// THE CORE</div>
+      <h2 class="s-title">TroxT Architecture</h2>
+      <div class="arch">
+        <div class="arch-core"><div class="arch-glow"></div><span class="arch-hex">⬡</span><span class="arch-name">TroxT</span><span class="arch-role">Neural Core</span></div>
+        <div class="arch-nodes">
+          <div class="arch-node"><span>🔗</span>TroxT Bridge</div>
+          <div class="arch-node"><span>📡</span>Event Bus</div>
+          <div class="arch-node"><span>💾</span>Memory Core</div>
+          <div class="arch-node"><span>🌐</span>WebSocket</div>
+        </div>
+      </div>
+      <div class="terminal">
+        <div class="term-head"><div class="term-dots"><i></i><i></i><i></i></div><span>troxt.init()</span></div>
+        <div class="term-body">
+          <p class="tl"><span class="dim">$</span><span class="cmd"> troxt --start</span></p>
+          <p class="tl d1"><span class="ok">✓</span><span class="txt"> TroxT Neural Core — Online</span></p>
+          <p class="tl d2"><span class="ok">✓</span><span class="txt"> Bridge connected to 4 modules</span></p>
+          <p class="tl d3"><span class="ok">✓</span><span class="txt"> EventBus — Active</span></p>
+          <p class="tl d4"><span class="ok">✓</span><span class="txt"> Memory initialized</span></p>
+          <p class="tl d5"><span class="go">→</span><span class="txt"> EtherWorld ready</span><span class="cur">_</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-sec">
+    <div class="cta-glow"></div>
+    <div class="cta-inner">
+      <div class="s-label">// LIVE NOW</div>
+      <h2 class="cta-title">Platform Tester 3D</h2>
+      <p class="cta-desc">Experience the EtherWorld engine right now. Jump into the 3D platform tester powered by TroxT's core systems.</p>
+      <div class="cta-tags"><span>⚡ Three.js</span><span>🎮 Physics</span><span>🌐 Multiplayer</span><span>🔧 Level Editor</span><span>⚙️ Admin Panel</span></div>
+      <a href="/game" class="btn-launch"><span class="btn-play">▶</span>Launch Platform Tester</a>
+      <p class="cta-note">Served on http://localhost:4100</p>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="foot-logo"><span>⬡</span> ETHER<strong>WORLD</strong></div>
+    <p class="foot-sub">TroxT — Neural Core of EtherWorld Project</p>
+    <div class="foot-links">
+      <a href="#hero">Home</a><a href="#about">About</a><a href="#modules">Modules</a><a href="#prism">EtherPrism</a><a href="/game">Platform Tester</a><a href="/etherforge">EtherForge Studio</a>
+    </div>
+    <p class="foot-copy">© 2026 EtherWorld Project — Built with TroxT</p>
+  </footer>
+
+  <script src="landing.js"></script>
+</body>
+</html>

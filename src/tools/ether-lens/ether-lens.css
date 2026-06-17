@@ -1,0 +1,31 @@
+/* ============================================================
+   EtherLens — Styles
+   ============================================================ */
+
+.ether-lens {
+  /* TODO: Container principal */
+}
+
+.ether-lens__viewport {
+  /* TODO: Zone d'analyse */
+}
+
+.ether-lens__overlay {
+  /* TODO: Overlays de détection */
+}
+
+.ether-lens__detection {
+  /* TODO: Boîte de détection */
+}
+
+.ether-lens__measurement {
+  /* TODO: Outils de mesure */
+}
+
+.ether-lens__panel {
+  /* TODO: Panneau de résultats */
+}
+
+.ether-lens__report {
+  /* TODO: Rapport d'analyse */
+}
