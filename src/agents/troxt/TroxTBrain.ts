@@ -8,7 +8,7 @@ import { eventBus, EtherEvent } from '../../core/eventBus'
 import { memory, Memory } from '../../core/memory'
 import { troxTBridge, BridgeMessage, ModuleId } from '../../core/troxt-bridge'
 import { ReasoningEngine, ThoughtChain, PlanStep } from './ReasoningEngine'
-import { SkillRegistry, SkillCall, SkillResult } from './skills/SkillRegistry'
+import { SkillRegistry, SkillResult } from './skills/SkillRegistry'
 import { EpisodicMemory, Episode } from './memory/EpisodicMemory'
 
 export interface TroxTBrainConfig {
@@ -445,3 +445,5 @@ ${userInput}
 }
 
 export default TroxTBrain
+
+

@@ -70,3 +70,4 @@ export class SkillRegistry {
 }
 
 export default SkillRegistry
+

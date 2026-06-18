@@ -1,7 +1,12 @@
 import { Button, Card, Badge } from '@blinkdotnew/ui'
+<<<<<<< HEAD
 import { Hammer, Sparkles, Palette } from 'lucide-react'
 import { useBuilderStore } from '@/store/useBuilderStore'
 import { DEFAULT_MATERIALS } from '@/tools/ether-forge/lib/forgeMaterials'
+=======
+import { Hammer, Sparkles } from 'lucide-react'
+import { useBuilderStore } from '@/store/useBuilderStore'
+>>>>>>> 810e7eca909840df06715d9c2f0948347025c044
 
 export function ProjectMenu() {
   const projects = useBuilderStore(state => state.projects)
@@ -18,7 +23,11 @@ export function ProjectMenu() {
             </Badge>
             <h2 className="text-3xl font-bold tracking-tight">Poly Builder</h2>
             <p className="text-white/50 mt-2">
+<<<<<<< HEAD
               Crée un projet 3D avec matériaux EtherWorld officiels, sans écraser le Platform Tester existant.
+=======
+              Crée un projet 3D sans écraser le Platform Tester existant.
+>>>>>>> 810e7eca909840df06715d9c2f0948347025c044
             </p>
           </div>
           <div className="w-14 h-14 rounded-2xl bg-[#7b6fff] flex items-center justify-center">
@@ -26,6 +35,7 @@ export function ProjectMenu() {
           </div>
         </div>
 
+<<<<<<< HEAD
         <div className="grid md:grid-cols-2 gap-3 mb-6">
           <Button
             className="w-full bg-[#7b6fff] hover:bg-[#5b4fff]"
@@ -41,6 +51,14 @@ export function ProjectMenu() {
             </div>
           </div>
         </div>
+=======
+        <Button
+          className="w-full bg-[#7b6fff] hover:bg-[#5b4fff] mb-6"
+          onClick={() => createProject('EtherForge Scene')}
+        >
+          <Sparkles className="w-4 h-4 mr-2" /> New EtherForge Project
+        </Button>
+>>>>>>> 810e7eca909840df06715d9c2f0948347025c044
 
         <div className="space-y-3">
           <div className="text-xs uppercase tracking-widest text-white/35 font-bold">Recent projects</div>

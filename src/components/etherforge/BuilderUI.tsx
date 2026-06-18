@@ -1,7 +1,12 @@
 import { Button, Card, Badge } from '@blinkdotnew/ui'
+<<<<<<< HEAD
 import { Box, ChevronLeft, Save, Palette } from 'lucide-react'
 import { useBuilderStore } from '@/store/useBuilderStore'
 import { DEFAULT_MATERIALS } from '@/tools/ether-forge/lib/forgeMaterials'
+=======
+import { Box, ChevronLeft, Save } from 'lucide-react'
+import { useBuilderStore } from '@/store/useBuilderStore'
+>>>>>>> 810e7eca909840df06715d9c2f0948347025c044
 
 export function BuilderUI() {
   const currentProject = useBuilderStore(state => state.currentProject)
@@ -10,6 +15,7 @@ export function BuilderUI() {
 
   if (!currentProject) return null
 
+<<<<<<< HEAD
   const materialObjects = currentProject.objects.filter((object: any) => object?.type === 'material')
 
   const addMaterialToProject = (materialId: string) => {
@@ -30,6 +36,8 @@ export function BuilderUI() {
     })
   }
 
+=======
+>>>>>>> 810e7eca909840df06715d9c2f0948347025c044
   return (
     <div className="min-h-screen bg-[#060606] text-white p-6">
       <div className="max-w-6xl mx-auto">
@@ -56,6 +64,7 @@ export function BuilderUI() {
         </div>
 
         <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+<<<<<<< HEAD
           <div className="flex flex-col gap-6">
             <Card className="bg-white/5 border-white/10 h-fit">
               <div className="text-xs uppercase tracking-widest text-white/35 font-bold mb-4">Scene objects</div>
@@ -123,6 +132,34 @@ export function BuilderUI() {
               <Box className="w-8 h-8 text-[#7b6fff] mx-auto mb-3" />
               <p className="text-white/35 leading-relaxed text-sm">
                 Les matériaux ajoutés ici sont versionnés dans ton projet Builder. Le même pack est aussi exposé au Platform Tester via EtherMaterials.
+=======
+          <Card className="bg-white/5 border-white/10 h-fit">
+            <div className="text-xs uppercase tracking-widest text-white/35 font-bold mb-4">Scene objects</div>
+            {currentProject.objects.length === 0 ? (
+              <div className="text-sm text-white/35">
+                La scène est prête. Les objets 3D pourront être branchés ici sans toucher au jeu public.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {currentProject.objects.map((object, index) => (
+                  <div key={index} className="text-sm text-white/70 border border-white/10 rounded-lg p-2">
+                    Object #{index + 1}: {String(object)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card className="bg-black/40 border-white/10 min-h-[520px] flex items-center justify-center">
+            <div className="text-center max-w-md">
+              <div className="w-20 h-20 rounded-3xl bg-[#7b6fff]/20 border border-[#7b6fff]/30 flex items-center justify-center mx-auto mb-5">
+                <Box className="w-10 h-10 text-[#7b6fff]" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">EtherForge Workspace</h3>
+              <p className="text-white/40 leading-relaxed">
+                Ce composant sert de point d’ancrage propre pour ton builder 3D. TroxT peut maintenant router vers le menu,
+                BuilderUI ou PlatformTester3D sans casser les fichiers existants.
+>>>>>>> 810e7eca909840df06715d9c2f0948347025c044
               </p>
             </div>
           </Card>

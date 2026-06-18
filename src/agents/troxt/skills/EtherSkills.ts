@@ -362,3 +362,4 @@ export function registerAllEtherSkills(registry: SkillRegistry): void {
 }
 
 export default registerAllEtherSkills
+
