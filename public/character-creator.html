@@ -16,480 +16,463 @@
 </head>
 <body>
 
-  <!-- ═══ HEADER ═══ -->
-  <header class="cc-header">
-    <div class="cc-header-left">
-      <div class="cc-logo">
-        <span class="cc-logo-hex">⬡</span>
-        <span class="cc-logo-text">ETHER<strong>WORLD</strong></span>
-      </div>
-      <div class="cc-sep"></div>
-      <div class="cc-title-block">
-        <span class="cc-title">Character Creator</span>
-        <span class="cc-subtitle">RP Edition — TroxT Powered</span>
-      </div>
+<!-- ═══ HEADER ═══ -->
+<header class="cc-header">
+  <div class="cc-header-left">
+    <div class="cc-logo">
+      <span class="cc-logo-hex">⬡</span>
+      <span class="cc-logo-text">ETHER<strong>WORLD</strong></span>
     </div>
-
-    <div class="cc-header-center">
-      <div class="cc-step-indicator">
-        <div class="cc-step active" data-step="0">
-          <span class="step-num">1</span>Identity
-        </div>
-        <span class="cc-step-arrow">›</span>
-        <div class="cc-step" data-step="1">
-          <span class="step-num">2</span>Visage
-        </div>
-        <span class="cc-step-arrow">›</span>
-        <div class="cc-step" data-step="2">
-          <span class="step-num">3</span>Hair
-        </div>
-        <span class="cc-step-arrow">›</span>
-        <div class="cc-step" data-step="3">
-          <span class="step-num">4</span>Body
-        </div>
-        <span class="cc-step-arrow">›</span>
-        <div class="cc-step" data-step="4">
-          <span class="step-num">5</span>Outfit
-        </div>
-      </div>
-    </div>
-
-    <div class="cc-header-right">
-      <div class="cc-troxt-badge">
-        <span class="badge-dot"></span>
-        TroxT Neural Core
-      </div>
-      <a href="/" class="cc-back-btn">
-        ← Back to EtherWorld
-      </a>
-    </div>
-  </header>
-
-  <!-- ═══ MAIN ═══ -->
-  <main class="cc-main">
-
-    <!-- ─── LEFT PANEL ─── -->
-    <aside class="cc-left">
-
-      <!-- TAB NAV -->
-      <nav class="cc-tab-nav">
-        <button class="cc-tab-btn active" data-panel="identity">
-          <span class="tab-icon">🪪</span>Identity
-        </button>
-        <button class="cc-tab-btn" data-panel="face">
-          <span class="tab-icon">😶</span>Visage
-        </button>
-        <button class="cc-tab-btn" data-panel="hair">
-          <span class="tab-icon">💈</span>Hair
-        </button>
-        <button class="cc-tab-btn" data-panel="body">
-          <span class="tab-icon">💪</span>Body
-        </button>
-        <button class="cc-tab-btn" data-panel="outfit">
-          <span class="tab-icon">👕</span>Outfit
-        </button>
-      </nav>
-
-      <div class="cc-tab-content">
-
-        <!-- ── IDENTITY PANEL ── -->
-        <div id="panel-identity" class="cc-panel active">
-          <div class="cc-section-label">Gender</div>
-          <div class="gender-toggle">
-            <button class="gender-btn active" data-gender="male">♂ Male</button>
-            <button class="gender-btn" data-gender="female">♀ Female</button>
-          </div>
-
-          <div class="cc-section-label">Character Name</div>
-          <input type="text" class="cc-name-input" placeholder="FIRST_LAST" maxlength="24" value="NOUVEAU_PERSO">
-          <p style="font-size:10px;color:#6b7a90;margin-top:4px;letter-spacing:1px;">USE LASTNAME_FIRSTNAME FORMAT</p>
-
-          <div class="cc-section-label">Nationality / Origin</div>
-          <select id="select-nationality" class="cc-select">
-            <option value="american">🇺🇸 American</option>
-            <option value="french">🇫🇷 French</option>
-            <option value="mexican">🇲🇽 Mexican</option>
-            <option value="canadian">🇨🇦 Canadian</option>
-            <option value="british">🇬🇧 British</option>
-            <option value="italian">🇮🇹 Italian</option>
-            <option value="russian">🇷🇺 Russian</option>
-            <option value="japanese">🇯🇵 Japanese</option>
-            <option value="german">🇩🇪 German</option>
-            <option value="brazilian">🇧🇷 Brazilian</option>
-            <option value="spanish">🇪🇸 Spanish</option>
-            <option value="korean">🇰🇷 Korean</option>
-            <option value="chinese">🇨🇳 Chinese</option>
-            <option value="arabic">🌙 Arabic</option>
-            <option value="haitian">🇭🇹 Haitian</option>
-          </select>
-
-          <div class="cc-section-label">Skin Tone</div>
-          <div class="cc-swatches" id="skin-swatches"></div>
-        </div>
-
-        <!-- ── FACE PANEL ── -->
-        <div id="panel-face" class="cc-panel">
-          <div class="cc-section-label">Face Shape</div>
-          <div class="cc-option-grid" id="face-shape-grid"></div>
-
-          <div class="cc-section-label">Eye Color</div>
-          <div class="cc-swatches" id="eye-swatches"></div>
-
-          <div class="cc-section-label">Face Width</div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Width</span>
-              <span class="cc-slider-val" id="slider-face-width-val">50</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-face-width" min="0" max="100" value="50">
-          </div>
-
-          <div class="cc-section-label">Cheekbones</div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Cheek Height</span>
-              <span class="cc-slider-val" id="slider-face-cheek-val">50</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-face-cheek" min="0" max="100" value="50">
-          </div>
-
-          <div class="cc-section-label">Jawline</div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Jaw Width</span>
-              <span class="cc-slider-val" id="slider-face-jaw-val">50</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-face-jaw" min="0" max="100" value="50">
-          </div>
-
-          <div class="cc-section-label">Nose</div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Nose Size</span>
-              <span class="cc-slider-val" id="slider-face-nose-size-val">50</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-face-nose-size" min="0" max="100" value="50">
-          </div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Bridge Height</span>
-              <span class="cc-slider-val" id="slider-face-nose-bridge-val">50</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-face-nose-bridge" min="0" max="100" value="50">
-          </div>
-
-          <div class="cc-section-label">Eyes</div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Eye Size</span>
-              <span class="cc-slider-val" id="slider-eye-size-val">50</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-eye-size" min="0" max="100" value="50">
-          </div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Eye Spacing</span>
-              <span class="cc-slider-val" id="slider-eye-spacing-val">50</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-eye-spacing" min="0" max="100" value="50">
-          </div>
-
-          <div class="cc-section-label">Lips</div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Lip Fullness</span>
-              <span class="cc-slider-val" id="slider-lip-size-val">50</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-lip-size" min="0" max="100" value="50">
-          </div>
-        </div>
-
-        <!-- ── HAIR PANEL ── -->
-        <div id="panel-hair" class="cc-panel">
-          <div class="cc-section-label">Hair Style</div>
-          <div class="cc-option-grid" id="hair-style-grid"></div>
-
-          <div class="cc-section-label">Hair Color</div>
-          <div class="cc-swatches" id="hair-color-swatches"></div>
-
-          <div class="cc-section-label">Facial Hair</div>
-          <div class="cc-option-grid" id="facial-hair-grid"></div>
-        </div>
-
-        <!-- ── BODY PANEL ── -->
-        <div id="panel-body" class="cc-panel">
-          <div class="cc-section-label">Body Type</div>
-          <div class="cc-option-grid" id="body-type-grid"></div>
-
-          <div class="cc-section-label">Height</div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Height</span>
-              <span class="cc-slider-val" id="slider-height-val">50</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-height" min="0" max="100" value="50">
-          </div>
-
-          <div class="cc-section-label">Musculature</div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Muscle Mass</span>
-              <span class="cc-slider-val" id="slider-muscular-val">45</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-muscular" min="0" max="100" value="45">
-          </div>
-
-          <div class="cc-section-label">Weight / Fat</div>
-          <div class="cc-slider-wrap">
-            <div class="cc-slider-header">
-              <span class="cc-slider-label">Body Fat</span>
-              <span class="cc-slider-val" id="slider-fatness-val">30</span>
-            </div>
-            <input type="range" class="cc-slider" id="slider-fatness" min="10" max="90" value="30">
-          </div>
-        </div>
-
-        <!-- ── OUTFIT PANEL ── -->
-        <div id="panel-outfit" class="cc-panel">
-          <div class="cc-section-label">Top / Shirt</div>
-          <div class="cc-option-grid" id="top-style-grid"></div>
-
-          <div class="cc-section-label">Top Color</div>
-          <div class="cc-swatches" id="top-color-swatches"></div>
-
-          <div class="cc-section-label">Pants</div>
-          <div class="cc-option-grid" id="pants-style-grid"></div>
-
-          <div class="cc-section-label">Pants Color</div>
-          <div class="cc-swatches" id="pants-color-swatches"></div>
-
-          <div class="cc-section-label">Shoes</div>
-          <div class="cc-option-grid" id="shoes-style-grid"></div>
-
-          <div class="cc-section-label">Shoes Color</div>
-          <div class="cc-swatches" id="shoes-color-swatches"></div>
-        </div>
-
-      </div><!-- /tab-content -->
-    </aside>
-
-    <!-- ─── CENTER — 3D VIEWPORT ─── -->
-    <div class="cc-viewport">
-      <canvas id="cc-canvas"></canvas>
-
-      <!-- Corners -->
-      <div class="vp-corner vp-corner-tl"></div>
-      <div class="vp-corner vp-corner-tr"></div>
-      <div class="vp-corner vp-corner-bl"></div>
-      <div class="vp-corner vp-corner-br"></div>
-
-      <!-- Center cross -->
-      <div class="vp-center-cross"></div>
-
-      <!-- Name overlay -->
-      <div class="vp-troxt-watermark">TroxT — Character Preview</div>
-      <div class="vp-char-name" id="vp-char-name">NOUVEAU_PERSO</div>
-
-      <!-- Grid glow -->
-      <div class="vp-grid"></div>
-
-      <!-- Controls hint -->
-      <div class="vp-rotate-hint">Drag to rotate</div>
-
-      <!-- Bottom hints -->
-      <div class="vp-info">
-        <div class="vp-info-item"><kbd>Drag</kbd> Rotate</div>
-        <div class="vp-info-item"><kbd>Scroll</kbd> Zoom</div>
-        <div class="vp-info-item"><kbd>R</kbd> Random</div>
-        <div class="vp-info-item"><kbd>← →</kbd> Step</div>
-      </div>
-    </div>
-
-    <!-- ─── RIGHT PANEL ─── -->
-    <aside class="cc-right">
-
-      <div class="cc-right-header">
-        <span class="rh-icon">👤</span>
-        <span class="cc-right-title">Character Profile</span>
-      </div>
-
-      <!-- Character card -->
-      <div class="cc-char-card">
-        <div class="cc-char-name-display">NOUVEAU_PERSO</div>
-        <div class="cc-char-id">ID: EW-000000 • AMERICAN</div>
-        <div class="cc-char-stats">
-          <div class="cc-stat-row">
-            <span class="cc-stat-key">Height</span>
-            <span class="cc-stat-val" id="stat-height-txt">50%</span>
-          </div>
-          <div class="cc-stat-bar"><div class="cc-stat-fill" id="stat-height-fill" style="width:50%"></div></div>
-          <div class="cc-stat-row" style="margin-top:4px">
-            <span class="cc-stat-key">Muscle</span>
-            <span class="cc-stat-val" id="stat-muscle-txt">45%</span>
-          </div>
-          <div class="cc-stat-bar"><div class="cc-stat-fill" id="stat-muscle-fill" style="width:45%"></div></div>
-          <div class="cc-stat-row" style="margin-top:4px">
-            <span class="cc-stat-key">Weight</span>
-            <span class="cc-stat-val" id="stat-weight-txt">30%</span>
-          </div>
-          <div class="cc-stat-bar"><div class="cc-stat-fill" id="stat-weight-fill" style="width:30%"></div></div>
-        </div>
-      </div>
-
-      <!-- Traits -->
-      <div class="cc-traits">
-        <div class="cc-trait-item">
-          <span class="cc-trait-icon">⚧</span>
-          <div class="cc-trait-info">
-            <div class="cc-trait-label">Gender</div>
-            <div class="cc-trait-value" id="trait-gender">Male</div>
-          </div>
-        </div>
-        <div class="cc-trait-item">
-          <span class="cc-trait-icon">😐</span>
-          <div class="cc-trait-info">
-            <div class="cc-trait-label">Face Shape</div>
-            <div class="cc-trait-value" id="trait-face">Regular</div>
-          </div>
-        </div>
-        <div class="cc-trait-item">
-          <span class="cc-trait-icon">💪</span>
-          <div class="cc-trait-info">
-            <div class="cc-trait-label">Body Type</div>
-            <div class="cc-trait-value" id="trait-body">Regular</div>
-          </div>
-        </div>
-        <div class="cc-trait-item">
-          <span class="cc-trait-icon">👕</span>
-          <div class="cc-trait-info">
-            <div class="cc-trait-label">Top</div>
-            <div class="cc-trait-value" id="trait-top">T-Shirt</div>
-          </div>
-        </div>
-        <div class="cc-trait-item">
-          <span class="cc-trait-icon">👖</span>
-          <div class="cc-trait-info">
-            <div class="cc-trait-label">Pants</div>
-            <div class="cc-trait-value" id="trait-pants">Jeans</div>
-          </div>
-        </div>
-        <div class="cc-trait-item">
-          <span class="cc-trait-icon">👟</span>
-          <div class="cc-trait-info">
-            <div class="cc-trait-label">Shoes</div>
-            <div class="cc-trait-value" id="trait-shoes">Sneakers</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- TroxT Log -->
-      <div class="cc-troxt-log">
-        <div class="cc-troxt-log-header">
-          ⬡ TroxT Neural Log
-        </div>
-        <div class="cc-troxt-log-body"></div>
-      </div>
-
-      <div class="cc-spacer"></div>
-
-      <!-- Quick actions -->
-      <div class="cc-quick-actions">
-        <button class="cc-quick-btn alt" id="btn-random">🎲 Random Character</button>
-        <button class="cc-quick-btn" id="btn-reset">↺ Reset to Default</button>
-      </div>
-
-    </aside>
-  </main>
-
-  <!-- ═══ FOOTER NAV ═══ -->
-  <footer class="cc-footer">
-    <div class="cc-footer-left">
-      <div class="cc-footer-hint"><kbd>←</kbd><kbd>→</kbd> Navigate steps</div>
-      <div class="cc-footer-hint"><kbd>R</kbd> Random</div>
-    </div>
-
-    <div class="cc-footer-center">
-      <div class="cc-progress-dot active"></div>
-      <div class="cc-progress-dot"></div>
-      <div class="cc-progress-dot"></div>
-      <div class="cc-progress-dot"></div>
-      <div class="cc-progress-dot"></div>
-    </div>
-
-    <div class="cc-footer-right">
-      <button class="cc-btn cc-btn-prev">← Previous</button>
-      <button class="cc-btn cc-btn-next">Next Step →</button>
-      <button class="cc-btn cc-btn-confirm">✓ Create Character</button>
-    </div>
-  </footer>
-
-  <!-- ═══ CONFIRM MODAL ═══ -->
-  <div class="cc-modal-overlay">
-    <div class="cc-modal">
-      <div class="cc-modal-header">
-        <span class="cc-modal-header-icon">✅</span>
-        <div>
-          <div class="cc-modal-title">Confirm Character</div>
-          <div class="cc-modal-sub">TroxT will register your identity to the EtherWorld database</div>
-        </div>
-      </div>
-      <div class="cc-modal-body">
-        <div class="cc-modal-char-name">NOUVEAU_PERSO</div>
-        <div class="cc-modal-grid">
-          <div class="cc-modal-field">
-            <div class="cc-modal-field-label">Gender</div>
-            <div class="cc-modal-field-val" id="modal-gender">Male</div>
-          </div>
-          <div class="cc-modal-field">
-            <div class="cc-modal-field-label">Face Shape</div>
-            <div class="cc-modal-field-val" id="modal-face">Regular</div>
-          </div>
-          <div class="cc-modal-field">
-            <div class="cc-modal-field-label">Body</div>
-            <div class="cc-modal-field-val" id="modal-body">Regular</div>
-          </div>
-          <div class="cc-modal-field">
-            <div class="cc-modal-field-label">Hair</div>
-            <div class="cc-modal-field-val" id="modal-hair">Buzz</div>
-          </div>
-          <div class="cc-modal-field">
-            <div class="cc-modal-field-label">Top</div>
-            <div class="cc-modal-field-val" id="modal-top">T-Shirt</div>
-          </div>
-          <div class="cc-modal-field">
-            <div class="cc-modal-field-label">Pants</div>
-            <div class="cc-modal-field-val" id="modal-pants">Jeans</div>
-          </div>
-          <div class="cc-modal-field">
-            <div class="cc-modal-field-label">Shoes</div>
-            <div class="cc-modal-field-val" id="modal-shoes">Sneakers</div>
-          </div>
-          <div class="cc-modal-field">
-            <div class="cc-modal-field-label">Character ID</div>
-            <div class="cc-modal-field-val" id="modal-id">EW-000000</div>
-          </div>
-          <div class="cc-modal-field" style="grid-column:1/-1">
-            <div class="cc-modal-field-label">Server</div>
-            <div class="cc-modal-field-val" id="modal-server">EtherWorld RP</div>
-          </div>
-        </div>
-        <div class="cc-modal-troxt-msg">
-          ⬡ TroxT Neural Core: Your character will be permanently registered to the EtherWorld database. Identity data will be synchronized across all modules including EtherPrism, EtherForge, and the Platform Tester.
-        </div>
-        <div class="cc-modal-actions">
-          <button class="cc-modal-cancel">✕ Cancel</button>
-          <button class="cc-modal-spawn">▶ Spawn Character</button>
-        </div>
-      </div>
+    <div class="cc-sep"></div>
+    <div class="cc-title-block">
+      <span class="cc-title">Character Creator</span>
+      <span class="cc-subtitle">RP Edition — TroxT Powered</span>
     </div>
   </div>
 
-  <!-- ═══ SPAWN ANIM ═══ -->
-  <div class="cc-spawn-anim">
-    <div class="cc-spawn-text">SPAWNED</div>
-    <div class="cc-spawn-sub">⬡ TroxT — Character Registered</div>
+  <div class="cc-header-center">
+    <div class="cc-step-indicator">
+      <div class="cc-step active" data-step="0"><span class="step-num">1</span>Identity</div>
+      <span class="cc-step-arrow">›</span>
+      <div class="cc-step" data-step="1"><span class="step-num">2</span>Visage</div>
+      <span class="cc-step-arrow">›</span>
+      <div class="cc-step" data-step="2"><span class="step-num">3</span>Hair</div>
+      <span class="cc-step-arrow">›</span>
+      <div class="cc-step" data-step="3"><span class="step-num">4</span>Body</div>
+      <span class="cc-step-arrow">›</span>
+      <div class="cc-step" data-step="4"><span class="step-num">5</span>Outfit</div>
+      <span class="cc-step-arrow">›</span>
+      <div class="cc-step" data-step="5"><span class="step-num">6</span>Accessories</div>
+    </div>
   </div>
 
-  <script type="module" src="character-creator.js"></script>
+  <div class="cc-header-right">
+    <div class="cc-troxt-badge"><span class="badge-dot"></span>TroxT Neural Core</div>
+    <a href="/" class="cc-back-btn">← Back to EtherWorld</a>
+  </div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main class="cc-main">
+
+  <!-- ─── LEFT PANEL ─── -->
+  <aside class="cc-left">
+    <nav class="cc-tab-nav">
+      <button class="cc-tab-btn active" data-panel="identity"><span class="tab-icon">🪪</span>Identity</button>
+      <button class="cc-tab-btn" data-panel="face"><span class="tab-icon">😶</span>Visage</button>
+      <button class="cc-tab-btn" data-panel="hair"><span class="tab-icon">💈</span>Hair</button>
+      <button class="cc-tab-btn" data-panel="body"><span class="tab-icon">💪</span>Body</button>
+      <button class="cc-tab-btn" data-panel="outfit"><span class="tab-icon">👕</span>Outfit</button>
+      <button class="cc-tab-btn" data-panel="accessories"><span class="tab-icon">💎</span>Accs</button>
+    </nav>
+
+    <div class="cc-tab-content">
+
+      <!-- ── IDENTITY ── -->
+      <div id="panel-identity" class="cc-panel active">
+        <div class="cc-section-label">Genre</div>
+        <div class="gender-toggle">
+          <button class="gender-btn active" data-gender="male">♂ Male</button>
+          <button class="gender-btn" data-gender="female">♀ Female</button>
+        </div>
+
+        <div class="cc-section-label">Nom du personnage</div>
+        <input type="text" class="cc-name-input" placeholder="PRENOM_NOM" maxlength="24" value="NOUVEAU_PERSO">
+        <p class="cc-input-hint">Format : NOM_PRENOM</p>
+
+        <div class="cc-section-label">Nationalité / Origine</div>
+        <select id="sel-nationality" class="cc-select">
+          <option value="american">🇺🇸 American</option>
+          <option value="french">🇫🇷 French</option>
+          <option value="mexican">🇲🇽 Mexican</option>
+          <option value="canadian">🇨🇦 Canadian</option>
+          <option value="british">🇬🇧 British</option>
+          <option value="italian">🇮🇹 Italian</option>
+          <option value="russian">🇷🇺 Russian</option>
+          <option value="japanese">🇯🇵 Japanese</option>
+          <option value="german">🇩🇪 German</option>
+          <option value="brazilian">🇧🇷 Brazilian</option>
+          <option value="spanish">🇪🇸 Spanish</option>
+          <option value="korean">🇰🇷 Korean</option>
+          <option value="haitian">🇭🇹 Haitian</option>
+          <option value="arabic">🌙 Arabic</option>
+        </select>
+
+        <div class="cc-section-label">Teinte de peau</div>
+        <div class="cc-swatches" id="sw-skin"></div>
+      </div>
+
+      <!-- ── VISAGE ── -->
+      <div id="panel-face" class="cc-panel">
+        <div class="cc-section-label">Forme du visage</div>
+        <div class="cc-option-grid" id="grid-face-shape"></div>
+
+        <div class="cc-section-label">Couleur des yeux</div>
+        <div class="cc-swatches" id="sw-eye"></div>
+
+        <div class="cc-section-label">Structure faciale</div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Largeur du visage</span>
+            <span class="cc-slider-val" id="sl-face-width-v">50</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-face-width" min="0" max="100" value="50">
+        </div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Pommettes</span>
+            <span class="cc-slider-val" id="sl-cheek-h-v">50</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-cheek-h" min="0" max="100" value="50">
+        </div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Mâchoire</span>
+            <span class="cc-slider-val" id="sl-jaw-w-v">50</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-jaw-w" min="0" max="100" value="50">
+        </div>
+
+        <div class="cc-section-label">Nez</div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Taille du nez</span>
+            <span class="cc-slider-val" id="sl-nose-size-v">50</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-nose-size" min="0" max="100" value="50">
+        </div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Arête du nez</span>
+            <span class="cc-slider-val" id="sl-nose-bridge-v">50</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-nose-bridge" min="0" max="100" value="50">
+        </div>
+
+        <div class="cc-section-label">Yeux</div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Taille des yeux</span>
+            <span class="cc-slider-val" id="sl-eye-size-v">50</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-eye-size" min="0" max="100" value="50">
+        </div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Écartement</span>
+            <span class="cc-slider-val" id="sl-eye-space-v">50</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-eye-space" min="0" max="100" value="50">
+        </div>
+
+        <div class="cc-section-label">Lèvres</div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Volume des lèvres</span>
+            <span class="cc-slider-val" id="sl-lip-v">50</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-lip" min="0" max="100" value="50">
+        </div>
+      </div>
+
+      <!-- ── HAIR ── -->
+      <div id="panel-hair" class="cc-panel">
+        <div class="cc-section-label">Style de coiffure</div>
+        <div class="cc-option-grid" id="grid-hair-style"></div>
+
+        <div class="cc-section-label">Couleur des cheveux</div>
+        <div class="cc-swatches" id="sw-hair-color"></div>
+
+        <div class="cc-section-label">Pilosité faciale</div>
+        <div class="cc-option-grid" id="grid-facial"></div>
+      </div>
+
+      <!-- ── BODY ── -->
+      <div id="panel-body" class="cc-panel">
+        <div class="cc-section-label">Morphologie</div>
+        <div class="cc-option-grid" id="grid-body-type"></div>
+
+        <div class="cc-section-label">Mensurations</div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Taille</span>
+            <span class="cc-slider-val" id="sl-height-v">50</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-height" min="0" max="100" value="50">
+        </div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Musculature</span>
+            <span class="cc-slider-val" id="sl-muscular-v">45</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-muscular" min="0" max="100" value="45">
+        </div>
+        <div class="cc-slider-wrap">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Masse corporelle</span>
+            <span class="cc-slider-val" id="sl-fatness-v">30</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-fatness" min="10" max="90" value="30">
+        </div>
+      </div>
+
+      <!-- ── OUTFIT ── -->
+      <div id="panel-outfit" class="cc-panel">
+        <div class="cc-section-label">Haut / Chemise</div>
+        <div class="cc-option-grid" id="grid-top-style"></div>
+
+        <div class="cc-section-label">Couleur du haut</div>
+        <div class="cc-swatches" id="sw-top-color"></div>
+
+        <div class="cc-section-label">Bas / Pantalon</div>
+        <div class="cc-option-grid" id="grid-pants-style"></div>
+
+        <div class="cc-section-label">Couleur du bas</div>
+        <div class="cc-swatches" id="sw-pants-color"></div>
+
+        <div class="cc-section-label">Chaussures</div>
+        <div class="cc-option-grid" id="grid-shoes-style"></div>
+
+        <div class="cc-section-label">Couleur des chaussures</div>
+        <div class="cc-swatches" id="sw-shoes-color"></div>
+      </div>
+
+      <!-- ── ACCESSORIES ── -->
+      <div id="panel-accessories" class="cc-panel">
+        <div class="cc-section-label">Lunettes</div>
+        <div class="acc-grid" id="grid-glasses"></div>
+
+        <div class="cc-section-label">Couleur monture</div>
+        <div class="cc-swatches" id="sw-glasses-color"></div>
+
+        <div class="cc-section-label">Couvre-chef</div>
+        <div class="acc-grid" id="grid-hat"></div>
+
+        <div class="cc-section-label">Couleur chapeau</div>
+        <div class="cc-swatches" id="sw-hat-color"></div>
+
+        <div class="cc-section-label">Bijoux</div>
+        <div class="acc-grid" id="grid-jewelry"></div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ─── CENTER — VIEWPORT ─── -->
+  <div class="cc-viewport">
+    <canvas id="cc-canvas"></canvas>
+    <div class="vp-scan"></div>
+    <div class="vp-hologram-bar"></div>
+    <div class="vp-corner vp-corner-tl"></div>
+    <div class="vp-corner vp-corner-tr"></div>
+    <div class="vp-corner vp-corner-bl"></div>
+    <div class="vp-corner vp-corner-br"></div>
+    <div class="vp-live"><div class="vp-live-dot"></div>LIVE</div>
+    <div class="vp-char-name" id="vp-char-name">NOUVEAU_PERSO</div>
+    <div class="vp-troxt-watermark">TroxT — Character Preview v2.0</div>
+    <div class="vp-rotate-hint">Drag to rotate</div>
+    <div class="vp-info">
+      <div class="vp-info-item"><kbd>Drag</kbd>Rotate</div>
+      <div class="vp-info-item"><kbd>Scroll</kbd>Zoom</div>
+      <div class="vp-info-item"><kbd>R</kbd>Random</div>
+      <div class="vp-info-item"><kbd>← →</kbd>Step</div>
+    </div>
+  </div>
+
+  <!-- ─── RIGHT PANEL ─── -->
+  <aside class="cc-right">
+    <div class="cc-right-header">
+      <span class="rh-icon">👤</span>
+      <span class="cc-right-title">Profil du personnage</span>
+    </div>
+
+    <div class="cc-char-card">
+      <div class="cc-char-name-display">NOUVEAU_PERSO</div>
+      <div class="cc-char-id">ID: EW-000000 • AMERICAN</div>
+      <div class="cc-char-stats">
+        <div class="cc-stat-row">
+          <span class="cc-stat-key">Taille</span>
+          <span class="cc-stat-val" id="stat-height-txt">50%</span>
+        </div>
+        <div class="cc-stat-bar"><div class="cc-stat-fill cyan" id="stat-height-fill" style="width:50%"></div></div>
+        <div class="cc-stat-row">
+          <span class="cc-stat-key">Muscle</span>
+          <span class="cc-stat-val" id="stat-muscle-txt">45%</span>
+        </div>
+        <div class="cc-stat-bar"><div class="cc-stat-fill purple" id="stat-muscle-fill" style="width:45%"></div></div>
+        <div class="cc-stat-row">
+          <span class="cc-stat-key">Poids</span>
+          <span class="cc-stat-val" id="stat-weight-txt">30%</span>
+        </div>
+        <div class="cc-stat-bar"><div class="cc-stat-fill gold" id="stat-weight-fill" style="width:30%"></div></div>
+      </div>
+    </div>
+
+    <div class="cc-traits">
+      <div class="cc-trait-item">
+        <span class="cc-trait-icon">⚧</span>
+        <div class="cc-trait-info">
+          <div class="cc-trait-label">Genre</div>
+          <div class="cc-trait-value" id="trait-gender">♂ Masculin</div>
+        </div>
+        <span class="cc-trait-badge green">SET</span>
+      </div>
+      <div class="cc-trait-item">
+        <span class="cc-trait-icon">😐</span>
+        <div class="cc-trait-info">
+          <div class="cc-trait-label">Forme du visage</div>
+          <div class="cc-trait-value" id="trait-face">Regular</div>
+        </div>
+      </div>
+      <div class="cc-trait-item">
+        <span class="cc-trait-icon">💪</span>
+        <div class="cc-trait-info">
+          <div class="cc-trait-label">Morphologie</div>
+          <div class="cc-trait-value" id="trait-body">Regular</div>
+        </div>
+      </div>
+      <div class="cc-trait-item">
+        <span class="cc-trait-icon">👕</span>
+        <div class="cc-trait-info">
+          <div class="cc-trait-label">Haut</div>
+          <div class="cc-trait-value" id="trait-top">T-Shirt</div>
+        </div>
+      </div>
+      <div class="cc-trait-item">
+        <span class="cc-trait-icon">👖</span>
+        <div class="cc-trait-info">
+          <div class="cc-trait-label">Bas</div>
+          <div class="cc-trait-value" id="trait-pants">Slim Jeans</div>
+        </div>
+      </div>
+      <div class="cc-trait-item">
+        <span class="cc-trait-icon">👟</span>
+        <div class="cc-trait-info">
+          <div class="cc-trait-label">Chaussures</div>
+          <div class="cc-trait-value" id="trait-shoes">Sneakers</div>
+        </div>
+      </div>
+      <div class="cc-trait-item">
+        <span class="cc-trait-icon">💎</span>
+        <div class="cc-trait-info">
+          <div class="cc-trait-label">Accessoires</div>
+          <div class="cc-trait-value" id="trait-acc">Aucun</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cc-troxt-log">
+      <div class="cc-troxt-log-header">TroxT Neural Log</div>
+      <div class="cc-troxt-log-body"></div>
+    </div>
+
+    <div class="cc-spacer"></div>
+
+    <div class="cc-quick-actions">
+      <button class="cc-quick-btn alt" id="btn-random">🎲 Personnage aléatoire</button>
+      <button class="cc-quick-btn" id="btn-reset">↺ Réinitialiser</button>
+    </div>
+  </aside>
+</main>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="cc-footer">
+  <div class="cc-footer-left">
+    <div class="cc-footer-hint"><kbd>←</kbd><kbd>→</kbd>Naviguer</div>
+    <div class="cc-footer-hint"><kbd>R</kbd>Aléatoire</div>
+    <div class="cc-footer-hint"><kbd>Esc</kbd>Fermer</div>
+  </div>
+  <div class="cc-footer-center">
+    <div class="cc-progress-dot active"></div>
+    <div class="cc-progress-dot"></div>
+    <div class="cc-progress-dot"></div>
+    <div class="cc-progress-dot"></div>
+    <div class="cc-progress-dot"></div>
+    <div class="cc-progress-dot"></div>
+  </div>
+  <div class="cc-footer-right">
+    <button class="cc-btn cc-btn-prev">← Précédent</button>
+    <button class="cc-btn cc-btn-next">Suivant →</button>
+    <button class="cc-btn cc-btn-confirm">✓ Créer le personnage</button>
+  </div>
+</footer>
+
+<!-- ═══ MODAL ═══ -->
+<div class="cc-modal-overlay">
+  <div class="cc-modal">
+    <div class="cc-modal-header">
+      <span class="cc-modal-header-icon">✅</span>
+      <div>
+        <div class="cc-modal-title">Confirmer le personnage</div>
+        <div class="cc-modal-sub">TroxT va enregistrer votre identité dans EtherPrism</div>
+      </div>
+    </div>
+    <div class="cc-modal-body">
+      <div class="cc-modal-char-name">NOUVEAU_PERSO</div>
+      <div class="cc-modal-grid">
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">Genre</div>
+          <div class="cc-modal-field-val" id="modal-gender">♂ Masculin</div>
+        </div>
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">Visage</div>
+          <div class="cc-modal-field-val" id="modal-face">Regular</div>
+        </div>
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">Morphologie</div>
+          <div class="cc-modal-field-val" id="modal-body">Regular</div>
+        </div>
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">Coiffure</div>
+          <div class="cc-modal-field-val" id="modal-hair">Crew Cut</div>
+        </div>
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">Haut</div>
+          <div class="cc-modal-field-val" id="modal-top">T-Shirt</div>
+        </div>
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">Bas</div>
+          <div class="cc-modal-field-val" id="modal-pants">Slim Jeans</div>
+        </div>
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">Chaussures</div>
+          <div class="cc-modal-field-val" id="modal-shoes">Sneakers</div>
+        </div>
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">Accessoires</div>
+          <div class="cc-modal-field-val" id="modal-acc">—</div>
+        </div>
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">ID Personnage</div>
+          <div class="cc-modal-field-val" id="modal-id">EW-000000</div>
+        </div>
+        <div class="cc-modal-field">
+          <div class="cc-modal-field-label">Serveur</div>
+          <div class="cc-modal-field-val" id="modal-server">EtherWorld RP</div>
+        </div>
+      </div>
+      <div class="cc-modal-troxt-msg">
+        ⬡ TroxT Neural Core : Votre personnage sera enregistré de façon permanente dans EtherPrism. Les données seront synchronisées avec EtherForge et le Platform Tester.
+      </div>
+      <div class="cc-modal-actions">
+        <button class="cc-modal-cancel">✕ Annuler</button>
+        <button class="cc-modal-spawn">▶ Faire apparaître</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SPAWN ANIMATION ═══ -->
+<div class="cc-spawn-anim">
+  <div class="cc-spawn-rings">
+    <div class="cc-spawn-ring"></div>
+    <div class="cc-spawn-ring"></div>
+    <div class="cc-spawn-ring"></div>
+  </div>
+  <div class="cc-spawn-text">SPAWNÉ</div>
+  <div class="cc-spawn-sub">⬡ TroxT — Personnage enregistré dans EtherPrism</div>
+</div>
+
+<script type="module" src="character-creator.js"></script>
 </body>
 </html>

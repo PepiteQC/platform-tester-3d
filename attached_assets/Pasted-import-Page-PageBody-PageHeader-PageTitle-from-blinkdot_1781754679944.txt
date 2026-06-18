@@ -1,0 +1,49 @@
+import { Page, PageBody, PageHeader, PageTitle } from '@blinkdotnew/ui'
+import { SharedAppLayout } from './layouts/shared-app-layout'
+import { AdditiveAnimationScene } from './components/AdditiveAnimationScene'
+
+export default function App() {
+  return (
+    <SharedAppLayout appName="Animation Studio">
+      <Page>
+        <PageHeader>
+          <PageTitle>Additive Animation Blending</PageTitle>
+        </PageHeader>
+        <PageBody>
+          <div className="space-y-6">
+            <div className="max-w-2xl">
+              <p className="text-sm text-muted-foreground">
+                This example demonstrates Three.js <strong>Additive Animation Blending</strong>. 
+                Additive animations like "Sad" or "Agree" are layered on top of base locomotion cycles 
+                (Idle, Walk, Run) without overwriting them completely.
+              </p>
+            </div>
+
+            <AdditiveAnimationScene />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 rounded-xl border bg-card">
+                <h4 className="text-sm font-semibold mb-2">How it works</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Base animations (Idle, Walk, Run) are blended using linear interpolation. 
+                  Additive animations are calculated as the difference from a reference frame (usually Idle) 
+                  and then mathematically "added" to the final pose. This allows a character to 
+                  shake their head while walking or looking sad while running.
+                </p>
+              </div>
+              <div className="p-4 rounded-xl border bg-card">
+                <h4 className="text-sm font-semibold mb-2">Technical Details</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Implemented using React Three Fiber and Three.js <code>AnimationMixer</code>. 
+                  Clips are converted using <code>AnimationUtils.makeClipAdditive</code> and 
+                  the <code>blendMode</code> of the <code>AnimationAction</code> is set to 
+                  <code>AdditiveAnimationBlendMode</code>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </PageBody>
+      </Page>
+    </SharedAppLayout>
+  )
+}

@@ -1,0 +1,182 @@
+import React, { useEffect, useRef, useState, useMemo } from 'react'
+import * as THREE from 'three'
+import { useGLTF, useAnimations } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
+
+const XBOT_URL = 'https://threejs.org/examples/models/gltf/Xbot.glb'
+
+interface AdditiveAnimationModelProps {
+  baseAction: string
+  weights: { [key: string]: number }
+  modelUrl?: string
+}
+
+export function AdditiveAnimationModel({ baseAction, weights, modelUrl = XBOT_URL }: AdditiveAnimationModelProps) {
+  const group = useRef<THREE.Group>(null)
+  
+  // Load animations from Xbot (our source of truth for animations)
+  const { animations: xbotAnimations } = useGLTF(XBOT_URL) as any
+  
+  // Load the target model
+  const { scene } = useGLTF(modelUrl) as any
+  
+  // Clone scene to avoid issues with shared materials/nodes
+  const clonedScene = useMemo(() => scene.clone(), [scene])
+
+  // Helper to find bone mapping between source (Mixamo) and target (Custom)
+  const boneMap = useMemo(() => {
+    const map: { [key: string]: string } = {}
+    const targetBones: string[] = []
+    clonedScene.traverse((obj: any) => {
+      if (obj.isBone) targetBones.push(obj.name)
+    })
+
+    const sourceBones = [
+      'Hips', 'Spine', 'Spine1', 'Spine2', 'Neck', 'Head',
+      'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',
+      'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand',
+      'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase',
+      'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase'
+    ]
+
+    sourceBones.forEach(sourceName => {
+      const match = targetBones.find(targetName => 
+        targetName.toLowerCase().includes(sourceName.toLowerCase()) ||
+        sourceName.toLowerCase().includes(targetName.toLowerCase())
+      )
+      if (match) {
+        map[`mixamorig${sourceName}`] = match
+      }
+    })
+    return map
+  }, [clonedScene])
+
+  // Create retargeted animations
+  const retargetedAnimations = useMemo(() => {
+    if (modelUrl === XBOT_URL) return xbotAnimations
+
+    return xbotAnimations.map((clip: THREE.AnimationClip) => {
+      const newClip = clip.clone()
+      newClip.tracks.forEach(track => {
+        // Track name format: "boneName.property"
+        const parts = track.name.split('.')
+        const boneName = parts[0]
+        if (boneMap[boneName]) {
+          track.name = `${boneMap[boneName]}.${parts[1]}`
+        }
+      })
+      return newClip
+    })
+  }, [xbotAnimations, boneMap, modelUrl])
+  
+  const { actions, mixer } = useAnimations(retargetedAnimations, group)
+
+  // Configure additive animations on mount
+  useEffect(() => {
+    if (!retargetedAnimations || retargetedAnimations.length === 0) return
+
+    // Base animations: 'idle', 'walk', 'run'
+    // Additive animations: 'sad_pose', 'sneak_pose', 'agree', 'headShake'
+    
+    // Find index of 'idle' as reference for additive blending
+    const idleClip = retargetedAnimations.find((a: any) => a.name.toLowerCase() === 'idle')
+    
+    if (idleClip) {
+      retargetedAnimations.forEach((clip: THREE.AnimationClip) => {
+        const name = clip.name.toLowerCase()
+        const isAdditive = ['sad_pose', 'sneak_pose', 'agree', 'headshake'].includes(name)
+        
+        if (isAdditive) {
+          let additiveClip = clip
+          
+          if (name.endsWith('_pose')) {
+            // subclip( clip, name, startFrame, endFrame, fps )
+            additiveClip = THREE.AnimationUtils.subclip(clip, clip.name, 2, 3, 30)
+          }
+          
+          // Make clip additive
+          THREE.AnimationUtils.makeClipAdditive(additiveClip, 0, idleClip)
+          
+          const action = actions[clip.name]
+          if (action) {
+            action.enabled = true
+            action.setEffectiveTimeScale(1)
+            action.setEffectiveWeight(0)
+            action.play()
+          }
+        }
+      })
+    }
+
+    // Initialize base animations
+    const baseAnimations = ['idle', 'walk', 'run']
+    baseAnimations.forEach(name => {
+      const clip = retargetedAnimations.find((a: any) => a.name.toLowerCase() === name)
+      if (clip) {
+        const action = actions[clip.name]
+        if (action) {
+          action.enabled = true
+          action.setEffectiveTimeScale(1)
+          action.setEffectiveWeight(clip.name.toLowerCase() === baseAction.toLowerCase() ? 1 : 0)
+          action.play()
+        }
+      }
+    })
+
+    return () => {
+      mixer.stopAllAction()
+    }
+  }, [retargetedAnimations, actions, mixer, baseAction])
+
+  // Handle base action changes with crossfading
+  const previousBaseAction = useRef<string>(baseAction)
+  useEffect(() => {
+    if (baseAction !== previousBaseAction.current) {
+      const prevAction = actions[previousBaseAction.current]
+      const nextAction = actions[baseAction]
+
+      if (prevAction && nextAction) {
+        nextAction.enabled = true
+        nextAction.setEffectiveTimeScale(1)
+        nextAction.setEffectiveWeight(1)
+        nextAction.time = 0
+        
+        prevAction.crossFadeTo(nextAction, 0.5, true)
+      }
+      
+      previousBaseAction.current = baseAction
+    }
+  }, [baseAction, actions])
+
+  // Update additive weights every frame
+  useFrame(() => {
+    Object.entries(weights).forEach(([name, weight]) => {
+      const action = actions[name]
+      if (action) {
+        action.setEffectiveWeight(weight)
+      }
+    })
+  })
+
+  // Traverse for shadows and visibility
+  useEffect(() => {
+    clonedScene.traverse((obj: any) => {
+      if (obj.isMesh) {
+        obj.castShadow = true
+        obj.receiveShadow = true
+      }
+    })
+  }, [clonedScene])
+
+  return (
+    <group ref={group} dispose={null}>
+      <primitive 
+        object={clonedScene} 
+        scale={modelUrl === XBOT_URL ? 0.01 : 1}
+        rotation={modelUrl === XBOT_URL ? [Math.PI / 2, 0, 0] : [0, 0, 0]}
+      />
+    </group>
+  )
+}
+
+useGLTF.preload(XBOT_URL)

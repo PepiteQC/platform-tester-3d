@@ -1,0 +1,180 @@
+import React, { Suspense, useState } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls, Stage, Grid, PerspectiveCamera } from '@react-three/drei'
+import { AdditiveAnimationModel } from './AdditiveAnimationModel'
+import { Upload, User, Image as ImageIcon, Box } from 'lucide-react'
+
+const XBOT_URL = 'https://threejs.org/examples/models/gltf/Xbot.glb'
+
+export function AdditiveAnimationScene() {
+  const [modelUrl, setModelUrl] = useState(XBOT_URL)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [baseAction, setBaseAction] = useState('idle')
+  const [weights, setWeights] = useState({
+    sad_pose: 0,
+    sneak_pose: 0,
+    agree: 0,
+    headShake: 0
+  })
+
+  const handleWeightChange = (name: string, value: number) => {
+    setWeights(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsProcessing(true)
+    // Mocking the Image-to-3D process
+    // In a real scenario, this would send the image to a free backend (e.g. Hugging Face Space)
+    setTimeout(() => {
+      alert('Simulation: Image received. A free backend (like Hunyuan3D) would now generate the GLB. Reverting to a fallback custom character for this demo.')
+      setModelUrl('https://models.readyplayer.me/64890c5c63528b971a1f0a0c.glb') // Fallback demo avatar
+      setIsProcessing(false)
+    }, 3000)
+  }
+
+  return (
+    <div className="relative w-full h-[600px] bg-background rounded-xl overflow-hidden border shadow-sm">
+      {isProcessing && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4" />
+          <p className="text-sm font-medium">Generating 3D Character...</p>
+          <p className="text-[10px] text-muted-foreground mt-1">This takes a few seconds via our free pipeline</p>
+        </div>
+      )}
+      
+      <Canvas shadows>
+        <PerspectiveCamera makeDefault position={[0, 1.5, 3]} fov={45} />
+        <OrbitControls target={[0, 1, 0]} minDistance={1} maxDistance={10} />
+        
+        <ambientLight intensity={1.5} />
+        <directionalLight 
+          position={[5, 5, 5]} 
+          intensity={2} 
+          castShadow 
+          shadow-mapSize={[1024, 1024]}
+        />
+        
+        <Suspense fallback={null}>
+          <AdditiveAnimationModel 
+            modelUrl={modelUrl}
+            baseAction={baseAction} 
+            weights={weights} 
+          />
+        </Suspense>
+
+        <Grid
+          infiniteGrid
+          fadeDistance={50}
+          fadeStrength={5}
+          cellSize={1}
+          sectionSize={3}
+          sectionThickness={1.5}
+          sectionColor="#555"
+        />
+      </Canvas>
+
+      {/* UI Controls Overlay */}
+      <div className="absolute top-4 right-4 p-4 bg-background/80 backdrop-blur-md rounded-lg border shadow-lg w-64 space-y-6 max-h-[calc(100%-2rem)] overflow-y-auto">
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold">Character Management</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setModelUrl(XBOT_URL)}
+              className={`flex items-center justify-center gap-2 p-2 text-[10px] rounded-md border transition-all ${
+                modelUrl === XBOT_URL ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-muted'
+              }`}
+            >
+              <Box size={14} />
+              Default
+            </button>
+            <label className="flex items-center justify-center gap-2 p-2 text-[10px] rounded-md border cursor-pointer hover:bg-muted transition-all">
+              <Upload size={14} />
+              GLB
+              <input 
+                type="file" 
+                accept=".glb" 
+                className="hidden" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) setModelUrl(URL.createObjectURL(file))
+                }}
+              />
+            </label>
+            <button
+              onClick={() => {
+                // RPM integration would typically open a window/iframe
+                const rpmUrl = prompt('Enter Ready Player Me GLB URL:', '')
+                if (rpmUrl) setModelUrl(rpmUrl)
+              }}
+              className="flex items-center justify-center gap-2 p-2 text-[10px] rounded-md border hover:bg-muted transition-all"
+            >
+              <User size={14} />
+              Avatar
+            </button>
+            <label className="flex items-center justify-center gap-2 p-2 text-[10px] rounded-md border cursor-pointer hover:bg-muted transition-all">
+              <ImageIcon size={14} />
+              Image-to-3D
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleImageUpload}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold mb-3">Base Animations</h3>
+          <div className="flex flex-col gap-2">
+            {['idle', 'walk', 'run'].map(action => (
+              <button
+                key={action}
+                onClick={() => setBaseAction(action)}
+                className={`px-3 py-1.5 text-xs rounded-md border transition-all ${
+                  baseAction === action 
+                    ? 'bg-primary text-primary-foreground border-primary' 
+                    : 'hover:bg-muted'
+                }`}
+              >
+                {action.charAt(0).toUpperCase() + action.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold mb-1">Additive Blending</h3>
+          {Object.entries(weights).map(([name, weight]) => (
+            <div key={name} className="space-y-1.5">
+              <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                <span>{name}</span>
+                <span>{(weight * 100).toFixed(0)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={weight}
+                onChange={(e) => handleWeightChange(name, parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          ))}
+        </div>
+        
+        <div className="pt-2 border-t text-[10px] text-muted-foreground">
+          <p>Additive animations are blended on top of the base walk/run/idle cycle.</p>
+        </div>
+      </div>
+      
+      <div className="absolute bottom-4 left-4 p-2 bg-background/50 backdrop-blur-sm rounded text-[10px] text-muted-foreground">
+        {modelUrl === XBOT_URL ? 'Model: Xbot (Mixamo)' : 'Custom Model Active'}
+      </div>
+    </div>
+  )
+}
