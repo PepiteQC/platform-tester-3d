@@ -355,7 +355,7 @@ export function registerAllEtherSkills(registry: SkillRegistry): void {
     params: {},
     dangerous: false,
     handler: async (_params, ctx) => {
-      const list = ctx.bridge.getChannels().map(c => `${c.moduleId} (${c.isConnected ? 'on' : 'off'})`).join(', ')
+      const list = ctx.bridge.getChannels().map((c: { moduleId: string; isConnected: boolean }) => `${c.moduleId} (${c.isConnected ? 'on' : 'off'})`).join(', ')
       return { success: true, summary: `Modules: ${list}`, detail: { modules: list } }
     }
   })

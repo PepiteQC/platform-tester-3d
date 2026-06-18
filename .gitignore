@@ -1,4 +1,5 @@
 node_modules/
+dist/
 saves/
 snapshots/
 server_logs.json

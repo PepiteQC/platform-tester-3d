@@ -2147,3 +2147,487 @@ document.getElementById('btn-toggle-raw')?.addEventListener('click', () => {
     addLog('⚠️ Lien de partage invalide ou expiré', 'warn');
   }
 })();
+
+// ════════════════════════════════════════════════════════════
+//  ETHERWORLD CHARACTER AI ULTRA — Local Neural Render System
+//  Zéro nouvelle dépendance : shader patches + textures canvas
+// ════════════════════════════════════════════════════════════
+
+const EtherCharacterUltra = (() => {
+  const runtime = {
+    version: '3.0-ultra-local',
+    enabled: true,
+    quality: 'ultra',
+    textures: new Map(),
+    shaderUniforms: {
+      time: { value: 0 },
+      skinWarmth: { value: 0.42 },
+      fabricDepth: { value: 0.55 }
+    },
+    hud: null,
+    aura: null,
+    floorReflection: null,
+    fps: 60,
+    frameCount: 0,
+    lastFpsAt: performance.now(),
+    lastAdaptAt: 0,
+    lastDNA: null,
+    original: {}
+  };
+
+  function hashString(input) {
+    let hash = 2166136261;
+    for (let i = 0; i < input.length; i++) {
+      hash ^= input.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0').toUpperCase();
+  }
+
+  function safeNumber(value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function makeCanvasTexture(key, size, painter, repeat = [1, 1]) {
+    if (runtime.textures.has(key)) return runtime.textures.get(key);
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    painter(ctx, size);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeat[0], repeat[1]);
+    texture.anisotropy = 16;
+    runtime.textures.set(key, texture);
+    return texture;
+  }
+
+  function paintNoise(ctx, size, count, color, alphaRange = [0.02, 0.08], radiusRange = [0.35, 1.8]) {
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const r = radiusRange[0] + Math.random() * (radiusRange[1] - radiusRange[0]);
+      const a = alphaRange[0] + Math.random() * (alphaRange[1] - alphaRange[0]);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(${color[0]},${color[1]},${color[2]},${a})`);
+      g.addColorStop(1, `rgba(${color[0]},${color[1]},${color[2]},0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+  }
+
+  function createSkinAlbedo() {
+    return makeCanvasTexture('skin-albedo-ultra', 1024, (ctx, size) => {
+      const base = ctx.createLinearGradient(0, 0, size, size);
+      base.addColorStop(0, '#fff0dc');
+      base.addColorStop(0.48, '#e8b991');
+      base.addColorStop(1, '#b97654');
+      ctx.fillStyle = base;
+      ctx.fillRect(0, 0, size, size);
+      paintNoise(ctx, size, 18000, [120, 60, 45], [0.012, 0.045], [0.25, 1.2]);
+      paintNoise(ctx, size, 9000, [255, 235, 210], [0.01, 0.04], [0.25, 1.0]);
+      paintNoise(ctx, size, 220, [105, 45, 30], [0.12, 0.28], [1.2, 3.8]);
+      for (let i = 0; i < 70; i++) {
+        const x = Math.random() * size;
+        const y = Math.random() * size;
+        ctx.strokeStyle = `rgba(95,70,120,${0.025 + Math.random() * 0.055})`;
+        ctx.lineWidth = 0.4 + Math.random() * 0.9;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        for (let s = 0; s < 6; s++) ctx.lineTo(x + (Math.random() - 0.5) * 42, y + (Math.random() - 0.5) * 42);
+        ctx.stroke();
+      }
+    }, [2, 2]);
+  }
+
+  function createSkinBump() {
+    return makeCanvasTexture('skin-bump-ultra', 1024, (ctx, size) => {
+      ctx.fillStyle = '#808080';
+      ctx.fillRect(0, 0, size, size);
+      paintNoise(ctx, size, 26000, [255, 255, 255], [0.025, 0.08], [0.2, 0.75]);
+      paintNoise(ctx, size, 22000, [0, 0, 0], [0.018, 0.055], [0.2, 0.9]);
+      for (let i = 0; i < 130; i++) {
+        ctx.strokeStyle = `rgba(40,40,40,${0.08 + Math.random() * 0.12})`;
+        ctx.lineWidth = 0.35 + Math.random() * 0.75;
+        ctx.beginPath();
+        let x = Math.random() * size;
+        let y = Math.random() * size;
+        ctx.moveTo(x, y);
+        for (let s = 0; s < 4; s++) {
+          x += (Math.random() - 0.5) * 30;
+          y += (Math.random() - 0.5) * 30;
+          ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    }, [3, 3]);
+  }
+
+  function createRoughnessMap(key, base = 180) {
+    return makeCanvasTexture(key, 512, (ctx, size) => {
+      ctx.fillStyle = `rgb(${base},${base},${base})`;
+      ctx.fillRect(0, 0, size, size);
+      paintNoise(ctx, size, 9000, [255, 255, 255], [0.02, 0.09], [0.5, 2.2]);
+      paintNoise(ctx, size, 5000, [0, 0, 0], [0.02, 0.07], [0.5, 2.0]);
+    }, [2, 2]);
+  }
+
+  function createFabricTexture(key, colorA = '#171b2c', colorB = '#30364f') {
+    return makeCanvasTexture(key, 512, (ctx, size) => {
+      ctx.fillStyle = colorA;
+      ctx.fillRect(0, 0, size, size);
+      for (let y = 0; y < size; y += 4) {
+        ctx.fillStyle = y % 8 === 0 ? 'rgba(255,255,255,0.055)' : 'rgba(0,0,0,0.075)';
+        ctx.fillRect(0, y, size, 1);
+      }
+      for (let x = 0; x < size; x += 5) {
+        ctx.fillStyle = x % 10 === 0 ? 'rgba(255,255,255,0.035)' : 'rgba(0,0,0,0.045)';
+        ctx.fillRect(x, 0, 1, size);
+      }
+      const g = ctx.createRadialGradient(size * 0.4, size * 0.25, 0, size * 0.4, size * 0.25, size * 0.9);
+      g.addColorStop(0, colorB + '99');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, size, size);
+      paintNoise(ctx, size, 6000, [255, 255, 255], [0.01, 0.035], [0.2, 1.0]);
+    }, [3, 3]);
+  }
+
+  function createHairTexture() {
+    return makeCanvasTexture('hair-fiber-ultra', 512, (ctx, size) => {
+      ctx.fillStyle = '#1a0c04';
+      ctx.fillRect(0, 0, size, size);
+      for (let x = 0; x < size; x++) {
+        const v = 35 + Math.random() * 55;
+        ctx.fillStyle = `rgba(${v},${v * 0.55},${v * 0.22},${0.18 + Math.random() * 0.32})`;
+        ctx.fillRect(x, 0, 1, size);
+      }
+      for (let i = 0; i < 180; i++) {
+        ctx.strokeStyle = `rgba(255,210,130,${0.035 + Math.random() * 0.07})`;
+        ctx.lineWidth = 0.5 + Math.random() * 1.5;
+        const x = Math.random() * size;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.bezierCurveTo(x + Math.random() * 35 - 18, size * 0.33, x + Math.random() * 35 - 18, size * 0.66, x + Math.random() * 20 - 10, size); ctx.stroke();
+      }
+    }, [2, 1]);
+  }
+
+  function patchMaterialShader(material, mode) {
+    if (material.userData.ultraShaderPatched) return;
+    material.userData.ultraShaderPatched = true;
+    material.onBeforeCompile = shader => {
+      shader.uniforms.uUltraTime = runtime.shaderUniforms.time;
+      shader.uniforms.uSkinWarmth = runtime.shaderUniforms.skinWarmth;
+      shader.uniforms.uFabricDepth = runtime.shaderUniforms.fabricDepth;
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <common>',
+        `#include <common>\nuniform float uUltraTime;\nuniform float uSkinWarmth;\nuniform float uFabricDepth;\nfloat ultraHash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }`
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <dithering_fragment>',
+        `
+        #include <dithering_fragment>
+        vec2 ultraUv = gl_FragCoord.xy * 0.5;
+        float grain = ultraHash(ultraUv + uUltraTime * 0.04) - 0.5;
+        ${mode === 'skin' ? 'gl_FragColor.rgb += vec3(0.030, 0.010, 0.006) * uSkinWarmth + grain * 0.012;' : ''}
+        ${mode === 'fabric' ? 'gl_FragColor.rgb += grain * 0.018; gl_FragColor.rgb *= 0.94 + uFabricDepth * 0.08;' : ''}
+        ${mode === 'hair' ? 'gl_FragColor.rgb += vec3(0.06,0.035,0.01) * abs(sin(ultraUv.y * 0.035 + uUltraTime)); gl_FragColor.rgb += grain * 0.01;' : ''}
+        `
+      );
+    };
+    material.customProgramCacheKey = () => `ether-character-ultra-${mode}-3`;
+  }
+
+  function enhanceMaterials() {
+    M.skin.map = createSkinAlbedo();
+    M.skin.bumpMap = createSkinBump();
+    M.skin.bumpScale = 0.0085;
+    M.skin.roughnessMap = createRoughnessMap('skin-rough-ultra', 178);
+    M.skin.envMapIntensity = 0.12;
+    patchMaterialShader(M.skin, 'skin');
+
+    M.hair.map = createHairTexture();
+    M.hair.bumpMap = createHairTexture();
+    M.hair.bumpScale = 0.018;
+    M.hair.roughness = 0.72;
+    patchMaterialShader(M.hair, 'hair');
+
+    M.top.map = createFabricTexture('top-fabric-ultra', '#15182a', '#2a3050');
+    M.top.bumpMap = M.top.map;
+    M.top.bumpScale = 0.016;
+    M.top.roughnessMap = createRoughnessMap('top-rough-ultra', 205);
+    patchMaterialShader(M.top, 'fabric');
+
+    M.bot.map = createFabricTexture('pants-fabric-ultra', '#101622', '#1e3148');
+    M.bot.bumpMap = M.bot.map;
+    M.bot.bumpScale = 0.012;
+    M.bot.roughnessMap = createRoughnessMap('pants-rough-ultra', 215);
+    patchMaterialShader(M.bot, 'fabric');
+
+    M.shoe.map = createFabricTexture('shoe-leather-ultra', '#0c0c0d', '#202026');
+    M.shoe.bumpMap = M.shoe.map;
+    M.shoe.bumpScale = 0.01;
+    M.shoe.roughnessMap = createRoughnessMap('shoe-rough-ultra', 160);
+    M.shoe.envMapIntensity = 0.35;
+    patchMaterialShader(M.shoe, 'fabric');
+
+    Object.values(M).forEach(mat => {
+      if (mat && mat.isMaterial) mat.needsUpdate = true;
+    });
+  }
+
+  function clearUltraChildren() {
+    const doomed = [];
+    charGroup.traverse(child => {
+      if (child.userData && child.userData.ultraDetail) doomed.push(child);
+    });
+    doomed.forEach(child => {
+      if (child.parent) child.parent.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(m => m.dispose && m.dispose());
+      }
+    });
+  }
+
+  function addMicroDetailMeshes() {
+    clearUltraChildren();
+    const dna = computeDNA();
+    const freckleMat = new THREE.MeshBasicMaterial({ color: 0x5d2d20, transparent: true, opacity: 0.34, depthWrite: false });
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false });
+    const seamMat = new THREE.MeshStandardMaterial({ color: 0x05070d, roughness: 0.8, metalness: 0.0 });
+
+    const freckleGeo = new THREE.SphereGeometry(0.0035, 5, 4);
+    const count = 54 + (dna.rarity % 40);
+    for (let i = 0; i < count; i++) {
+      const side = Math.random() > 0.5 ? 1 : -1;
+      const x = side * (0.012 + Math.random() * 0.092);
+      const y = 1.618 + Math.random() * 0.09;
+      const z = 0.145 + Math.random() * 0.014;
+      const dot = new THREE.Mesh(freckleGeo, freckleMat);
+      dot.position.set(x, y, z);
+      dot.scale.setScalar(0.55 + Math.random() * 1.1);
+      dot.userData.ultraDetail = true;
+      charGroup.add(dot);
+    }
+
+    for (let i = 0; i < 3; i++) {
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.29, 0.006), seamMat);
+      seam.position.set(-0.12 + i * 0.12, 1.26, 0.126);
+      seam.userData.ultraDetail = true;
+      charGroup.add(seam);
+    }
+
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.006, 6, 48, Math.PI * 1.12), seamMat);
+    collar.position.set(0, 1.48, 0.02);
+    collar.rotation.x = Math.PI / 2;
+    collar.userData.ultraDetail = true;
+    charGroup.add(collar);
+
+    const aura = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.006, 6, 96), glowMat);
+    aura.position.set(0, 1.15, 0);
+    aura.rotation.x = Math.PI / 2;
+    aura.userData.ultraDetail = true;
+    charGroup.add(aura);
+  }
+
+  function addSceneAura() {
+    if (runtime.aura) return;
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false });
+    runtime.aura = new THREE.Group();
+    runtime.aura.name = 'EtherCharacterUltraAura';
+    for (let i = 0; i < 5; i++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.15 + i * 0.22, 0.006, 6, 128), ringMat.clone());
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.08 + i * 0.008;
+      runtime.aura.add(ring);
+    }
+    scene.add(runtime.aura);
+  }
+
+  function injectUltraHUD() {
+    if (runtime.hud) return;
+    const style = document.createElement('style');
+    style.textContent = `
+      .cc-ultra-hud{position:absolute;left:14px;bottom:82px;z-index:4;pointer-events:none;border:1px solid rgba(125,211,252,.18);background:rgba(4,8,16,.72);backdrop-filter:blur(10px);border-radius:10px;padding:10px 12px;min-width:220px;box-shadow:0 0 28px rgba(0,212,255,.08)}
+      .cc-ultra-hud-title{font:700 10px var(--font3);letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:7px}
+      .cc-ultra-hud-row{display:flex;justify-content:space-between;gap:12px;font:700 10px var(--font2);letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:4px}
+      .cc-ultra-hud-row strong{color:var(--gold);font-family:var(--font3);font-size:10px}
+      .cc-ultra-quality{color:var(--green)!important}
+    `;
+    document.head.appendChild(style);
+    runtime.hud = document.createElement('div');
+    runtime.hud.className = 'cc-ultra-hud';
+    const vp = document.querySelector('.cc-viewport');
+    if (vp) vp.appendChild(runtime.hud);
+  }
+
+  function computeDNA() {
+    const raw = [
+      S.name, S.gender, S.nationality, S.skin, S.faceShape, S.eyeColor,
+      S.noseBridge, S.noseSize, S.faceWidth, S.cheekH, S.jawWidth,
+      S.eyeSize, S.eyeSpacing, S.lipSize, S.hairStyle, S.hairColor,
+      S.facialHair, S.bodyType, S.height, S.muscular, S.fatness,
+      S.topStyle, S.topColor, S.pantsStyle, S.pantsColor, S.shoesStyle,
+      S.shoesColor, S.glassesStyle, S.hatStyle, S.jewelryStyle
+    ].join('|');
+    const code = hashString(raw);
+    const balance = 100 - Math.abs(50 - safeNumber(S.height)) * 0.35 - Math.abs(45 - safeNumber(S.muscular)) * 0.2 - Math.abs(35 - safeNumber(S.fatness)) * 0.18;
+    const styleScore = 45 + (S.glassesStyle > 0 ? 10 : 0) + (S.hatStyle > 0 ? 8 : 0) + (S.jewelryStyle > 0 ? 8 : 0) + ((S.topColor !== S.pantsColor) ? 12 : 4);
+    const renderScore = clamp(Math.round(balance * 0.55 + styleScore * 0.45), 1, 100);
+    const rarity = parseInt(code.slice(0, 4), 16) % 1000;
+    runtime.lastDNA = { code, renderScore, rarity, balance: Math.round(balance), styleScore: Math.round(styleScore) };
+    return runtime.lastDNA;
+  }
+
+  function updateHUD() {
+    injectUltraHUD();
+    const dna = runtime.lastDNA || computeDNA();
+    if (!runtime.hud) return;
+    runtime.hud.innerHTML = `
+      <div class="cc-ultra-hud-title">ULTRA LOCAL AI RENDER</div>
+      <div class="cc-ultra-hud-row"><span>DNA</span><strong>${dna.code}</strong></div>
+      <div class="cc-ultra-hud-row"><span>Graphique</span><strong>${dna.renderScore}%</strong></div>
+      <div class="cc-ultra-hud-row"><span>Rareté</span><strong>${dna.rarity}/999</strong></div>
+      <div class="cc-ultra-hud-row"><span>FPS</span><strong class="cc-ultra-quality">${Math.round(runtime.fps)}</strong></div>
+    `;
+  }
+
+  function enhanceCharacter() {
+    if (!runtime.enabled) return;
+    enhanceMaterials();
+    addSceneAura();
+    addMicroDetailMeshes();
+    computeDNA();
+    updateHUD();
+  }
+
+  function adaptQuality() {
+    const t = performance.now();
+    runtime.frameCount++;
+    if (t - runtime.lastFpsAt > 1000) {
+      runtime.fps = runtime.frameCount * 1000 / (t - runtime.lastFpsAt);
+      runtime.frameCount = 0;
+      runtime.lastFpsAt = t;
+      updateHUD();
+    }
+    if (t - runtime.lastAdaptAt > 2800) {
+      runtime.lastAdaptAt = t;
+      if (runtime.fps < 34 && runtime.quality !== 'balanced') {
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.15));
+        runtime.quality = 'balanced';
+        addLog('⚙️ Ultra AI: qualité adaptée pour stabilité FPS', 'warn');
+      } else if (runtime.fps > 54 && runtime.quality !== 'ultra') {
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        runtime.quality = 'ultra';
+        addLog('✨ Ultra AI: qualité visuelle restaurée', 'success');
+      }
+    }
+    runtime.shaderUniforms.time.value = clock.getElapsedTime();
+    if (runtime.aura) {
+      runtime.aura.rotation.y += 0.0018;
+      runtime.aura.children.forEach((ring, i) => {
+        ring.material.opacity = 0.07 + Math.sin(clock.getElapsedTime() * 1.2 + i) * 0.025;
+      });
+    }
+    requestAnimationFrame(adaptQuality);
+  }
+
+  function wrapCoreFunctions() {
+    if (runtime.original.wrapped) return;
+    runtime.original.wrapped = true;
+    runtime.original.buildCharacter = buildCharacter;
+    runtime.original.applyColors = applyColors;
+    runtime.original.buildExportPayload = buildExportPayload;
+
+    buildCharacter = function ultraBuildCharacterWrapper(...args) {
+      const result = runtime.original.buildCharacter.apply(this, args);
+      enhanceCharacter();
+      return result;
+    };
+
+    applyColors = function ultraApplyColorsWrapper(...args) {
+      const result = runtime.original.applyColors.apply(this, args);
+      enhanceMaterials();
+      computeDNA();
+      updateHUD();
+      return result;
+    };
+
+    buildExportPayload = function ultraBuildExportPayloadWrapper(...args) {
+      const payload = runtime.original.buildExportPayload.apply(this, args);
+      return {
+        ...payload,
+        _ultra_version: runtime.version,
+        _ultra_graphics: {
+          quality: runtime.quality,
+          localAI: true,
+          proceduralTextures: Array.from(runtime.textures.keys()),
+          dna: computeDNA()
+        }
+      };
+    };
+  }
+
+  function analyze() {
+    const dna = computeDNA();
+    return {
+      version: runtime.version,
+      dna,
+      state: { ...S },
+      quality: runtime.quality,
+      materials: Object.keys(M),
+      textures: Array.from(runtime.textures.keys()),
+      suggestions: [
+        dna.renderScore < 70 ? 'Augmenter harmonie outfit/accessoires' : 'Profil visuel très solide',
+        S.jewelryStyle === 0 ? 'Ajouter bijou subtil pour silhouette premium' : 'Accessoires bien intégrés',
+        S.hairStyle === 8 ? 'Mode bald propre; ajouter lunettes ou collier pour signature' : 'Cheveux avec shader fibres actif'
+      ]
+    };
+  }
+
+  function autoEnhanceProfile() {
+    if (S.jewelryStyle === 0) S.jewelryStyle = 1;
+    if (S.glassesStyle === 0 && Math.random() > 0.5) S.glassesStyle = 2;
+    S.muscular = clamp(Math.round((S.muscular + 52) / 2), 10, 90);
+    S.fatness = clamp(Math.round((S.fatness + 32) / 2), 10, 90);
+    rebuildAll();
+    buildCharacter();
+    applyColors();
+    updateSummary();
+    addLog('🧠 Ultra AI: profil optimisé localement', 'success');
+    return analyze();
+  }
+
+  function install() {
+    wrapCoreFunctions();
+    enhanceMaterials();
+    enhanceCharacter();
+    injectUltraHUD();
+    addLog('🚀 Character Ultra AI v3.0 — shaders, pores, tissus, DNA local actifs', 'success');
+    window.EtherCharacterAI = {
+      version: runtime.version,
+      analyze,
+      enhance: autoEnhanceProfile,
+      setQuality(mode = 'ultra') {
+        runtime.quality = mode;
+        renderer.setPixelRatio(mode === 'performance' ? 1 : Math.min(window.devicePixelRatio, 2));
+        updateHUD();
+        return analyze();
+      },
+      exportDNA: () => computeDNA(),
+      state: S
+    };
+    requestAnimationFrame(adaptQuality);
+  }
+
+  return { install, analyze, enhanceCharacter, computeDNA, runtime };
+})();
+
+EtherCharacterUltra.install();

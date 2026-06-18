@@ -1,125 +1,164 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr-CA">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="EtherWorld Platform Tester 3D — jeu de plateformes 3D multijoueur avec éditeur de niveaux, génération procédurale, sauvegarde, export GLTF et administration TroxT.">
+  <meta name="application-name" content="EtherWorld Platform Tester 3D">
+  <meta name="theme-color" content="#050810">
+  <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex, nofollow">
+
   <title>EtherWorld Platform Tester 3D</title>
+
+  <!-- Performance: résolution anticipée des CDN utilisés par l'import map -->
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+
+  <!-- Chargement UI principal -->
   <link rel="stylesheet" href="styles.css">
+  <link rel="modulepreload" href="game.js">
 </head>
-<body>
+<body data-app="etherworld-platform-tester-3d">
+  <noscript>
+    <div style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#050810;color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:24px;">
+      EtherWorld Platform Tester 3D nécessite JavaScript pour lancer le moteur Three.js, le multijoueur et le panneau admin.
+    </div>
+  </noscript>
+
+  <h1 id="game-title" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;">
+    EtherWorld Platform Tester 3D
+  </h1>
+
   <!-- HUD -->
-  <div id="hud">
-    <div id="hud-top-left">
-      <div id="player-info">
-        <span id="player-name">Player</span>
-        <span id="player-pos">[0, 0, 0]</span>
+  <main id="game-shell" aria-labelledby="game-title">
+    <section id="hud" aria-label="Interface de jeu">
+      <div id="hud-top-left" aria-label="Statut du joueur et performance">
+        <div id="player-info" aria-live="polite">
+          <span id="player-name">Player</span>
+          <span id="player-pos">[0, 0, 0]</span>
+        </div>
+        <div id="fps-counter" aria-live="polite">FPS: 60</div>
+        <div id="player-count" aria-live="polite">Players: 1</div>
       </div>
-      <div id="fps-counter">FPS: 60</div>
-      <div id="player-count">Players: 1</div>
-    </div>
 
-    <div id="hud-top-right">
-      <button id="btn-editor" class="hud-btn" title="Level Editor (E)">🔧 Editor</button>
-      <button id="btn-generate" class="hud-btn" title="Generate New Level">🎲 Generate</button>
-      <button id="btn-save" class="hud-btn" title="Save Level">💾 Save</button>
-      <button id="btn-load" class="hud-btn" title="Load Level">📂 Load</button>
-      <button id="btn-export" class="hud-btn" title="Export GLTF">📤 Export</button>
-      <button id="btn-import" class="hud-btn" title="Import GLTF">📥 Import</button>
-    </div>
+      <nav id="hud-top-right" aria-label="Actions rapides">
+        <button id="btn-editor" class="hud-btn" type="button" title="Level Editor (E)" aria-label="Open level editor">🔧 Editor</button>
+        <button id="btn-generate" class="hud-btn" type="button" title="Generate New Level" aria-label="Generate new level">🎲 Generate</button>
+        <button id="btn-save" class="hud-btn" type="button" title="Save Level" aria-label="Save current level">💾 Save</button>
+        <button id="btn-load" class="hud-btn" type="button" title="Load Level" aria-label="Load saved level">📂 Load</button>
+        <button id="btn-export" class="hud-btn" type="button" title="Export GLTF" aria-label="Export level as GLTF">📤 Export</button>
+        <button id="btn-import" class="hud-btn" type="button" title="Import GLTF" aria-label="Import GLTF or JSON level">📥 Import</button>
+      </nav>
 
-    <div id="crosshair">+</div>
+      <div id="crosshair" aria-hidden="true">+</div>
 
-    <div id="hud-bottom">
-      <div id="controls-hint">
-        WASD: Move | SPACE: Jump | SHIFT: Sprint | E: Editor | MOUSE: Look | ESC: Release
+      <div id="hud-bottom" aria-label="Contrôles">
+        <div id="controls-hint">
+          WASD: Move | SPACE: Jump | SHIFT: Sprint | E: Editor | MOUSE: Look | ESC: Release
+        </div>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <!-- Panneau Éditeur -->
-  <div id="editor-panel" class="panel hidden">
+  <section id="editor-panel" class="panel hidden" role="dialog" aria-modal="false" aria-labelledby="editor-title">
     <div class="panel-header">
-      <h2>🔧 Level Editor</h2>
-      <button id="editor-close" class="close-btn">✕</button>
+      <h2 id="editor-title">🔧 Level Editor</h2>
+      <button id="editor-close" class="close-btn" type="button" aria-label="Close level editor">✕</button>
     </div>
+
     <div class="panel-body">
-      <div class="editor-section">
-        <h3>Add Platform</h3>
-        <label>Type:
-          <select id="ed-type">
-            <option value="static">Static</option>
-            <option value="moving">Moving</option>
-            <option value="falling">Falling</option>
-            <option value="bouncy">Bouncy</option>
-            <option value="rotating">Rotating</option>
-          </select>
-        </label>
-        <label>Color: <input type="color" id="ed-color" value="#6688cc"></label>
-        <div class="vector-input">
+      <section class="editor-section" aria-labelledby="add-platform-title">
+        <h3 id="add-platform-title">Add Platform</h3>
+
+        <label for="ed-type">Type:</label>
+        <select id="ed-type" aria-label="Platform type">
+          <option value="static">Static</option>
+          <option value="moving">Moving</option>
+          <option value="falling">Falling</option>
+          <option value="bouncy">Bouncy</option>
+          <option value="rotating">Rotating</option>
+        </select>
+
+        <label for="ed-color">Color:</label>
+        <input type="color" id="ed-color" value="#6688cc" aria-label="Platform color">
+
+        <div class="vector-input" role="group" aria-label="Platform position">
           <label>Position:</label>
-          <input type="number" id="ed-px" value="0" step="0.5">
-          <input type="number" id="ed-py" value="5" step="0.5">
-          <input type="number" id="ed-pz" value="0" step="0.5">
+          <input type="number" id="ed-px" value="0" step="0.5" inputmode="decimal" aria-label="Position X">
+          <input type="number" id="ed-py" value="5" step="0.5" inputmode="decimal" aria-label="Position Y">
+          <input type="number" id="ed-pz" value="0" step="0.5" inputmode="decimal" aria-label="Position Z">
         </div>
-        <div class="vector-input">
+
+        <div class="vector-input" role="group" aria-label="Platform size">
           <label>Size:</label>
-          <input type="number" id="ed-sx" value="3" step="0.5" min="0.5">
-          <input type="number" id="ed-sy" value="0.4" step="0.1" min="0.1">
-          <input type="number" id="ed-sz" value="3" step="0.5" min="0.5">
+          <input type="number" id="ed-sx" value="3" step="0.5" min="0.5" inputmode="decimal" aria-label="Size X">
+          <input type="number" id="ed-sy" value="0.4" step="0.1" min="0.1" inputmode="decimal" aria-label="Size Y">
+          <input type="number" id="ed-sz" value="3" step="0.5" min="0.5" inputmode="decimal" aria-label="Size Z">
         </div>
-        <button id="ed-add" class="editor-btn">➕ Add Platform</button>
-      </div>
 
-      <div class="editor-section">
-        <h3>Selection</h3>
-        <div id="ed-selection-info">Click a platform to select it</div>
-        <button id="ed-delete" class="editor-btn danger" disabled>🗑️ Delete Selected</button>
-      </div>
+        <button id="ed-add" class="editor-btn" type="button">➕ Add Platform</button>
+      </section>
 
-      <div class="editor-section">
-        <h3>Procedural Generation</h3>
-        <label>Seed: <input type="number" id="ed-seed" value="42"></label>
-        <label>Count: <input type="number" id="ed-count" value="30" min="5" max="200"></label>
-        <button id="ed-generate" class="editor-btn">🎲 Generate</button>
-      </div>
+      <section class="editor-section" aria-labelledby="selection-title">
+        <h3 id="selection-title">Selection</h3>
+        <div id="ed-selection-info" aria-live="polite">Click a platform to select it</div>
+        <button id="ed-delete" class="editor-btn danger" type="button" disabled>🗑️ Delete Selected</button>
+      </section>
 
-      <div class="editor-section">
-        <h3>Platform List</h3>
-        <div id="ed-platform-list" class="platform-list"></div>
-      </div>
+      <section class="editor-section" aria-labelledby="procedural-title">
+        <h3 id="procedural-title">Procedural Generation</h3>
+
+        <label for="ed-seed">Seed:</label>
+        <input type="number" id="ed-seed" value="42" inputmode="numeric" aria-label="Generation seed">
+
+        <label for="ed-count">Count:</label>
+        <input type="number" id="ed-count" value="30" min="5" max="200" inputmode="numeric" aria-label="Platform count">
+
+        <button id="ed-generate" class="editor-btn" type="button">🎲 Generate</button>
+      </section>
+
+      <section class="editor-section" aria-labelledby="platform-list-title">
+        <h3 id="platform-list-title">Platform List</h3>
+        <div id="ed-platform-list" class="platform-list" aria-live="polite"></div>
+      </section>
     </div>
-  </div>
+  </section>
 
   <!-- Panneau Sauvegarde/Chargement -->
-  <div id="save-panel" class="panel hidden">
+  <section id="save-panel" class="panel hidden" role="dialog" aria-modal="false" aria-labelledby="save-title">
     <div class="panel-header">
-      <h2>💾 Save / Load</h2>
-      <button id="save-close" class="close-btn">✕</button>
+      <h2 id="save-title">💾 Save / Load</h2>
+      <button id="save-close" class="close-btn" type="button" aria-label="Close save and load panel">✕</button>
     </div>
+
     <div class="panel-body">
-      <div class="editor-section">
-        <h3>Save Current Level</h3>
-        <label>Name: <input type="text" id="save-name" value="my_level" maxlength="50"></label>
-        <button id="save-confirm" class="editor-btn">💾 Save</button>
-      </div>
-      <div class="editor-section">
-        <h3>Saved Levels</h3>
-        <div id="saves-list"></div>
-      </div>
+      <section class="editor-section" aria-labelledby="save-current-title">
+        <h3 id="save-current-title">Save Current Level</h3>
+        <label for="save-name">Name:</label>
+        <input type="text" id="save-name" value="my_level" maxlength="50" autocomplete="off" spellcheck="false" aria-label="Save name">
+        <button id="save-confirm" class="editor-btn" type="button">💾 Save</button>
+      </section>
+
+      <section class="editor-section" aria-labelledby="saved-levels-title">
+        <h3 id="saved-levels-title">Saved Levels</h3>
+        <div id="saves-list" aria-live="polite"></div>
+      </section>
     </div>
-  </div>
+  </section>
 
   <!-- Chat -->
-  <div id="chat-container">
-    <div id="chat-messages"></div>
-    <input type="text" id="chat-input" placeholder="Press T to chat..." maxlength="200">
-  </div>
+  <section id="chat-container" aria-label="Chat multijoueur">
+    <div id="chat-messages" aria-live="polite" aria-relevant="additions text"></div>
+    <input type="text" id="chat-input" placeholder="Press T to chat..." maxlength="200" autocomplete="off" spellcheck="true" aria-label="Chat message">
+  </section>
 
   <!-- Notifications -->
-  <div id="notifications"></div>
+  <div id="notifications" role="status" aria-live="polite" aria-relevant="additions text"></div>
 
   <!-- Import file input caché -->
-  <input type="file" id="import-file" accept=".gltf,.json" style="display:none">
+  <input type="file" id="import-file" accept=".gltf,.json,model/gltf+json,application/json" style="display:none" aria-hidden="true">
 
   <!-- Three.js et Cannon-ES via CDN -->
   <script type="importmap">
@@ -131,7 +170,13 @@
     }
   }
   </script>
+
   <script type="module" src="game.js"></script>
   <script src="admin.js"></script>
+  <script src="admin-troxt-enhanced.js"></script>
+  <script type="module" src="ether-particles.js"></script>
+  <script type="module" src="ether-city-buildings.js"></script>
+  <script type="module" src="etherglue/main.js"></script>
+  <script type="module" src="ether-materials.js"></script>
 </body>
 </html>

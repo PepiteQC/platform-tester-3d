@@ -161,7 +161,9 @@ export class TroxTBrain {
     const episodeId = this.episodic.record({
       type: frame.modality,
       source: frame.source,
-      content: frame.payload,
+      content: typeof frame.payload === 'string'
+        ? frame.payload
+        : JSON.stringify(frame.payload, null, 2) ?? String(frame.payload),
       timestamp: frame.timestamp,
       valence: this.estimateValence(frame),
       importance: frame.urgency

@@ -213,7 +213,7 @@ export class ReasoningEngine {
   private matchSkills(
     intent: { verb: string; object: string },
     skills: { id: string; description: string; params: string[] }[]
-  ): { id: string; score: number }[] {
+  ): { id: string; score: number; params: string[] }[] {
     const scored = skills.map(s => {
       const desc = s.description.toLowerCase()
       let score = 0
@@ -233,7 +233,7 @@ export class ReasoningEngine {
       if (intent.object.includes('weave') && s.id.includes('weave')) score += 0.3
       if (intent.object.includes('world') && s.id.includes('world')) score += 0.3
 
-      return { id: s.id, score: Math.min(1, score) }
+      return { id: s.id, score: Math.min(1, score), params: s.params }
     }).filter(s => s.score > 0.35).sort((a, b) => b.score - a.score)
 
     return scored.slice(0, 3) // Top 3
