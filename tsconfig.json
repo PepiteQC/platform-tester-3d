@@ -17,7 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@blinkdotnew/ui": ["src/mocks/blinkdotnew-ui.ts"]
     }
   },
   "include": ["src"],

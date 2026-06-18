@@ -9,9 +9,9 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': 'http://localhost:4100',
+      '/api': 'http://localhost:5000',
       '/socket': {
-        target: 'ws://localhost:4100',
+        target: 'ws://localhost:5000',
         ws: true
       }
     }
@@ -27,7 +27,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': '/src'
+      '@': '/src',
+      '@blinkdotnew/ui': '/src/mocks/blinkdotnew-ui.ts'
     }
   }
 })
