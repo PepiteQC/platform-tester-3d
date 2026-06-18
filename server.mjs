@@ -12,7 +12,7 @@ const app    = express();
 const server = createServer(app);
 const wss    = new WebSocketServer({ server });
 
-const PORT          = 4100;
+const PORT          = process.env.PORT || 5000;
 const SAVES_DIR     = path.join(__dirname, 'saves');
 const SNAPSHOTS_DIR = path.join(__dirname, 'snapshots');
 const LOGS_FILE     = path.join(__dirname, 'server_logs.json');
