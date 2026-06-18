@@ -3,9 +3,9 @@
 // ============================================================
 
 // TODO: Import React + ReactDOM
-// import React from 'react'
-// import ReactDOM from 'react-dom/client'
-// import { App } from './App'
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { App } from './App'
 
 // TODO: Importer le core
 import { troxt } from './agents/troxt'
@@ -37,10 +37,13 @@ async function bootstrap() {
   console.log('💾 Memory — Initialisée')
 
   // TODO: Monter l'app React
-  // const root = ReactDOM.createRoot(document.getElementById('root')!)
-  // root.render(<App />)
-
-  console.log('✅ EtherWorld — Prêt')
+  const root = ReactDOM.createRoot(document.getElementById('root')!)
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  )
+  console.log('✅ React monté — EtherWorld — Prêt')
 }
 
 bootstrap().catch(console.error)
