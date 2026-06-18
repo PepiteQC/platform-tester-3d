@@ -480,6 +480,18 @@
       <button class="cc-quick-btn alt" id="btn-random">🎲 Personnage aléatoire</button>
       <button class="cc-quick-btn" id="btn-reset">↺ Réinitialiser</button>
     </div>
+
+    <div class="cc-export-strip">
+      <button class="cc-export-btn" id="btn-export-json">
+        <span class="export-icon">⬇</span>JSON
+      </button>
+      <button class="cc-export-btn share" id="btn-share-link">
+        <span class="export-icon">🔗</span>Partager
+      </button>
+      <button class="cc-export-btn" id="btn-export-modal">
+        <span class="export-icon">⬡</span>Export…
+      </button>
+    </div>
   </aside>
 </main>
 
@@ -505,6 +517,70 @@
     <button class="cc-btn cc-btn-confirm">✓ Créer le personnage</button>
   </div>
 </footer>
+
+<!-- ═══ EXPORT MODAL ═══ -->
+<div class="cc-export-modal" id="export-modal">
+  <div class="cc-export-modal-inner">
+    <div class="cc-export-modal-header">
+      <div class="cc-export-modal-title">
+        <span class="export-modal-icon">⬡</span>
+        <span>Export &amp; Partage</span>
+      </div>
+      <button class="cc-export-close" id="btn-export-close">✕</button>
+    </div>
+
+    <div class="cc-export-preview">
+      <div class="export-preview-name" id="export-preview-name">NOUVEAU_PERSO</div>
+      <div class="export-preview-id" id="export-preview-id">EW-000000</div>
+      <div class="export-preview-tags" id="export-preview-tags">
+        <span class="exp-tag">♂ Masculin</span>
+        <span class="exp-tag">Regular</span>
+        <span class="exp-tag">T-Shirt</span>
+      </div>
+    </div>
+
+    <div class="cc-export-options">
+
+      <div class="cc-export-option" id="opt-json">
+        <div class="exp-opt-icon">📄</div>
+        <div class="exp-opt-info">
+          <div class="exp-opt-title">Télécharger JSON</div>
+          <div class="exp-opt-desc">Toutes les données du personnage — réimportable</div>
+        </div>
+        <button class="exp-opt-btn" id="btn-dl-json">⬇ JSON</button>
+      </div>
+
+      <div class="cc-export-option" id="opt-share">
+        <div class="exp-opt-icon">🔗</div>
+        <div class="exp-opt-info">
+          <div class="exp-opt-title">Lien de partage</div>
+          <div class="exp-opt-desc">URL encodée — restaure le personnage à l'ouverture</div>
+        </div>
+        <button class="exp-opt-btn share" id="btn-copy-link">📋 Copier</button>
+      </div>
+
+      <div class="cc-export-option" id="opt-code">
+        <div class="exp-opt-icon">{ }</div>
+        <div class="exp-opt-info">
+          <div class="exp-opt-title">Code JSON</div>
+          <div class="exp-opt-desc">Visualiser et copier les données brutes</div>
+        </div>
+        <button class="exp-opt-btn" id="btn-toggle-raw">👁 Voir</button>
+      </div>
+
+    </div>
+
+    <div class="cc-export-raw" id="export-raw-box" style="display:none">
+      <pre id="export-raw-pre"></pre>
+    </div>
+
+    <div class="cc-export-toast" id="export-toast"></div>
+
+    <div class="cc-export-footer-note">
+      TroxT Neural Core · EtherWorld Character Format v2.0
+    </div>
+  </div>
+</div>
 
 <!-- ═══ MODAL ═══ -->
 <div class="cc-modal-overlay">

@@ -1979,3 +1979,171 @@ document.getElementById('btn-procedural')?.addEventListener('click', () => {
   switchToProcedural();
   document.getElementById('btn-xbot')?.classList.remove('active');
 });
+
+// ════════════════════════════════════════════════════════════
+//  EXPORT & SHARE SYSTEM
+//  JSON download · URL share link · Raw code viewer
+//  URL hash format: #char=<base64(JSON)>
+// ════════════════════════════════════════════════════════════
+
+const exportModal    = document.getElementById('export-modal');
+const exportToast    = document.getElementById('export-toast');
+const exportRawBox   = document.getElementById('export-raw-box');
+const exportRawPre   = document.getElementById('export-raw-pre');
+let   rawVisible     = false;
+let   toastTimer     = null;
+
+// ── BUILD EXPORT PAYLOAD ──────────────────────────────────────
+function buildExportPayload() {
+  const { step: _s, ...charData } = S;      // omit UI step
+  return {
+    _ew_version: '2.0',
+    _exported:   new Date().toISOString(),
+    _server:     'EtherWorld RP',
+    character:   charData,
+    glbMode:     glbMode,
+    baseAction:  baseActionName,
+  };
+}
+
+// ── SHOW TOAST ────────────────────────────────────────────────
+function showExportToast(msg, isError = false) {
+  if (!exportToast) return;
+  exportToast.textContent = msg;
+  exportToast.className   = 'cc-export-toast visible' + (isError ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { exportToast.className = 'cc-export-toast'; }, 2800);
+}
+
+// ── UPDATE MODAL PREVIEW ──────────────────────────────────────
+function updateExportPreview() {
+  const el = document.getElementById('export-preview-name');
+  const id = document.getElementById('export-preview-id');
+  const tags = document.getElementById('export-preview-tags');
+  if (el) el.textContent = S.name || 'NOUVEAU_PERSO';
+  if (id) id.textContent = `EW-${String(Date.now()).slice(-6)} · EtherWorld RP`;
+  if (tags) {
+    const FACE_SHAPES = ['Regular', 'Ovale', 'Carré', 'Oblong', 'Coeur', 'Losange'];
+    const TOPS = ['Débardeur','T-Shirt','Chemise','Hoodie','Veste','Manteau','Costume','No Top'];
+    const tagList = [
+      S.gender === 'male' ? '♂ Masculin' : '♀ Féminin',
+      FACE_SHAPES[S.faceShape] || 'Regular',
+      TOPS[S.topStyle] || 'T-Shirt',
+      glbMode ? '⬡ GLB Animé' : '⚙ Procédural',
+    ];
+    tags.innerHTML = tagList.map(t => `<span class="exp-tag">${t}</span>`).join('');
+  }
+}
+
+// ── OPEN / CLOSE EXPORT MODAL ─────────────────────────────────
+function openExportModal() {
+  updateExportPreview();
+  rawVisible = false;
+  if (exportRawBox) exportRawBox.style.display = 'none';
+  const btn = document.getElementById('btn-toggle-raw');
+  if (btn) btn.textContent = '👁 Voir';
+  if (exportToast) exportToast.className = 'cc-export-toast';
+  exportModal?.classList.add('visible');
+  addLog('📤 Panneau Export ouvert', '');
+}
+function closeExportModal() { exportModal?.classList.remove('visible'); }
+
+document.getElementById('btn-export-modal')?.addEventListener('click', openExportModal);
+document.getElementById('btn-export-close')?.addEventListener('click', closeExportModal);
+exportModal?.addEventListener('click', (e) => { if (e.target === exportModal) closeExportModal(); });
+
+// ── JSON DOWNLOAD ─────────────────────────────────────────────
+function downloadJSON() {
+  const payload  = buildExportPayload();
+  const jsonStr  = JSON.stringify(payload, null, 2);
+  const blob     = new Blob([jsonStr], { type: 'application/json' });
+  const url      = URL.createObjectURL(blob);
+  const a        = document.createElement('a');
+  const safeName = (S.name || 'perso').replace(/[^a-z0-9_-]/gi, '_');
+  a.href     = url;
+  a.download = `ew_char_${safeName}_${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showExportToast('✅ Fichier JSON téléchargé !');
+  addLog(`💾 Export JSON : ew_char_${safeName}.json`, 'success');
+}
+
+document.getElementById('btn-export-json')?.addEventListener('click', downloadJSON);
+document.getElementById('btn-dl-json')?.addEventListener('click',      downloadJSON);
+
+// ── SHARE LINK ────────────────────────────────────────────────
+function buildShareURL() {
+  const payload  = buildExportPayload();
+  const encoded  = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  const baseURL  = window.location.origin + window.location.pathname;
+  return `${baseURL}#char=${encoded}`;
+}
+
+async function copyShareLink() {
+  const shareURL = buildShareURL();
+  const btn = document.getElementById('btn-copy-link');
+  try {
+    await navigator.clipboard.writeText(shareURL);
+    if (btn) { btn.textContent = '✅ Copié !'; btn.classList.add('copied'); }
+    showExportToast('🔗 Lien copié dans le presse-papier !');
+    addLog('🔗 Lien de partage copié', 'success');
+    setTimeout(() => {
+      if (btn) { btn.textContent = '📋 Copier'; btn.classList.remove('copied'); }
+    }, 2500);
+  } catch (_) {
+    // Fallback: show URL in prompt
+    prompt('Copier ce lien :', shareURL);
+    showExportToast('🔗 Lien généré — copiez depuis la boîte', '');
+  }
+}
+
+document.getElementById('btn-share-link')?.addEventListener('click', () => { openExportModal(); copyShareLink(); });
+document.getElementById('btn-copy-link')?.addEventListener('click',  copyShareLink);
+
+// ── RAW JSON VIEWER ───────────────────────────────────────────
+document.getElementById('btn-toggle-raw')?.addEventListener('click', () => {
+  rawVisible = !rawVisible;
+  if (!exportRawBox || !exportRawPre) return;
+  if (rawVisible) {
+    const payload = buildExportPayload();
+    exportRawPre.textContent = JSON.stringify(payload, null, 2);
+    exportRawBox.style.display = 'block';
+    document.getElementById('btn-toggle-raw').textContent = '✕ Fermer';
+  } else {
+    exportRawBox.style.display = 'none';
+    document.getElementById('btn-toggle-raw').textContent = '👁 Voir';
+  }
+});
+
+// ── LOAD FROM URL HASH ────────────────────────────────────────
+(function loadFromHash() {
+  const hash = window.location.hash;
+  if (!hash.startsWith('#char=')) return;
+  try {
+    const encoded = hash.slice(6);
+    const json    = decodeURIComponent(escape(atob(encoded)));
+    const data    = JSON.parse(json);
+    const char    = data.character || data;
+
+    // Merge into S (only valid keys)
+    const validKeys = Object.keys(S);
+    validKeys.forEach(k => {
+      if (k !== 'step' && char[k] !== undefined) S[k] = char[k];
+    });
+
+    // Rebuild character after DOM ready
+    setTimeout(() => {
+      buildCharacter();
+      applyColors();
+      const charNameEl = document.getElementById('vp-char-name');
+      if (charNameEl && S.name) charNameEl.textContent = S.name.toUpperCase();
+      addLog(`🔗 Personnage restauré depuis le lien : ${S.name}`, 'success');
+      addLog(`Source : ${data._server || 'EtherWorld RP'} — v${data._ew_version || '?'}`, '');
+      // Clean hash from URL without reload
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }, 400);
+  } catch (err) {
+    console.warn('[EW Export] Impossible de charger depuis le hash:', err);
+    addLog('⚠️ Lien de partage invalide ou expiré', 'warn');
+  }
+})();

@@ -966,6 +966,156 @@ body::after {
 }
 .vp-glb-badge.visible { display: block; }
 
+/* ══════════════════════════════════
+   EXPORT STRIP + MODAL
+══════════════════════════════════ */
+
+.cc-export-strip {
+  display: flex; gap: 5px; padding: 10px 14px 14px;
+}
+.cc-export-btn {
+  flex: 1; padding: 8px 4px; border-radius: 4px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.3); color: var(--muted);
+  font-family: var(--font2); font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  cursor: pointer; transition: all 0.2s;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.cc-export-btn .export-icon { font-size: 14px; }
+.cc-export-btn:hover { border-color: var(--border2); color: var(--muted2); transform: translateY(-1px); }
+.cc-export-btn.share {
+  border-color: rgba(0,212,255,0.25); color: var(--cyan);
+  background: rgba(0,212,255,0.05);
+}
+.cc-export-btn.share:hover { border-color: rgba(0,212,255,0.5); background: rgba(0,212,255,0.1); }
+
+/* Export modal overlay */
+.cc-export-modal {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4,8,16,0.82); backdrop-filter: blur(14px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.cc-export-modal.visible { opacity: 1; pointer-events: all; }
+
+.cc-export-modal-inner {
+  width: min(480px, 94vw); border-radius: 10px;
+  background: linear-gradient(160deg, #080f1e 0%, #04080f 100%);
+  border: 1px solid rgba(0,212,255,0.18);
+  box-shadow: 0 0 60px rgba(0,0,0,0.7), 0 0 30px rgba(0,212,255,0.06);
+  overflow: hidden;
+  transform: translateY(16px) scale(0.98);
+  transition: transform 0.25s;
+}
+.cc-export-modal.visible .cc-export-modal-inner { transform: none; }
+
+.cc-export-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,212,255,0.03);
+}
+.cc-export-modal-title {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font2); font-size: 14px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--cyan);
+}
+.export-modal-icon { font-size: 18px; }
+.cc-export-close {
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 4px; width: 28px; height: 28px;
+  cursor: pointer; font-size: 12px; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.cc-export-close:hover { background: rgba(255,60,60,0.15); color: #ff6060; border-color: rgba(255,60,60,0.4); }
+
+/* Preview strip */
+.cc-export-preview {
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.2);
+}
+.export-preview-name {
+  font-family: var(--font2); font-size: 18px; font-weight: 900;
+  letter-spacing: 3px; color: var(--gold); margin-bottom: 3px;
+}
+.export-preview-id {
+  font-size: 10px; color: var(--muted); letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 9px;
+}
+.export-preview-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.exp-tag {
+  padding: 2px 8px; border-radius: 3px;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.03);
+  font-size: 10px; color: var(--muted2); letter-spacing: 0.5px;
+}
+
+/* Options list */
+.cc-export-options { padding: 12px 20px; display: flex; flex-direction: column; gap: 8px; }
+.cc-export-option {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; border-radius: 6px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.25);
+  transition: border-color 0.2s, background 0.2s;
+}
+.cc-export-option:hover { border-color: var(--border2); background: rgba(0,212,255,0.03); }
+.exp-opt-icon { font-size: 22px; flex-shrink: 0; width: 32px; text-align: center; color: var(--cyan); font-family: var(--font2); }
+.exp-opt-info { flex: 1; }
+.exp-opt-title { font-family: var(--font2); font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted2); text-transform: uppercase; }
+.exp-opt-desc { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.3px; }
+.exp-opt-btn {
+  padding: 6px 12px; border-radius: 4px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04); color: var(--muted);
+  font-family: var(--font2); font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  transition: all 0.2s;
+}
+.exp-opt-btn:hover { border-color: var(--border2); color: var(--cyan); }
+.exp-opt-btn.share { border-color: rgba(0,212,255,0.3); color: var(--cyan); background: rgba(0,212,255,0.06); }
+.exp-opt-btn.share:hover { background: rgba(0,212,255,0.12); }
+.exp-opt-btn.copied { border-color: rgba(0,255,136,0.4); color: var(--green); background: rgba(0,255,136,0.08); }
+
+/* Raw JSON box */
+.cc-export-raw {
+  margin: 0 20px 12px; border-radius: 6px;
+  border: 1px solid rgba(0,212,255,0.12);
+  background: rgba(0,0,0,0.5); overflow-y: auto; max-height: 160px;
+}
+.cc-export-raw pre {
+  padding: 12px 14px; font-family: 'Courier New', monospace;
+  font-size: 10px; color: #7ec8e3; white-space: pre-wrap; word-break: break-all;
+  line-height: 1.5;
+}
+
+/* Toast */
+.cc-export-toast {
+  margin: 0 20px 4px; padding: 0; overflow: hidden;
+  max-height: 0; transition: max-height 0.3s, padding 0.3s;
+  border-radius: 4px; font-family: var(--font2); font-size: 10px;
+  font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  text-align: center;
+}
+.cc-export-toast.visible {
+  max-height: 40px; padding: 10px 14px;
+  border: 1px solid rgba(0,255,136,0.3);
+  background: rgba(0,255,136,0.08); color: var(--green);
+}
+.cc-export-toast.error {
+  border-color: rgba(255,100,100,0.3);
+  background: rgba(255,100,100,0.08); color: #ff8080;
+}
+
+.cc-export-footer-note {
+  padding: 10px 20px 14px; font-size: 9px;
+  color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase;
+  text-align: center; border-top: 1px solid var(--border);
+}
+
 /* SPAWN ANIMATION */
 .cc-spawn-anim {
   position: fixed; inset: 0; z-index: 300;
