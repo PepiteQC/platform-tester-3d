@@ -3,8 +3,8 @@
 //  Chaque skill = un outil que l'agent peut invoquer.
 // ============================================================
 
-import type { TroxTBridge } from '../../core/troxt-bridge'
-import type { Memory } from '../../core/memory'
+import type { TroxTBridge } from '../../../core/troxt-bridge'
+import type { Memory } from '../../../core/memory'
 import type { EpisodicMemory } from '../memory/EpisodicMemory'
 
 export interface SkillContext {
@@ -63,3 +63,4 @@ export class SkillRegistry {
 }
 
 export default SkillRegistry
+

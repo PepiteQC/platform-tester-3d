@@ -363,7 +363,15 @@ function generatePlatforms(seed: number = 42): PlatformData[] {
   
   const types: PlatformData['type'][] = ['static', 'moving', 'falling', 'bouncy', 'rotating'];
   const weights = [0.45, 0.2, 0.15, 0.1, 0.1];
-  const colors = { static: '#6688cc', moving: '#cc8844', falling: '#cc4444', bouncy: '#44cc88', rotating: '#aa44cc' };
+  const colors: Record<PlatformData['type'], string> = {
+    static: '#6688cc',
+    moving: '#cc8844',
+    falling: '#cc4444',
+    bouncy: '#44cc88',
+    rotating: '#aa44cc',
+    goal: '#ffdd44',
+    ground: '#4a7c59'
+  };
   
   let lastPos = { x: 0, y: 1, z: 0 };
   

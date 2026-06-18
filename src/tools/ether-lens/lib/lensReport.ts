@@ -2,7 +2,7 @@
 //  lensReport — Génération de rapports
 // ============================================================
 
-import type { LensTarget, LensDetection, LensMeasurement, LensReport } from '../types'
+import type { LensTarget, LensDetection, LensMeasurement, LensReport as LensReportData } from '../types'
 
 export class LensReport {
   // TODO: Générer un rapport complet
@@ -10,21 +10,21 @@ export class LensReport {
     _target: LensTarget,
     _detections: LensDetection[],
     _measurements: LensMeasurement[]
-  ): Promise<LensReport> {
-    return {} as LensReport
+  ): Promise<LensReportData> {
+    return {} as LensReportData
   }
 
   // TODO: Exporter en JSON
-  toJSON(_report: LensReport): string { return '' }
+  toJSON(_report: LensReportData): string { return '' }
 
   // TODO: Exporter en CSV
-  toCSV(_report: LensReport): string { return '' }
+  toCSV(_report: LensReportData): string { return '' }
 
   // TODO: Générer un résumé textuel
-  summarize(_report: LensReport): string { return '' }
+  summarize(_report: LensReportData): string { return '' }
 
   // TODO: Télécharger
-  download(_report: LensReport, _format: 'json' | 'csv'): void {}
+  download(_report: LensReportData, _format: 'json' | 'csv'): void {}
 }
 
 export const lensReport = new LensReport()
