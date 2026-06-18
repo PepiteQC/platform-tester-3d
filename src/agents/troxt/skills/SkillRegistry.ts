@@ -70,4 +70,33 @@ export class SkillRegistry {
 }
 
 export default SkillRegistry
+// src/agents/troxt/skills/SkillRegistry.ts
+import { EtherSkills } from './EtherSkills';
+import { MutationTestingSkill } from './MutationTestingSkill';
+// ... autres imports
 
+export class SkillRegistry {
+  private skills: Map<string, any> = new Map();
+
+  constructor() {
+    this.registerDefaultSkills();
+  }
+
+  private registerDefaultSkills() {
+    this.skills.set('etherSkills', new EtherSkills());
+    this.skills.set('mutationTesting', new MutationTestingSkill());
+    // ... autres compétences
+  }
+
+  getSkill(skillName: string): any {
+    return this.skills.get(skillName);
+  }
+
+  hasSkill(skillName: string): boolean {
+    return this.skills.has(skillName);
+  }
+
+  listSkills(): string[] {
+    return Array.from(this.skills.keys());
+  }
+}
