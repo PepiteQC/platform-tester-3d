@@ -43,6 +43,8 @@
       <div class="cc-step" data-step="4"><span class="step-num">5</span>Outfit</div>
       <span class="cc-step-arrow">›</span>
       <div class="cc-step" data-step="5"><span class="step-num">6</span>Accessories</div>
+      <span class="cc-step-arrow">›</span>
+      <div class="cc-step" data-step="6"><span class="step-num">7</span>Animations</div>
     </div>
   </div>
 
@@ -64,6 +66,7 @@
       <button class="cc-tab-btn" data-panel="body"><span class="tab-icon">💪</span>Body</button>
       <button class="cc-tab-btn" data-panel="outfit"><span class="tab-icon">👕</span>Outfit</button>
       <button class="cc-tab-btn" data-panel="accessories"><span class="tab-icon">💎</span>Accs</button>
+      <button class="cc-tab-btn" data-panel="animations"><span class="tab-icon">🎬</span>Anim</button>
     </nav>
 
     <div class="cc-tab-content">
@@ -237,6 +240,104 @@
         <div class="cc-swatches" id="sw-shoes-color"></div>
       </div>
 
+      <!-- ── ANIMATIONS ── -->
+      <div id="panel-animations" class="cc-panel">
+
+        <div class="cc-section-label">Modèle 3D</div>
+        <div class="cc-model-indicator" id="model-mode-indicator">
+          <span class="model-dot procedural"></span>
+          <span id="model-mode-text">Mode : Personnage procédural</span>
+        </div>
+
+        <div class="cc-model-grid">
+          <button class="cc-model-btn active" id="btn-xbot">
+            <span class="model-btn-icon">🤖</span>
+            <span>Xbot Mixamo</span>
+          </button>
+          <label class="cc-model-btn" for="input-glb-upload">
+            <span class="model-btn-icon">📁</span>
+            <span>Upload GLB</span>
+            <input type="file" accept=".glb" id="input-glb-upload" style="display:none">
+          </label>
+          <button class="cc-model-btn" id="btn-rpm">
+            <span class="model-btn-icon">🌐</span>
+            <span>Ready Player Me</span>
+          </button>
+          <label class="cc-model-btn" for="input-img-upload">
+            <span class="model-btn-icon">🖼️</span>
+            <span>Image → 3D</span>
+            <input type="file" accept="image/*" id="input-img-upload" style="display:none">
+          </label>
+        </div>
+        <button class="cc-model-btn-proc" id="btn-procedural">
+          ⚙️ Revenir au personnage procédural
+        </button>
+
+        <div class="cc-section-label cc-anim-only" id="lbl-base-anim">Animations de base</div>
+        <div class="cc-base-anim-btns cc-anim-only">
+          <button class="cc-anim-action-btn active" data-action="idle">🧍 Idle</button>
+          <button class="cc-anim-action-btn" data-action="walk">🚶 Walk</button>
+          <button class="cc-anim-action-btn" data-action="run">🏃 Run</button>
+        </div>
+
+        <div class="cc-section-label cc-anim-only">Blending additif</div>
+        <div class="cc-anim-only" id="additive-sliders">
+          <div class="cc-slider-wrap">
+            <div class="cc-slider-header">
+              <span class="cc-slider-label">😢 Tristesse (sad_pose)</span>
+              <span class="cc-slider-val" id="sl-sad-v">0</span>
+            </div>
+            <input type="range" class="cc-slider" id="sl-sad" min="0" max="100" value="0">
+          </div>
+          <div class="cc-slider-wrap">
+            <div class="cc-slider-header">
+              <span class="cc-slider-label">🥷 Discrétion (sneak_pose)</span>
+              <span class="cc-slider-val" id="sl-sneak-v">0</span>
+            </div>
+            <input type="range" class="cc-slider" id="sl-sneak" min="0" max="100" value="0">
+          </div>
+          <div class="cc-slider-wrap">
+            <div class="cc-slider-header">
+              <span class="cc-slider-label">👍 Accord (agree)</span>
+              <span class="cc-slider-val" id="sl-agree-v">0</span>
+            </div>
+            <input type="range" class="cc-slider" id="sl-agree" min="0" max="100" value="0">
+          </div>
+          <div class="cc-slider-wrap">
+            <div class="cc-slider-header">
+              <span class="cc-slider-label">🙅 Refus (headShake)</span>
+              <span class="cc-slider-val" id="sl-headshake-v">0</span>
+            </div>
+            <input type="range" class="cc-slider" id="sl-headshake" min="0" max="100" value="0">
+          </div>
+        </div>
+
+        <div class="cc-section-label cc-anim-only">Vitesse de lecture</div>
+        <div class="cc-slider-wrap cc-anim-only">
+          <div class="cc-slider-header">
+            <span class="cc-slider-label">Vitesse</span>
+            <span class="cc-slider-val" id="sl-speed-v">100</span>
+          </div>
+          <input type="range" class="cc-slider" id="sl-speed" min="10" max="200" value="100">
+        </div>
+
+        <div class="cc-anim-info">
+          <div class="cc-anim-info-row">
+            <span class="anim-info-key">Technologie</span>
+            <span class="anim-info-val">Three.js AnimationMixer</span>
+          </div>
+          <div class="cc-anim-info-row">
+            <span class="anim-info-key">Méthode</span>
+            <span class="anim-info-val">makeClipAdditive + CrossFade</span>
+          </div>
+          <div class="cc-anim-info-row">
+            <span class="anim-info-key">Source</span>
+            <span class="anim-info-val" id="anim-info-source">Procédural</span>
+          </div>
+        </div>
+
+      </div>
+
       <!-- ── ACCESSORIES ── -->
       <div id="panel-accessories" class="cc-panel">
         <div class="cc-section-label">Lunettes</div>
@@ -267,8 +368,15 @@
     <div class="vp-corner vp-corner-tr"></div>
     <div class="vp-corner vp-corner-bl"></div>
     <div class="vp-corner vp-corner-br"></div>
+    <!-- GLB Loading overlay -->
+    <div class="vp-loading" id="vp-loading">
+      <div class="vp-loading-ring"></div>
+      <div class="vp-loading-text" id="vp-loading-text">Chargement du modèle…</div>
+      <div class="vp-loading-sub">TroxT Neural Renderer</div>
+    </div>
     <div class="vp-live"><div class="vp-live-dot"></div>LIVE</div>
     <div class="vp-char-name" id="vp-char-name">NOUVEAU_PERSO</div>
+    <div class="vp-glb-badge" id="vp-glb-badge">⬡ GLB Animé</div>
     <div class="vp-troxt-watermark">TroxT — Character Preview v2.0</div>
     <div class="vp-rotate-hint">Drag to rotate</div>
     <div class="vp-info">
@@ -384,6 +492,7 @@
   </div>
   <div class="cc-footer-center">
     <div class="cc-progress-dot active"></div>
+    <div class="cc-progress-dot"></div>
     <div class="cc-progress-dot"></div>
     <div class="cc-progress-dot"></div>
     <div class="cc-progress-dot"></div>

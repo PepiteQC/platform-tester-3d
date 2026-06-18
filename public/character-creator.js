@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // ── PALETTES ─────────────────────────────────────────────────
 const SKIN_COLORS  = ['#fde0c4','#f5cba7','#e8a87c','#d48b5a','#b06040','#7a3e20','#5c2810','#3a1808'];
@@ -1188,7 +1189,10 @@ window.addEventListener('resize', resize);
 resize();
 
 // ── ANIMATE LOOP ─────────────────────────────────────────────
-const clock = new THREE.Clock();
+const clock    = new THREE.Clock();
+const mixerClock = new THREE.Clock();
+let glbMode    = false;
+let animMixer  = null;
 function animate() {
   requestAnimationFrame(animate);
   const t = clock.getElapsedTime();
@@ -1206,11 +1210,14 @@ function animate() {
   rimL.intensity  = 1.8 + rimCycle * 0.4;
   rimL2.intensity = 1.0 - rimCycle * 0.3;
 
-  // Character subtle idle
-  charGroup.position.y = Math.sin(t * 0.7) * 0.007;
+  // Character subtle idle (only in procedural mode)
+  if (!glbMode) charGroup.position.y = Math.sin(t * 0.7) * 0.007;
 
   // Platform glow
   spot.intensity = 5.5 + Math.sin(t * 1.1) * 1.2;
+
+  // GLB animation mixer
+  if (animMixer && glbMode) animMixer.update(mixerClock.getDelta());
 
   controls.update();
   renderer.render(scene, camera);
@@ -1225,8 +1232,8 @@ animate();
 //  UI LOGIC
 // ════════════════════════════════════════════════════════════
 
-const STEP_COUNT  = 6;
-const STEP_PANELS = ['identity','face','hair','body','outfit','accessories'];
+const STEP_COUNT  = 7;
+const STEP_PANELS = ['identity','face','hair','body','outfit','accessories','animations'];
 
 // ── TROXT LOG ─────────────────────────────────────────────────
 const logBody = document.querySelector('.cc-troxt-log-body');
@@ -1641,4 +1648,334 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'r' || e.key === 'R') && !e.target.matches('input, select, textarea')) {
     document.getElementById('btn-random')?.click();
   }
+});
+
+// ════════════════════════════════════════════════════════════
+//  GLB / ANIMATION SYSTEM  — Three.js Additive Blending
+//  Translated from React Three Fiber (useGLTF, useAnimations)
+//  to vanilla Three.js AnimationMixer + GLTFLoader
+// ════════════════════════════════════════════════════════════
+
+const XBOT_URL   = 'https://threejs.org/examples/models/gltf/Xbot.glb';
+const gltfLoader = new GLTFLoader();
+
+// GLB scene group (sits alongside charGroup in scene)
+const glbGroup = new THREE.Group();
+scene.add(glbGroup);
+glbGroup.visible = false;
+
+let animActions = {};          // keyed by lowercase clip name
+let baseActionName  = 'idle';
+let xbotAnimations  = null;    // cached Xbot clips for retargeting
+let animPlaybackSpeed = 1;
+
+// Additive weights state
+const additiveWeights = { sad_pose: 0, sneak_pose: 0, agree: 0, headShake: 0 };
+
+// ── LOADING OVERLAY ───────────────────────────────────────────
+const vpLoading    = document.getElementById('vp-loading');
+const vpLoadingTxt = document.getElementById('vp-loading-text');
+const glbBadge     = document.getElementById('vp-glb-badge');
+const animPanel    = document.getElementById('panel-animations');
+
+function showLoading(msg = 'Chargement du modèle…') {
+  if (vpLoading)    { vpLoadingTxt.textContent = msg; vpLoading.classList.add('active'); }
+  setModelDot('loading');
+}
+function hideLoading() {
+  if (vpLoading) vpLoading.classList.remove('active');
+}
+function setModelDot(mode) { // 'procedural' | 'glb' | 'loading'
+  const dot  = document.querySelector('.model-dot');
+  const text = document.getElementById('model-mode-text');
+  if (!dot) return;
+  dot.className = 'model-dot ' + mode;
+  if (text) {
+    const labels = {
+      procedural: 'Mode : Personnage procédural',
+      glb:        'Mode : Modèle GLB animé',
+      loading:    'Mode : Chargement en cours…'
+    };
+    text.textContent = labels[mode] || '';
+  }
+}
+function setAnimPanelActive(active) {
+  if (animPanel) animPanel.classList.toggle('glb-active', active);
+}
+
+// ── SWITCH TO PROCEDURAL ──────────────────────────────────────
+function switchToProcedural() {
+  if (animMixer) { animMixer.stopAllAction(); animMixer = null; }
+  animActions = {}; baseActionName = 'idle';
+  glbMode = false;
+  glbGroup.visible  = false;
+  charGroup.visible = true;
+  if (glbBadge) glbBadge.classList.remove('visible');
+  setModelDot('procedural');
+  setAnimPanelActive(false);
+  document.getElementById('anim-info-source').textContent = 'Procédural';
+  controls.target.set(0, 1.05, 0);
+  controls.update();
+  addLog('⚙️ Mode procédural restauré', '');
+  // Reset base action buttons
+  document.querySelectorAll('.cc-anim-action-btn').forEach(b => b.classList.toggle('active', b.dataset.action === 'idle'));
+  baseActionName = 'idle';
+  // Reset additive sliders
+  resetAdditiveSliders();
+  // Mark model buttons
+  document.querySelectorAll('.cc-model-btn').forEach(b => b.classList.remove('active'));
+}
+
+function resetAdditiveSliders() {
+  ['sad','sneak','agree','headshake'].forEach(k => {
+    const sl = document.getElementById('sl-' + k);
+    const vl = document.getElementById('sl-' + k + '-v');
+    if (sl) { sl.value = 0; setSlidePct(sl); }
+    if (vl) vl.textContent = '0';
+  });
+  Object.keys(additiveWeights).forEach(k => additiveWeights[k] = 0);
+}
+
+// ── SETUP ADDITIVE ANIMATIONS ─────────────────────────────────
+function setupAnimations(clips, targetObject) {
+  animActions = {};
+  if (animMixer) animMixer.stopAllAction();
+  animMixer = new THREE.AnimationMixer(targetObject);
+
+  const idleClip = clips.find(c => c.name.toLowerCase() === 'idle');
+  if (!idleClip) { addLog('⚠️ Clip "idle" introuvable', 'warn'); return; }
+
+  const ADDITIVE_NAMES = ['sad_pose', 'sneak_pose', 'agree', 'headshake'];
+  const BASE_NAMES     = ['idle', 'walk', 'run'];
+
+  clips.forEach(clip => {
+    const nameLow = clip.name.toLowerCase();
+
+    if (ADDITIVE_NAMES.includes(nameLow)) {
+      // For _pose clips: subclip frames 2–3 as a static reference frame
+      let additiveClip = clip;
+      if (nameLow.endsWith('_pose')) {
+        additiveClip = THREE.AnimationUtils.subclip(clip, clip.name, 2, 3, 30);
+      }
+      // Make the clip additive relative to idle's rest pose
+      THREE.AnimationUtils.makeClipAdditive(additiveClip, 0, idleClip);
+
+      const action = animMixer.clipAction(additiveClip);
+      action.enabled  = true;
+      action.setEffectiveTimeScale(1);
+      action.setEffectiveWeight(0);
+      action.blendMode = THREE.AdditiveAnimationBlendMode;
+      action.play();
+      animActions[nameLow] = action;
+    }
+
+    if (BASE_NAMES.includes(nameLow)) {
+      const action = animMixer.clipAction(clip);
+      action.enabled = true;
+      action.setEffectiveTimeScale(animPlaybackSpeed);
+      action.setEffectiveWeight(nameLow === baseActionName ? 1 : 0);
+      action.play();
+      animActions[nameLow] = action;
+    }
+  });
+
+  addLog(`✅ ${Object.keys(animActions).length} actions chargées`, 'success');
+  addLog('Additive blending actif : sad / sneak / agree / headShake', '');
+  setAnimPanelActive(true);
+}
+
+// ── LOAD GLB ─────────────────────────────────────────────────
+function loadGLB(url, label = 'GLB', isXbot = false) {
+  showLoading(`Chargement ${label}…`);
+  addLog(`📡 Connexion : ${label}`, 'warn');
+
+  gltfLoader.load(
+    url,
+    (gltf) => {
+      // Clear previous GLB content
+      while (glbGroup.children.length) glbGroup.remove(glbGroup.children[0]);
+
+      const model = gltf.scene;
+      model.traverse(obj => {
+        if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; }
+      });
+
+      // Xbot needs scaling (Mixamo units: cm → m)
+      if (isXbot) {
+        model.scale.set(0.01, 0.01, 0.01);
+        model.rotation.x = Math.PI / 2;
+        xbotAnimations = gltf.animations;
+      }
+
+      glbGroup.add(model);
+
+      // Switch scene to GLB mode
+      charGroup.visible = false;
+      glbGroup.visible  = true;
+      glbMode = true;
+
+      // Camera retarget
+      controls.target.set(0, 0.9, 0);
+      controls.update();
+
+      if (glbBadge) glbBadge.classList.add('visible');
+      setModelDot('glb');
+      document.getElementById('anim-info-source').textContent = label;
+
+      // Set up animations
+      const clips = gltf.animations.length > 0 ? gltf.animations : (xbotAnimations || []);
+      if (clips.length > 0) {
+        setupAnimations(clips, model);
+      } else {
+        addLog('ℹ️ Aucune animation dans ce GLB', 'warn');
+        setAnimPanelActive(false);
+      }
+
+      hideLoading();
+      addLog(`✅ "${label}" chargé avec succès`, 'success');
+    },
+    (progress) => {
+      if (progress.total > 0) {
+        const pct = Math.round((progress.loaded / progress.total) * 100);
+        if (vpLoadingTxt) vpLoadingTxt.textContent = `Chargement ${label}… ${pct}%`;
+      }
+    },
+    (err) => {
+      hideLoading();
+      setModelDot('procedural');
+      addLog(`❌ Erreur chargement: ${err.message || 'CORS/réseau'}`, 'warn');
+      console.error('[GLB Loader]', err);
+    }
+  );
+}
+
+// ── SWITCH BASE ACTION ─────────────────────────────────────────
+function switchBaseAction(name) {
+  if (!animMixer || name === baseActionName) return;
+  const prev = animActions[baseActionName];
+  const next = animActions[name];
+  if (!prev || !next) { addLog(`⚠️ Action "${name}" non trouvée`, 'warn'); return; }
+
+  next.enabled = true;
+  next.setEffectiveTimeScale(animPlaybackSpeed);
+  next.setEffectiveWeight(1);
+  next.time = 0;
+  prev.crossFadeTo(next, 0.5, true);
+  baseActionName = name;
+
+  document.querySelectorAll('.cc-anim-action-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.action === name)
+  );
+  addLog(`▶ Animation de base → ${name}`, '');
+}
+
+// ── UI: BASE ACTIONS ──────────────────────────────────────────
+document.querySelectorAll('.cc-anim-action-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchBaseAction(btn.dataset.action));
+});
+
+// ── UI: ADDITIVE SLIDERS ──────────────────────────────────────
+const additiveMap = {
+  'sl-sad':       'sad_pose',
+  'sl-sneak':     'sneak_pose',
+  'sl-agree':     'agree',
+  'sl-headshake': 'headshake',
+};
+Object.entries(additiveMap).forEach(([slId, clipName]) => {
+  const sl = document.getElementById(slId);
+  const vl = document.getElementById(slId + '-v');
+  if (!sl) return;
+  sl.addEventListener('input', () => {
+    const weight = parseInt(sl.value) / 100;
+    additiveWeights[clipName] = weight;
+    if (vl) vl.textContent = sl.value;
+    setSlidePct(sl);
+    // Apply immediately to mixer
+    const action = animActions[clipName];
+    if (action) action.setEffectiveWeight(weight);
+  });
+});
+
+// ── UI: PLAYBACK SPEED ────────────────────────────────────────
+const slSpeed = document.getElementById('sl-speed');
+const slSpeedV = document.getElementById('sl-speed-v');
+if (slSpeed) {
+  slSpeed.addEventListener('input', () => {
+    animPlaybackSpeed = parseInt(slSpeed.value) / 100;
+    if (slSpeedV) slSpeedV.textContent = slSpeed.value;
+    setSlidePct(slSpeed);
+    // Apply to all base actions
+    ['idle','walk','run'].forEach(name => {
+      const action = animActions[name];
+      if (action) action.setEffectiveTimeScale(animPlaybackSpeed);
+    });
+  });
+}
+
+// ── UI: XBOT BUTTON ──────────────────────────────────────────
+document.getElementById('btn-xbot')?.addEventListener('click', () => {
+  document.querySelectorAll('.cc-model-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-xbot').classList.add('active');
+  addLog('🤖 Chargement Xbot (Mixamo / threejs.org)…', 'warn');
+  loadGLB(XBOT_URL, 'Xbot Mixamo', true);
+});
+
+// ── UI: GLB FILE UPLOAD ───────────────────────────────────────
+document.getElementById('input-glb-upload')?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  document.querySelectorAll('.cc-model-btn').forEach(b => b.classList.remove('active'));
+  e.target.parentElement.classList.add('active');
+  addLog(`📁 Fichier GLB : ${file.name}`, '');
+  loadGLB(url, file.name.replace('.glb',''), false);
+});
+
+// ── UI: READY PLAYER ME ───────────────────────────────────────
+document.getElementById('btn-rpm')?.addEventListener('click', () => {
+  const rpmUrl = prompt(
+    '🌐 Coller l\'URL GLB de Ready Player Me :\n(ex: https://models.readyplayer.me/VOTRE_ID.glb)',
+    'https://models.readyplayer.me/'
+  );
+  if (!rpmUrl || !rpmUrl.includes('.glb')) {
+    addLog('⚠️ URL invalide (doit finir par .glb)', 'warn'); return;
+  }
+  document.querySelectorAll('.cc-model-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-rpm').classList.add('active');
+  addLog('🌐 Chargement avatar Ready Player Me…', 'warn');
+  loadGLB(rpmUrl, 'RPM Avatar', false);
+});
+
+// ── UI: IMAGE → 3D (simulation) ───────────────────────────────
+document.getElementById('input-img-upload')?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  showLoading('Analyse de l\'image…');
+  addLog('🖼️ Image reçue — pipeline Image-to-3D simulé', 'warn');
+  addLog('⏳ Connexion à TroxT 3D Neural Engine…', '');
+
+  // Simulate a multi-step fake pipeline (Hunyuan3D / TripoSR style)
+  const steps = [
+    [800,  '🔬 Segmentation de l\'image…'],
+    [1600, '🧠 Estimation de profondeur…'],
+    [2400, '🔷 Construction du mesh 3D…'],
+    [3200, '✨ Application des textures PBR…'],
+    [4000, '📦 Compilation du fichier GLB…'],
+  ];
+  steps.forEach(([delay, msg]) => {
+    setTimeout(() => { if (vpLoadingTxt) vpLoadingTxt.textContent = msg; addLog(msg, ''); }, delay);
+  });
+
+  setTimeout(() => {
+    hideLoading();
+    addLog('⚠️ Note : pipeline Image-to-3D nécessite un serveur GPU (ex: Hunyuan3D, TripoSR)', 'warn');
+    addLog('💡 Chargement du fallback : Xbot pour la démo', '');
+    document.getElementById('btn-xbot')?.click();
+  }, 4600);
+});
+
+// ── UI: BACK TO PROCEDURAL ────────────────────────────────────
+document.getElementById('btn-procedural')?.addEventListener('click', () => {
+  switchToProcedural();
+  document.getElementById('btn-xbot')?.classList.remove('active');
 });
