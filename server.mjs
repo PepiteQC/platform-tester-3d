@@ -33,6 +33,7 @@ app.get('/', (req, res) => {
 
 app.get('/etherforge', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'etherforge.html')); });
 app.get('/character-creator', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'character-creator.html')); });
+app.get('/troxt-chat', (req, res) => { res.sendFile(path.join(__dirname, 'public', 'troxt-chat.html')); });
 app.get('/game', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

@@ -1,0 +1,1568 @@
+🎩 Modèle de Chapeau Réaliste en Three.js
+Architecture & Pattern Logique
+text
+
+┌─────────────────────────────────────────────────────┐
+│                 CHAPEAU ANATOMY                      │
+│                                                      │
+│   ━━━━━━━━━━━━━━━━━━━━━━━━━━  ← Couronne (Crown)   │
+│  ╱                            ╲                      │
+│ │        CROWN BODY            │ ← Corps principal   │
+│ │    (LatheGeometry +          │                      │
+│ │     custom profile)          │                      │
+│  ╲__________________________╱                        │
+│  ════════════════════════════════ ← Brim (Rebord)    │
+│  ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔                      │
+│                                                      │
+│  PATTERN DE CONSTRUCTION:                            │
+│  1. Profil 2D → Révolution 3D (Lathe)               │
+│  2. Déformation vertex → Réalisme                    │
+│  3. Multi-matériaux → Texture/Couleur                │
+│  4. Subdivision logique → Détails                    │
+│                                                      │
+│  Crown = f(profil_courbe, segments_rotation)         │
+│  Brim  = f(rayon_int, rayon_ext, courbure)          │
+│  Band  = f(position_y, épaisseur, texture)          │
+└─────────────────────────────────────────────────────┘
+Code Complet
+HTML
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎩 Chapeau Réaliste - Three.js</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            overflow: hidden; 
+            background: #1a1a2e; 
+            font-family: 'Segoe UI', sans-serif;
+        }
+        canvas { display: block; }
+        
+        /* UI Overlay */
+        #ui {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            color: #fff;
+        }
+        #ui h1 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+        .control-group {
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            min-width: 280px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+            accent-color: #e94560;
+        }
+        .control-group select, .control-group input[type="color"] {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 14px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #e94560;
+            border-color: #e94560;
+        }
+        .btn.active {
+            background: #e94560;
+            border-color: #e94560;
+        }
+        #info-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 15px;
+            color: #888;
+            font-size: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        #info-panel span { color: #e94560; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <h1>🎩 Hat Modeler</h1>
+    
+    <div class="control-group">
+        <label>Type de Chapeau</label>
+        <div class="btn-group" id="hat-types">
+            <button class="btn active" data-type="fedora">Fedora</button>
+            <button class="btn" data-type="tophat">Top Hat</button>
+            <button class="btn" data-type="bowler">Bowler</button>
+            <button class="btn" data-type="cowboy">Cowboy</button>
+            <button class="btn" data-type="witch">Sorcier</button>
+            <button class="btn" data-type="beret">Béret</button>
+        </div>
+    </div>
+    
+    <div class="control-group">
+        <label>Couleur Principale</label>
+        <input type="color" id="color-main" value="#2c1810">
+        <label style="margin-top:10px">Couleur Ruban</label>
+        <input type="color" id="color-band" value="#8b0000">
+    </div>
+    
+    <div class="control-group">
+        <label>Hauteur Couronne: <span id="val-height">1.0</span></label>
+        <input type="range" id="crown-height" min="0.3" max="3.0" step="0.05" value="1.0">
+        
+        <label>Largeur Rebord: <span id="val-brim">1.0</span></label>
+        <input type="range" id="brim-width" min="0.1" max="2.5" step="0.05" value="1.0">
+        
+        <label>Courbure Rebord: <span id="val-curve">0.5</span></label>
+        <input type="range" id="brim-curve" min="-1.0" max="1.0" step="0.05" value="0.5">
+        
+        <label>Détail (segments): <span id="val-seg">64</span></label>
+        <input type="range" id="segments" min="8" max="128" step="4" value="64">
+    </div>
+    
+    <div class="control-group">
+        <label>Matériau</label>
+        <div class="btn-group" id="materials">
+            <button class="btn active" data-mat="felt">Feutre</button>
+            <button class="btn" data-mat="leather">Cuir</button>
+            <button class="btn" data-mat="straw">Paille</button>
+            <button class="btn" data-mat="velvet">Velours</button>
+        </div>
+    </div>
+</div>
+
+<div id="info-panel">
+    Vertices: <span id="vert-count">0</span> | 
+    Triangles: <span id="tri-count">0</span> | 
+    FPS: <span id="fps">60</span>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// PATTERN ARCHITECTURAL: Builder + Strategy + Observer
+// ============================================================
+//
+// ┌─────────────┐    ┌──────────────┐    ┌─────────────────┐
+// │  HatConfig  │───>│  HatBuilder  │───>│  Three.js Mesh  │
+// │  (données)  │    │  (logique)   │    │  (rendu)        │
+// └─────────────┘    └──────────────┘    └─────────────────┘
+//        ▲                  │
+//        │            ┌─────┴──────┐
+//   UI Events         │            │
+//                ┌────┴───┐  ┌────┴────┐
+//                │Profile │  │Material │
+//                │Strategy│  │Strategy │
+//                └────────┘  └─────────┘
+//
+// FLUX DE DONNÉES:
+// User Input → Config Update → Profile Generation → 
+// Geometry Build → Material Apply → Scene Render
+// ============================================================
+
+// ============================================
+// 1. CONFIGURATION / DATA LAYER
+// ============================================
+
+/**
+ * Profils de chapeaux - Chaque type est défini par une courbe 2D
+ * qui sera révolutionnée en 3D (LatheGeometry pattern)
+ * 
+ * Structure: Array de points [x, y] définissant le profil
+ * x = distance du centre (rayon), y = hauteur
+ * 
+ * LOGIQUE DE PROFIL:
+ * ─────────────────
+ * Le profil part du SOMMET (top) vers le BAS (brim edge)
+ * 
+ *   y ▲
+ *     │  ●  (sommet)
+ *     │  │
+ *     │  ●  (côté crown)
+ *     │   ╲
+ *     │    ●──●  (base crown → début brim)
+ *     │         ╲
+ *     │          ●  (bord du brim)
+ *     └──────────────► x (rayon)
+ */
+const HAT_PROFILES = {
+    
+    fedora: (h, bw, bc) => {
+        // h = hauteur crown, bw = largeur brim, bc = courbure brim
+        const points = [];
+        const crownRadius = 0.5;
+        const topPinch = 0.42; // Le sommet du fedora est pincé
+        
+        // Sommet (dent caractéristique du fedora)
+        points.push(new THREE.Vector2(0.0, h * 1.05));
+        points.push(new THREE.Vector2(topPinch * 0.3, h * 1.02));
+        points.push(new THREE.Vector2(topPinch * 0.6, h * 0.98));
+        points.push(new THREE.Vector2(topPinch, h * 0.95));
+        
+        // Transition sommet → côté
+        points.push(new THREE.Vector2(crownRadius * 0.85, h * 0.92));
+        points.push(new THREE.Vector2(crownRadius * 0.95, h * 0.88));
+        
+        // Côté de la couronne (légèrement bombé)
+        for (let i = 0; i <= 8; i++) {
+            const t = i / 8;
+            const y = h * (0.88 - t * 0.88);
+            const bulge = Math.sin(t * Math.PI) * 0.05;
+            const x = crownRadius + bulge;
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        // Base crown → Brim transition
+        const brimInner = crownRadius + 0.05;
+        const brimOuter = crownRadius + bw;
+        
+        points.push(new THREE.Vector2(brimInner, 0));
+        
+        // Brim avec courbure
+        const brimSteps = 12;
+        for (let i = 1; i <= brimSteps; i++) {
+            const t = i / brimSteps;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            const y = -bc * 0.15 * Math.sin(t * Math.PI * 0.8) 
+                      + bc * 0.05 * t; // courbure vers le haut au bord
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        // Épaisseur du brim (dessous)
+        const thickness = 0.03;
+        for (let i = brimSteps; i >= 0; i--) {
+            const t = i / brimSteps;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            const y = -bc * 0.15 * Math.sin(t * Math.PI * 0.8) 
+                      + bc * 0.05 * t - thickness;
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        points.push(new THREE.Vector2(brimInner, -thickness));
+        
+        return points;
+    },
+    
+    tophat: (h, bw, bc) => {
+        const points = [];
+        const crownRadius = 0.42;
+        
+        // Sommet plat
+        points.push(new THREE.Vector2(0.0, h * 1.5));
+        points.push(new THREE.Vector2(crownRadius * 0.3, h * 1.5));
+        points.push(new THREE.Vector2(crownRadius * 0.6, h * 1.5));
+        points.push(new THREE.Vector2(crownRadius * 0.9, h * 1.5));
+        points.push(new THREE.Vector2(crownRadius, h * 1.48));
+        
+        // Côtés droits (cylindriques)
+        for (let i = 0; i <= 10; i++) {
+            const t = i / 10;
+            const y = h * 1.48 * (1 - t);
+            const wobble = Math.sin(t * Math.PI * 2) * 0.008;
+            points.push(new THREE.Vector2(crownRadius + wobble, y));
+        }
+        
+        // Brim plat
+        const brimInner = crownRadius + 0.03;
+        const brimOuter = crownRadius + bw * 0.7;
+        const thickness = 0.04;
+        
+        points.push(new THREE.Vector2(brimInner, 0));
+        
+        for (let i = 1; i <= 8; i++) {
+            const t = i / 8;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            const y = bc * 0.02 * Math.sin(t * Math.PI);
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        for (let i = 8; i >= 0; i--) {
+            const t = i / 8;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            const y = bc * 0.02 * Math.sin(t * Math.PI) - thickness;
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        points.push(new THREE.Vector2(brimInner, -thickness));
+        
+        return points;
+    },
+    
+    bowler: (h, bw, bc) => {
+        const points = [];
+        const crownRadius = 0.5;
+        
+        // Sommet arrondi (dôme)
+        for (let i = 0; i <= 12; i++) {
+            const t = i / 12;
+            const angle = t * Math.PI * 0.5;
+            const x = Math.sin(angle) * crownRadius;
+            const y = h * 0.8 + Math.cos(angle) * h * 0.25;
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        // Côtés légèrement courbés vers l'intérieur
+        for (let i = 1; i <= 6; i++) {
+            const t = i / 6;
+            const y = h * 0.8 * (1 - t);
+            const indent = Math.sin(t * Math.PI) * 0.02;
+            points.push(new THREE.Vector2(crownRadius - indent, y));
+        }
+        
+        // Brim courbé vers le haut
+        const brimInner = crownRadius + 0.03;
+        const brimOuter = crownRadius + bw * 0.6;
+        const thickness = 0.03;
+        
+        points.push(new THREE.Vector2(brimInner, 0));
+        
+        for (let i = 1; i <= 10; i++) {
+            const t = i / 10;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            const y = bc * 0.2 * Math.pow(t, 1.5);
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        for (let i = 10; i >= 0; i--) {
+            const t = i / 10;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            const y = bc * 0.2 * Math.pow(t, 1.5) - thickness;
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        points.push(new THREE.Vector2(brimInner, -thickness));
+        
+        return points;
+    },
+    
+    cowboy: (h, bw, bc) => {
+        const points = [];
+        const crownRadius = 0.45;
+        
+        // Sommet avec creux
+        points.push(new THREE.Vector2(0.0, h * 0.85));
+        points.push(new THREE.Vector2(0.1, h * 0.88));
+        points.push(new THREE.Vector2(0.2, h * 0.92));
+        points.push(new THREE.Vector2(0.3, h * 0.98));
+        points.push(new THREE.Vector2(0.38, h));
+        points.push(new THREE.Vector2(crownRadius, h * 0.95));
+        
+        // Côtés
+        for (let i = 0; i <= 8; i++) {
+            const t = i / 8;
+            const y = h * 0.95 * (1 - t);
+            const bulge = Math.sin(t * Math.PI) * 0.04;
+            points.push(new THREE.Vector2(crownRadius + bulge, y));
+        }
+        
+        // Brim large et courbé
+        const brimInner = crownRadius + 0.04;
+        const brimOuter = crownRadius + bw * 1.3;
+        const thickness = 0.025;
+        
+        points.push(new THREE.Vector2(brimInner, 0));
+        
+        for (let i = 1; i <= 15; i++) {
+            const t = i / 15;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            // Courbure cowboy: descend puis remonte
+            const y = -bc * 0.1 * Math.sin(t * Math.PI) 
+                      + bc * 0.15 * Math.pow(t, 2);
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        for (let i = 15; i >= 0; i--) {
+            const t = i / 15;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            const y = -bc * 0.1 * Math.sin(t * Math.PI) 
+                      + bc * 0.15 * Math.pow(t, 2) - thickness;
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        points.push(new THREE.Vector2(brimInner, -thickness));
+        
+        return points;
+    },
+    
+    witch: (h, bw, bc) => {
+        const points = [];
+        
+        // Pointe conique haute
+        points.push(new THREE.Vector2(0.0, h * 2.5));
+        points.push(new THREE.Vector2(0.02, h * 2.4));
+        
+        // Cône avec légère courbe
+        for (let i = 0; i <= 20; i++) {
+            const t = i / 20;
+            const y = h * 2.4 * (1 - t);
+            // Courbe sinusoïdale pour un effet "souple"
+            const baseRadius = 0.5 * t;
+            const wobble = Math.sin(t * Math.PI * 2) * 0.03 * t;
+            points.push(new THREE.Vector2(baseRadius + wobble, y));
+        }
+        
+        // Brim
+        const brimInner = 0.53;
+        const brimOuter = 0.5 + bw * 1.2;
+        const thickness = 0.025;
+        
+        points.push(new THREE.Vector2(brimInner, 0));
+        
+        for (let i = 1; i <= 12; i++) {
+            const t = i / 12;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            const y = -bc * 0.08 * Math.sin(t * Math.PI * 1.2);
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        for (let i = 12; i >= 0; i--) {
+            const t = i / 12;
+            const x = brimInner + (brimOuter - brimInner) * t;
+            const y = -bc * 0.08 * Math.sin(t * Math.PI * 1.2) - thickness;
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        points.push(new THREE.Vector2(brimInner, -thickness));
+        
+        return points;
+    },
+    
+    beret: (h, bw, bc) => {
+        const points = [];
+        const maxRadius = 0.6;
+        
+        // Petit bouton central
+        points.push(new THREE.Vector2(0.0, h * 0.55));
+        points.push(new THREE.Vector2(0.03, h * 0.55));
+        points.push(new THREE.Vector2(0.05, h * 0.52));
+        
+        // Dôme aplati asymétrique
+        for (let i = 0; i <= 15; i++) {
+            const t = i / 15;
+            const angle = t * Math.PI * 0.55;
+            const x = 0.05 + Math.sin(angle) * (maxRadius - 0.05);
+            const y = h * 0.5 * Math.cos(angle * 0.8);
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        // Bord serré (pas de brim large)
+        const bandRadius = maxRadius;
+        const thickness = 0.04;
+        
+        for (let i = 0; i <= 5; i++) {
+            const t = i / 5;
+            const x = bandRadius - t * 0.1;
+            const y = -t * 0.05;
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        // Intérieur
+        for (let i = 5; i >= 0; i--) {
+            const t = i / 5;
+            const x = bandRadius - t * 0.1 - 0.02;
+            const y = -t * 0.05 - thickness;
+            points.push(new THREE.Vector2(x, y));
+        }
+        
+        return points;
+    }
+};
+
+// ============================================
+// 2. MATERIAL STRATEGY PATTERN
+// ============================================
+
+/**
+ * Chaque matériau a ses propres propriétés physiques (PBR)
+ * 
+ * PATTERN LOGIQUE:
+ * ────────────────
+ * roughness ↑ = surface mate (feutre, paille)
+ * roughness ↓ = surface brillante (cuir, velours)
+ * metalness  = reflets métalliques
+ * 
+ * On génère aussi des textures procédurales (pas de fichiers externes)
+ */
+const MATERIAL_STRATEGIES = {
+    
+    felt: (color) => {
+        const tex = generateFeltTexture(color);
+        return new THREE.MeshStandardMaterial({
+            map: tex.diffuse,
+            normalMap: tex.normal,
+            roughnessMap: tex.roughness,
+            roughness: 0.9,
+            metalness: 0.0,
+            side: THREE.DoubleSide,
+            envMapIntensity: 0.3
+        });
+    },
+    
+    leather: (color) => {
+        const tex = generateLeatherTexture(color);
+        return new THREE.MeshStandardMaterial({
+            map: tex.diffuse,
+            normalMap: tex.normal,
+            roughnessMap: tex.roughness,
+            roughness: 0.45,
+            metalness: 0.05,
+            side: THREE.DoubleSide,
+            envMapIntensity: 0.8
+        });
+    },
+    
+    straw: (color) => {
+        const tex = generateStrawTexture(color);
+        return new THREE.MeshStandardMaterial({
+            map: tex.diffuse,
+            normalMap: tex.normal,
+            roughness: 0.95,
+            metalness: 0.0,
+            side: THREE.DoubleSide,
+            envMapIntensity: 0.2
+        });
+    },
+    
+    velvet: (color) => {
+        const tex = generateVelvetTexture(color);
+        return new THREE.MeshStandardMaterial({
+            map: tex.diffuse,
+            normalMap: tex.normal,
+            roughness: 0.7,
+            metalness: 0.02,
+            side: THREE.DoubleSide,
+            envMapIntensity: 0.5,
+            sheen: 1.0,
+            sheenColor: new THREE.Color(color).multiplyScalar(1.5)
+        });
+    }
+};
+
+// ============================================
+// 3. PROCEDURAL TEXTURE GENERATORS
+// ============================================
+
+/**
+ * PATTERN: Toutes les textures sont générées via Canvas 2D
+ * puis converties en THREE.CanvasTexture
+ * 
+ * Avantage: Zéro dépendance externe, 100% procédural
+ * 
+ * Pipeline: Canvas2D → ImageData → Noise/Pattern → Texture3D
+ */
+
+function createCanvasTexture(size, drawFn) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    drawFn(ctx, size);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4, 4);
+    return texture;
+}
+
+// Simplex-like noise (fast hash)
+function hash(x, y) {
+    let h = x * 374761393 + y * 668265263;
+    h = (h ^ (h >> 13)) * 1274126177;
+    return ((h ^ (h >> 16)) & 0xff) / 255;
+}
+
+function smoothNoise(x, y, scale) {
+    const sx = x / scale, sy = y / scale;
+    const ix = Math.floor(sx), iy = Math.floor(sy);
+    const fx = sx - ix, fy = sy - iy;
+    
+    const a = hash(ix, iy);
+    const b = hash(ix + 1, iy);
+    const c = hash(ix, iy + 1);
+    const d = hash(ix + 1, iy + 1);
+    
+    const ux = fx * fx * (3 - 2 * fx);
+    const uy = fy * fy * (3 - 2 * fy);
+    
+    return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+}
+
+function fbmNoise(x, y, octaves = 4) {
+    let value = 0, amplitude = 0.5, frequency = 1;
+    for (let i = 0; i < octaves; i++) {
+        value += amplitude * smoothNoise(x * frequency, y * frequency, 16);
+        amplitude *= 0.5;
+        frequency *= 2;
+    }
+    return value;
+}
+
+function generateFeltTexture(baseColor) {
+    const color = new THREE.Color(baseColor);
+    const size = 512;
+    
+    const diffuse = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                const noise = fbmNoise(x, y, 5);
+                const fiber = Math.sin(x * 0.5 + noise * 20) * 0.03 + 
+                             Math.sin(y * 0.3 + noise * 15) * 0.03;
+                
+                imgData.data[idx]     = Math.min(255, (color.r * 255) * (0.85 + noise * 0.3 + fiber));
+                imgData.data[idx + 1] = Math.min(255, (color.g * 255) * (0.85 + noise * 0.3 + fiber));
+                imgData.data[idx + 2] = Math.min(255, (color.b * 255) * (0.85 + noise * 0.3 + fiber));
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    const normal = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                const n = fbmNoise(x, y, 4);
+                const dx = fbmNoise(x + 1, y, 4) - n;
+                const dy = fbmNoise(x, y + 1, 4) - n;
+                
+                imgData.data[idx]     = 128 + dx * 500;
+                imgData.data[idx + 1] = 128 + dy * 500;
+                imgData.data[idx + 2] = 255;
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    const roughness = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                const v = 200 + fbmNoise(x, y, 3) * 55;
+                imgData.data[idx] = imgData.data[idx+1] = imgData.data[idx+2] = v;
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    return { diffuse, normal, roughness };
+}
+
+function generateLeatherTexture(baseColor) {
+    const color = new THREE.Color(baseColor);
+    const size = 512;
+    
+    const diffuse = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                const n1 = fbmNoise(x * 2, y * 2, 3);
+                const n2 = smoothNoise(x, y, 8);
+                // Grain de cuir: cellules Voronoi simplifiées
+                const cellX = (x % 32) / 32;
+                const cellY = (y % 32) / 32;
+                const cell = Math.sqrt(cellX * cellX + cellY * cellY) * 0.5;
+                const v = 0.8 + n1 * 0.15 + n2 * 0.05 + cell * 0.05;
+                
+                imgData.data[idx]     = Math.min(255, color.r * 255 * v);
+                imgData.data[idx + 1] = Math.min(255, color.g * 255 * v);
+                imgData.data[idx + 2] = Math.min(255, color.b * 255 * v);
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    const normal = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                const n = fbmNoise(x * 2, y * 2, 3);
+                const dx = fbmNoise((x+1) * 2, y * 2, 3) - n;
+                const dy = fbmNoise(x * 2, (y+1) * 2, 3) - n;
+                imgData.data[idx]     = 128 + dx * 800;
+                imgData.data[idx + 1] = 128 + dy * 800;
+                imgData.data[idx + 2] = 240;
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    const roughness = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                const v = 90 + fbmNoise(x, y, 3) * 80;
+                imgData.data[idx] = imgData.data[idx+1] = imgData.data[idx+2] = v;
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    return { diffuse, normal, roughness };
+}
+
+function generateStrawTexture(baseColor) {
+    const color = new THREE.Color(baseColor);
+    // Paille: couleur naturelle jaune/beige
+    color.r = Math.max(color.r, 0.7);
+    color.g = Math.max(color.g, 0.6);
+    
+    const size = 512;
+    
+    const diffuse = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                // Pattern de tressage
+                const weaveX = Math.sin(x * 0.8) * 0.5 + 0.5;
+                const weaveY = Math.sin(y * 0.4 + x * 0.2) * 0.5 + 0.5;
+                const weave = (weaveX * 0.5 + weaveY * 0.5);
+                const n = fbmNoise(x, y, 2) * 0.1;
+                const v = 0.75 + weave * 0.2 + n;
+                
+                imgData.data[idx]     = Math.min(255, color.r * 255 * v);
+                imgData.data[idx + 1] = Math.min(255, color.g * 255 * v);
+                imgData.data[idx + 2] = Math.min(255, color.b * 255 * v * 0.7);
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    const normal = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                const wx = Math.cos(x * 0.8) * 40;
+                const wy = Math.cos(y * 0.4 + x * 0.2) * 40;
+                imgData.data[idx]     = 128 + wx;
+                imgData.data[idx + 1] = 128 + wy;
+                imgData.data[idx + 2] = 200;
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    return { diffuse, normal };
+}
+
+function generateVelvetTexture(baseColor) {
+    const color = new THREE.Color(baseColor);
+    const size = 512;
+    
+    const diffuse = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                const n = fbmNoise(x * 3, y * 3, 4);
+                const sheen = Math.abs(Math.sin(x * 0.1 + y * 0.1 + n * 5)) * 0.15;
+                const v = 0.75 + n * 0.2 + sheen;
+                
+                imgData.data[idx]     = Math.min(255, color.r * 255 * v);
+                imgData.data[idx + 1] = Math.min(255, color.g * 255 * v);
+                imgData.data[idx + 2] = Math.min(255, color.b * 255 * v);
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    const normal = createCanvasTexture(size, (ctx, s) => {
+        const imgData = ctx.createImageData(s, s);
+        for (let y = 0; y < s; y++) {
+            for (let x = 0; x < s; x++) {
+                const idx = (y * s + x) * 4;
+                const n = fbmNoise(x * 3, y * 3, 3);
+                imgData.data[idx]     = 128 + (fbmNoise(x*3+1, y*3, 3) - n) * 300;
+                imgData.data[idx + 1] = 128 + (fbmNoise(x*3, y*3+1, 3) - n) * 300;
+                imgData.data[idx + 2] = 250;
+                imgData.data[idx + 3] = 255;
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+    });
+    
+    return { diffuse, normal };
+}
+
+
+// ============================================
+// 4. HAT BUILDER (Main Construction Logic)
+// ============================================
+
+/**
+ * PATTERN BUILDER:
+ * ────────────────
+ * 
+ * build()
+ *   ├── generateProfile()     → Points 2D du profil
+ *   ├── createCrownGeometry() → LatheGeometry (révolution)
+ *   ├── createBandGeometry()  → Torus/Cylinder (ruban décoratif)
+ *   ├── applyMaterial()       → PBR Material + textures
+ *   ├── addDetails()          → Couture, bouton, etc.
+ *   └── assembleGroup()       → THREE.Group final
+ */
+
+class HatBuilder {
+    constructor(scene) {
+        this.scene = scene;
+        this.hatGroup = new THREE.Group();
+        this.scene.add(this.hatGroup);
+        
+        // État actuel
+        this.config = {
+            type: 'fedora',
+            crownHeight: 1.0,
+            brimWidth: 1.0,
+            brimCurve: 0.5,
+            segments: 64,
+            mainColor: '#2c1810',
+            bandColor: '#8b0000',
+            material: 'felt'
+        };
+    }
+    
+    /**
+     * Reconstruit entièrement le chapeau
+     * Pattern: Destroy → Rebuild (clean slate)
+     */
+    build() {
+        // Nettoyage
+        while (this.hatGroup.children.length > 0) {
+            const child = this.hatGroup.children[0];
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+                if (child.material.map) child.material.map.dispose();
+                if (child.material.normalMap) child.material.normalMap.dispose();
+                if (child.material.roughnessMap) child.material.roughnessMap.dispose();
+                child.material.dispose();
+            }
+            this.hatGroup.remove(child);
+        }
+        
+        const { type, crownHeight, brimWidth, brimCurve, segments, mainColor, bandColor, material } = this.config;
+        
+        // 1. Générer le profil
+        const profileFn = HAT_PROFILES[type];
+        if (!profileFn) return;
+        
+        const profilePoints = profileFn(crownHeight, brimWidth, brimCurve);
+        
+        // 2. Créer la géométrie par révolution (Lathe)
+        const latheGeo = new THREE.LatheGeometry(profilePoints, segments);
+        latheGeo.computeVertexNormals();
+        
+        // 3. Appliquer le matériau
+        const matStrategy = MATERIAL_STRATEGIES[material];
+        const hatMaterial = matStrategy(mainColor);
+        
+        const hatMesh = new THREE.Mesh(latheGeo, hatMaterial);
+        hatMesh.castShadow = true;
+        hatMesh.receiveShadow = true;
+        this.hatGroup.add(hatMesh);
+        
+        // 4. Ajouter le ruban/band (sauf béret)
+        if (type !== 'beret') {
+            this.addBand(bandColor, crownHeight, segments, type);
+        }
+        
+        // 5. Ajouter des détails selon le type
+        this.addDetails(type, crownHeight, mainColor);
+        
+        // 6. Ajouter coutures
+        this.addStitching(type, crownHeight, segments);
+        
+        // 7. Mettre à jour les stats
+        this.updateStats();
+        
+        return this;
+    }
+    
+    addBand(color, crownHeight, segments, type) {
+        let bandY, bandRadius, bandHeight;
+        
+        switch(type) {
+            case 'tophat':
+                bandY = crownHeight * 1.5 * 0.05;
+                bandRadius = 0.435;
+                bandHeight = 0.08;
+                break;
+            case 'bowler':
+                bandY = crownHeight * 0.05;
+                bandRadius = 0.505;
+                bandHeight = 0.06;
+                break;
+            case 'cowboy':
+                bandY = crownHeight * 0.15;
+                bandRadius = 0.47;
+                bandHeight = 0.1;
+                break;
+            case 'witch':
+                bandY = crownHeight * 0.1;
+                bandRadius = 0.42;
+                bandHeight = 0.08;
+                break;
+            default: // fedora
+                bandY = crownHeight * 0.08;
+                bandRadius = 0.525;
+                bandHeight = 0.07;
+        }
+        
+        const bandGeo = new THREE.CylinderGeometry(
+            bandRadius + 0.005, 
+            bandRadius + 0.005, 
+            bandHeight, 
+            segments, 
+            1, 
+            true
+        );
+        
+        const bandMat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(color),
+            roughness: 0.3,
+            metalness: 0.1,
+            side: THREE.DoubleSide
+        });
+        
+        const bandMesh = new THREE.Mesh(bandGeo, bandMat);
+        bandMesh.position.y = bandY;
+        bandMesh.castShadow = true;
+        this.hatGroup.add(bandMesh);
+        
+        // Petite boucle/noeud sur le ruban
+        this.addBuckle(color, bandY, bandRadius, type);
+    }
+    
+    addBuckle(color, bandY, bandRadius, type) {
+        const buckleGroup = new THREE.Group();
+        
+        if (type === 'cowboy') {
+            // Boucle métallique
+            const buckleGeo = new THREE.TorusGeometry(0.04, 0.008, 8, 16);
+            const buckleMat = new THREE.MeshStandardMaterial({
+                color: 0xc0a050,
+                roughness: 0.3,
+                metalness: 0.8
+            });
+            const buckle = new THREE.Mesh(buckleGeo, buckleMat);
+            buckle.rotation.y = Math.PI / 2;
+            buckleGroup.add(buckle);
+        } else {
+            // Petit noeud en tissu
+            const knotGeo = new THREE.SphereGeometry(0.025, 8, 6);
+            knotGeo.scale(1.5, 0.8, 0.6);
+            const knotMat = new THREE.MeshStandardMaterial({
+                color: new THREE.Color(color).multiplyScalar(0.8),
+                roughness: 0.6
+            });
+            
+            const knot1 = new THREE.Mesh(knotGeo, knotMat);
+            knot1.position.x = 0.02;
+            knot1.rotation.z = 0.3;
+            buckleGroup.add(knot1);
+            
+            const knot2 = new THREE.Mesh(knotGeo.clone(), knotMat);
+            knot2.position.x = -0.02;
+            knot2.rotation.z = -0.3;
+            buckleGroup.add(knot2);
+            
+            // Centre du noeud
+            const centerGeo = new THREE.SphereGeometry(0.012, 6, 6);
+            const center = new THREE.Mesh(centerGeo, knotMat);
+            buckleGroup.add(center);
+        }
+        
+        buckleGroup.position.set(0, bandY, bandRadius + 0.01);
+        this.hatGroup.add(buckleGroup);
+    }
+    
+    addDetails(type, crownHeight, color) {
+        if (type === 'fedora') {
+            // Pli central sur le dessus (crease)
+            this.addCrease(crownHeight);
+        }
+        
+        if (type === 'witch') {
+            // Étoile/lune décorative
+            this.addWitchDecor(crownHeight);
+        }
+        
+        if (type === 'beret') {
+            // Petit bouton sur le dessus
+            const btnGeo = new THREE.SphereGeometry(0.025, 12, 8);
+            const btnMat = new THREE.MeshStandardMaterial({
+                color: new THREE.Color(color),
+                roughness: 0.7
+            });
+            const btn = new THREE.Mesh(btnGeo, btnMat);
+            btn.position.y = crownHeight * 0.55;
+            this.hatGroup.add(btn);
+        }
+    }
+    
+    addCrease(crownHeight) {
+        // Ligne de pli sur le dessus du fedora (visuel subtil)
+        const curve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(-0.35, crownHeight * 0.93, 0),
+            new THREE.Vector3(-0.15, crownHeight * 0.96, 0),
+            new THREE.Vector3(0, crownHeight * 1.05, 0),
+            new THREE.Vector3(0.15, crownHeight * 0.96, 0),
+            new THREE.Vector3(0.35, crownHeight * 0.93, 0)
+        ]);
+        
+        const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.005, 4, false);
+        const tubeMat = new THREE.MeshStandardMaterial({
+            color: 0x000000,
+            roughness: 1,
+            transparent: true,
+            opacity: 0.3
+        });
+        
+        const crease = new THREE.Mesh(tubeGeo, tubeMat);
+        this.hatGroup.add(crease);
+    }
+    
+    addWitchDecor(crownHeight) {
+        // Étoile
+        const starShape = new THREE.Shape();
+        const outerR = 0.04, innerR = 0.02, points5 = 5;
+        
+        for (let i = 0; i < points5 * 2; i++) {
+            const r = i % 2 === 0 ? outerR : innerR;
+            const angle = (i / (points5 * 2)) * Math.PI * 2 - Math.PI / 2;
+            const x = Math.cos(angle) * r;
+            const y = Math.sin(angle) * r;
+            if (i === 0) starShape.moveTo(x, y);
+            else starShape.lineTo(x, y);
+        }
+        starShape.closePath();
+        
+        const starGeo = new THREE.ExtrudeGeometry(starShape, {
+            depth: 0.005,
+            bevelEnabled: false
+        });
+        
+        const starMat = new THREE.MeshStandardMaterial({
+            color: 0xffd700,
+            roughness: 0.3,
+            metalness: 0.7,
+            emissive: 0xffa500,
+            emissiveIntensity: 0.3
+        });
+        
+        const star = new THREE.Mesh(starGeo, starMat);
+        star.position.set(0, crownHeight * 1.2, 0.35);
+        star.lookAt(0, crownHeight * 1.2, 1);
+        this.hatGroup.add(star);
+    }
+    
+    addStitching(type, crownHeight, segments) {
+        if (type === 'beret') return;
+        
+        // Couture à la base de la couronne
+        const stitchPoints = [];
+        const stitchRadius = type === 'tophat' ? 0.44 : 0.53;
+        const stitchY = type === 'tophat' ? 0.02 : 0.01;
+        
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            const x = Math.cos(angle) * stitchRadius;
+            const z = Math.sin(angle) * stitchRadius;
+            // Petite ondulation pour simuler une couture
+            const yOff = Math.sin(i * 8) * 0.002;
+            stitchPoints.push(new THREE.Vector3(x, stitchY + yOff, z));
+        }
+        
+        const stitchCurve = new THREE.CatmullRomCurve3(stitchPoints, true);
+        const stitchGeo = new THREE.TubeGeometry(stitchCurve, segments * 2, 0.002, 3, true);
+        const stitchMat = new THREE.MeshStandardMaterial({
+            color: 0x111111,
+            roughness: 0.8
+        });
+        
+        const stitch = new THREE.Mesh(stitchGeo, stitchMat);
+        this.hatGroup.add(stitch);
+    }
+    
+    updateStats() {
+        let verts = 0, tris = 0;
+        this.hatGroup.traverse(child => {
+            if (child.geometry) {
+                const pos = child.geometry.getAttribute('position');
+                if (pos) verts += pos.count;
+                const idx = child.geometry.index;
+                tris += idx ? idx.count / 3 : pos.count / 3;
+            }
+        });
+        document.getElementById('vert-count').textContent = verts;
+        document.getElementById('tri-count').textContent = Math.floor(tris);
+    }
+    
+    /**
+     * API fluide pour modifier la config
+     */
+    setType(type) { this.config.type = type; return this; }
+    setHeight(h) { this.config.crownHeight = h; return this; }
+    setBrimWidth(w) { this.config.brimWidth = w; return this; }
+    setBrimCurve(c) { this.config.brimCurve = c; return this; }
+    setSegments(s) { this.config.segments = s; return this; }
+    setMainColor(c) { this.config.mainColor = c; return this; }
+    setBandColor(c) { this.config.bandColor = c; return this; }
+    setMaterial(m) { this.config.material = m; return this; }
+}
+
+
+// ============================================
+// 5. SCENE SETUP
+// ============================================
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+scene.fog = new THREE.FogExp2(0x1a1a2e, 0.15);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(2, 1.5, 2.5);
+
+const renderer = new THREE.WebGLRenderer({ 
+    antialias: true,
+    powerPreference: "high-performance"
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+// Controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.minDistance = 1;
+controls.maxDistance = 8;
+controls.target.set(0, 0.5, 0);
+
+// ============================================
+// 6. LIGHTING (Réaliste - 3-point lighting + Environment)
+// ============================================
+
+/**
+ * PATTERN D'ÉCLAIRAGE:
+ * ────────────────────
+ *        [Key Light] (chaud, dominant)
+ *            ↓
+ *    ┌───────────────┐
+ *    │   🎩 HAT      │ ← [Fill Light] (froid, doux)
+ *    └───────────────┘
+ *            ↑
+ *      [Rim Light] (contour, dramatique)
+ *      
+ *  + Ambient (ambiance globale)
+ *  + Ground bounce (réflexion du sol)
+ */
+
+// Ambient
+const ambient = new THREE.AmbientLight(0x404060, 0.4);
+scene.add(ambient);
+
+// Key Light (lumière principale)
+const keyLight = new THREE.DirectionalLight(0xffeedd, 2.0);
+keyLight.position.set(3, 4, 2);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.near = 0.1;
+keyLight.shadow.camera.far = 20;
+keyLight.shadow.camera.left = -3;
+keyLight.shadow.camera.right = 3;
+keyLight.shadow.camera.top = 3;
+keyLight.shadow.camera.bottom = -3;
+keyLight.shadow.bias = -0.001;
+scene.add(keyLight);
+
+// Fill Light (lumière de remplissage)
+const fillLight = new THREE.DirectionalLight(0x8888ff, 0.6);
+fillLight.position.set(-2, 2, -1);
+scene.add(fillLight);
+
+// Rim Light (contour)
+const rimLight = new THREE.PointLight(0xff6633, 1.5, 10);
+rimLight.position.set(-1, 2, -3);
+scene.add(rimLight);
+
+// Lumière du dessous (bounce)
+const bounceLight = new THREE.PointLight(0x333355, 0.5, 5);
+bounceLight.position.set(0, -1, 0);
+scene.add(bounceLight);
+
+// ============================================
+// 7. ENVIRONMENT (Sol + backdrop)
+// ============================================
+
+// Sol
+const floorGeo = new THREE.CircleGeometry(5, 64);
+const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x222233,
+    roughness: 0.8,
+    metalness: 0.1
+});
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -0.5;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// Piédestal
+const pedestalGeo = new THREE.CylinderGeometry(0.6, 0.7, 0.08, 32);
+const pedestalMat = new THREE.MeshStandardMaterial({
+    color: 0x333344,
+    roughness: 0.4,
+    metalness: 0.3
+});
+const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+pedestal.position.y = -0.46;
+pedestal.receiveShadow = true;
+pedestal.castShadow = true;
+scene.add(pedestal);
+
+// Grille de fond (esthétique)
+const gridHelper = new THREE.GridHelper(10, 30, 0x333355, 0x222244);
+gridHelper.position.y = -0.49;
+scene.add(gridHelper);
+
+// ============================================
+// 8. HAT BUILDER INSTANCE + INITIAL BUILD
+// ============================================
+
+const hatBuilder = new HatBuilder(scene);
+hatBuilder.hatGroup.position.y = -0.42;
+hatBuilder.build();
+
+// ============================================
+// 9. UI BINDINGS (Observer Pattern)
+// ============================================
+
+// Type buttons
+document.querySelectorAll('#hat-types .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#hat-types .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const type = btn.dataset.type;
+        hatBuilder.setType(type);
+        
+        // Presets par type
+        const presets = {
+            fedora:  { h: 1.0, bw: 1.0,  bc: 0.5,  color: '#2c1810', band: '#8b0000' },
+            tophat:  { h: 1.2, bw: 0.6,  bc: 0.2,  color: '#0a0a0a', band: '#222222' },
+            bowler:  { h: 0.8, bw: 0.7,  bc: 0.8,  color: '#1a1008', band: '#333333' },
+            cowboy:  { h: 1.0, bw: 1.8,  bc: 0.6,  color: '#3d2b1f', band: '#8b6914' },
+            witch:   { h: 1.0, bw: 1.2,  bc: 0.4,  color: '#0a0020', band: '#4a0080' },
+            beret:   { h: 0.6, bw: 0.3,  bc: 0.0,  color: '#1a0a0a', band: '#1a0a0a' }
+        };
+        
+        const p = presets[type];
+        document.getElementById('crown-height').value = p.h;
+        document.getElementById('brim-width').value = p.bw;
+        document.getElementById('brim-curve').value = p.bc;
+        document.getElementById('color-main').value = p.color;
+        document.getElementById('color-band').value = p.band;
+        document.getElementById('val-height').textContent = p.h.toFixed(1);
+        document.getElementById('val-brim').textContent = p.bw.toFixed(1);
+        document.getElementById('val-curve').textContent = p.bc.toFixed(1);
+        
+        hatBuilder
+            .setHeight(p.h)
+            .setBrimWidth(p.bw)
+            .setBrimCurve(p.bc)
+            .setMainColor(p.color)
+            .setBandColor(p.band)
+            .build();
+    });
+});
+
+// Material buttons
+document.querySelectorAll('#materials .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#materials .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        hatBuilder.setMaterial(btn.dataset.mat).build();
+    });
+});
+
+// Sliders
+function bindSlider(id, setter, displayId) {
+    document.getElementById(id).addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        document.getElementById(displayId).textContent = val.toFixed(1);
+        setter(val);
+        hatBuilder.build();
+    });
+}
+
+bindSlider('crown-height', v => hatBuilder.setHeight(v), 'val-height');
+bindSlider('brim-width', v => hatBuilder.setBrimWidth(v), 'val-brim');
+bindSlider('brim-curve', v => hatBuilder.setBrimCurve(v), 'val-curve');
+
+document.getElementById('segments').addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    document.getElementById('val-seg').textContent = val;
+    hatBuilder.setSegments(val).build();
+});
+
+// Colors
+document.getElementById('color-main').addEventListener('input', (e) => {
+    hatBuilder.setMainColor(e.target.value).build();
+});
+document.getElementById('color-band').addEventListener('input', (e) => {
+    hatBuilder.setBandColor(e.target.value).build();
+});
+
+// ============================================
+// 10. ANIMATION LOOP
+// ============================================
+
+let lastTime = performance.now();
+let frameCount = 0;
+let fps = 60;
+
+function animate(time) {
+    requestAnimationFrame(animate);
+    
+    // FPS Counter
+    frameCount++;
+    if (time - lastTime >= 1000) {
+        fps = frameCount;
+        document.getElementById('fps').textContent = fps;
+        frameCount = 0;
+        lastTime = time;
+    }
+    
+    // Rotation douce automatique
+    hatBuilder.hatGroup.rotation.y += 0.003;
+    
+    // Lumière rim qui bouge subtilement
+    rimLight.position.x = Math.sin(time * 0.001) * 2;
+    rimLight.position.z = Math.cos(time * 0.001) * 3;
+    
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+animate(0);
+
+// ============================================
+// 11. RESPONSIVE
+// ============================================
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+</script>
+</body>
+</html>
+Pattern Logique Complet - Diagramme
+text
+
+╔══════════════════════════════════════════════════════════════════╗
+║                    ARCHITECTURE COMPLÈTE                         ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  ┌─────────────────────────────────────────────────────────┐    ║
+║  │                    USER INTERFACE                        │    ║
+║  │  [Type] [Color] [Sliders] [Material]                    │    ║
+║  └────────────────────┬────────────────────────────────────┘    ║
+║                       │ Events (Observer Pattern)                ║
+║                       ▼                                          ║
+║  ┌─────────────────────────────────────────────────────────┐    ║
+║  │              HAT CONFIGURATION (State)                   │    ║
+║  │  {                                                       │    ║
+║  │    type: "fedora",                                       │    ║
+║  │    crownHeight: 1.0,      // Paramètre principal        │    ║
+║  │    brimWidth: 1.0,        // Extension du rebord         │    ║
+║  │    brimCurve: 0.5,        // -1..+1 courbure            │    ║
+║  │    segments: 64,          // Résolution polygonale       │    ║
+║  │    mainColor: "#2c1810",  // Couleur body               │    ║
+║  │    bandColor: "#8b0000",  // Couleur ruban              │    ║
+║  │    material: "felt"       // Stratégie matériau          │    ║
+║  │  }                                                       │    ║
+║  └────────────────────┬────────────────────────────────────┘    ║
+║                       │                                          ║
+║                       ▼                                          ║
+║  ┌─────────────────────────────────────────────────────────┐    ║
+║  │              HAT BUILDER (Builder Pattern)               │    ║
+║  │                                                          │    ║
+║  │  build() {                                               │    ║
+║  │    ┌──────────────────────────────────────────┐         │    ║
+║  │    │ 1. PROFILE GENERATION                     │         │    ║
+║  │    │    Strategy Pattern: HAT_PROFILES[type]   │         │    ║
+║  │    │                                           │         │    ║
+║  │    │    Input: (height, brimWidth, brimCurve)  │         │    ║
+║  │    │    Output: Vector2[] (profil 2D)          │         │    ║
+║  │    │                                           │         │    ║
+║  │    │    LOGIQUE MATHÉMATIQUE:                   │         │    ║
+║  │    │    ● Sommet → Courbe de Bézier/spline     │         │    ║
+║  │    │    ● Côtés → Fonctions paramétriques      │         │    ║
+║  │    │    ● Brim  → sin/pow pour courbures       │         │    ║
+║  │    │    ● Épaisseur → offset négatif Y         │         │    ║
+║  │    └──────────────┬───────────────────────────┘         │    ║
+║  │                   ▼                                      │    ║
+║  │    ┌──────────────────────────────────────────┐         │    ║
+║  │    │ 2. GEOMETRY CONSTRUCTION                  │         │    ║
+║  │    │    LatheGeometry(profile, segments)        │         │    ║
+║  │    │                                           │         │    ║
+║  │    │    PRINCIPE DE LA RÉVOLUTION:             │         │    ║
+║  │    │                                           │         │    ║
+║  │    │    Profil 2D (x,y)                        │         │    ║
+║  │    │         │                                 │         │    ║
+║  │    │         ▼  rotation 360° autour axe Y     │         │    ║
+║  │    │    Surface 3D de révolution               │         │    ║
+║  │    │                                           │         │    ║
+║  │    │    Pour chaque point (x,y):               │         │    ║
+║  │    │    for θ = 0 → 2π:                        │         │    ║
+║  │    │      vertex(x·cos(θ), y, x·sin(θ))       │         │    ║
+║  │    └──────────────┬───────────────────────────┘         │    ║
+║  │                   ▼                                      │    ║
+║  │    ┌──────────────────────────────────────────┐         │    ║
+║  │    │ 3. MATERIAL APPLICATION                   │         │    ║
+║  │    │    Strategy: MATERIAL_STRATEGIES[mat]     │         │    ║
+║  │    │                                           │         │    ║
+║  │    │    Chaque stratégie génère:               │         │    ║
+║  │    │    ├── Diffuse Map  (couleur)             │         │    ║
+║  │    │    ├── Normal Map   (relief)              │         │    ║
+║  │    │    ├── Roughness Map (brillance)          │         │    ║
+║  │    │    └── PBR params   (metalness, etc.)     │         │    ║
+║  │    │                                           │         │    ║
+║  │    │    TEXTURES PROCÉDURALES:                  │         │    ║
+║  │    │    Canvas2D → fbm noise → CanvasTexture   │         │    ║
+║  │    └──────────────┬───────────────────────────┘         │    ║
+║  │                   ▼                                      │    ║
+║  │    ┌──────────────────────────────────────────┐         │    ║
+║  │    │ 4. DETAILS & DECORATION                   │         │    ║
+║  │    │    ├── Band (CylinderGeometry, open)      │         │    ║
+║  │    │    ├── Buckle/Knot (SphereGeometry)       │         │    ║
+║  │    │    ├── Stitching (TubeGeometry + curve)   │         │    ║
+║  │    │    ├── Crease [fedora] (TubeGeometry)     │         │    ║
+║  │    │    └── Star [witch] (ExtrudeGeometry)     │         │    ║
+║  │    └──────────────┬───────────────────────────┘         │    ║
+║  │                   ▼                                      │    ║
+║  │    ┌──────────────────────────────────────────┐         │    ║
+║  │    │ 5. ASSEMBLY → THREE.Group                 │         │    ║
+║  │    │    Tous les meshes dans hatGroup           │         │    ║
+║  │    └──────────────────────────────────────────┘         │    ║
+║  │  }                                                       │    ║
+║  └────────────────────┬────────────────────────────────────┘    ║
+║                       │                                          ║
+║                       ▼                                          ║
+║  ┌─────────────────────────────────────────────────────────┐    ║
+║  │                 THREE.JS SCENE                           │    ║
+║  │                                                          │    ║
+║  │  Éclairage (3-Point Lighting):                          │    ║
+║  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │    ║
+║  │  │Key Light │ │Fill Light│ │Rim Light │ │Bounce    │  │    ║
+║  │  │(chaud)   │ │(froid)   │ │(contour) │ │(sol)     │  │    ║
+║  │  │DirectL   │ │DirectL   │ │PointL    │ │PointL    │  │    ║
+║  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │    ║
+║  │                                                          │    ║
+║  │  Environnement:                                         │    ║
+║  │  ├── Sol (CircleGeometry + shadow receiver)             │    ║
+║  │  ├── Piédestal (CylinderGeometry)                       │    ║
+║  │  ├── Grille (GridHelper)                                │    ║
+║  │  └── Fog (FogExp2 pour profondeur)                      │    ║
+║  │                                                          │    ║
+║  │  Rendu:                                                  │    ║
+║  │  ├── ACES Filmic Tone Mapping                           │    ║
+║  │  ├── PCF Soft Shadow Maps                               │    ║
+║  │  ├── sRGB Color Space                                   │    ║
+║  │  └── Antialiasing                                       │    ║
+║  └─────────────────────────────────────────────────────────┘    ║
+║                                                                  ║
+║  ┌─────────────────────────────────────────────────────────┐    ║
+║  │                 RENDER LOOP                              │    ║
+║  │  requestAnimationFrame → {                               │    ║
+║  │    1. Update FPS counter                                 │    ║
+║  │    2. Rotate hat (auto-rotation)                        │    ║
+║  │    3. Animate rim light position                        │    ║
+║  │    4. Update OrbitControls                              │    ║
+║  │    5. renderer.render(scene, camera)                    │    ║
+║  │  }                                                       │    ║
+║  └─────────────────────────────────────────────────────────┘    ║
+╚══════════════════════════════════════════════════════════════════╝
+Résumé des Patterns Utilisés
+Pattern	Où	Pourquoi
+Builder	HatBuilder	Construction étape par étape, API fluide .setType().setHeight().build()
+Strategy	HAT_PROFILES, MATERIAL_STRATEGIES	Interchangeabilité des profils et matériaux sans modifier le builder
+Observer	UI → Config → Build	Les événements UI déclenchent automatiquement la reconstruction
+Factory	Texture generators	Chaque type de texture a sa propre factory function
+Composite	THREE.Group	Le chapeau est un arbre de meshes (crown + band + details)
+Copiez le HTML complet dans un fichier .html et ouvrez-le dans un navigateur - vous aurez un modeleur de chapeau 3D interactif avec 6 types, 4 matériaux procéduraux, et des contrôles temps réel.
