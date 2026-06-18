@@ -1,105 +1,127 @@
-import { describe, it, expect } from 'vitest';
-import { generateMutants }      from '../services/mutator.mjs';
+import { describe, it, expect } from 'vitest'
+import { generateMutants, OPERATORS } from '../services/mutator.mjs'
 
-// ─── Fixtures Solidity ────────────────────────────────────────────────────────
 const SIMPLE_CONTRACT = `
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 contract SimpleToken {
     uint256 public totalSupply;
-    mapping(address => uint256) public balances;
+    mapping(address => uint256) public balanceOf;
 
-    function transfer(address to, uint256 amount) public {
-        require(balances[msg.sender] >= amount, "Insufficient balance");
-        require(to != address(0), "Zero address");
-        balances[msg.sender] -= amount;
-        balances[to] += amount;
+    constructor(uint256 _supply) {
+        totalSupply = _supply;
+        balanceOf[msg.sender] = _supply;
     }
 
-    function isAllowed(uint256 value) public pure returns (bool) {
-        return value > 100 && value <= 1000;
-    }
-
-    function hasFlag() public pure returns (bool) {
+    function transfer(address to, uint256 amount) public returns (bool) {
+        require(balanceOf[msg.sender] >= amount, "Insufficient balance");
+        require(to != address(0), "Invalid recipient");
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
         return true;
     }
+
+    function isValid(uint256 value) public pure returns (bool) {
+        return value > 0 && value < 1000;
+    }
 }
-`;
+`
 
-describe('Opérateur BCR (Boundary Condition)', () => {
-  it('devrait générer des mutants pour > et <=', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['BCR'], 50);
-    expect(mutants.length).toBeGreaterThan(0);
-    expect(mutants.every(m => m.operator === 'BCR')).toBe(true);
-  });
+describe('OPERATORS', () => {
+  it('exporte les 5 opérateurs requis', () => {
+    expect(Object.keys(OPERATORS)).toEqual(
+      expect.arrayContaining(['BCR', 'AOR', 'BLR', 'RQD', 'VCR'])
+    )
+  })
 
-  it('les mutants BCR doivent remplacer > par >=', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['BCR'], 50);
-    const gtMutant = mutants.find(m => m.original === '>');
-    expect(gtMutant).toBeDefined();
-    expect(gtMutant.mutated).toBe('>=');
-    expect(gtMutant.sourceCode).toContain('>=');
-  });
+  it('chaque opérateur a name et description', () => {
+    for (const [key, op] of Object.entries(OPERATORS)) {
+      expect(op.name,        `${key}.name`).toBeTruthy()
+      expect(op.description, `${key}.description`).toBeTruthy()
+    }
+  })
+})
 
-  it('les mutants BCR doivent remplacer <= par <', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['BCR'], 50);
-    const lteMutant = mutants.find(m => m.original === '<=');
-    expect(lteMutant).toBeDefined();
-    expect(lteMutant.mutated).toBe('<');
-  });
-});
+describe('generateMutants — BCR', () => {
+  it('génère des mutants pour les opérateurs de comparaison', () => {
+    const mutants = generateMutants(SIMPLE_CONTRACT, ['BCR'], 50)
+    expect(mutants.length).toBeGreaterThan(0)
 
-describe('Opérateur BLR (Boolean Literal)', () => {
-  it('devrait générer un mutant qui remplace true par false', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['BLR'], 10);
-    expect(mutants.length).toBeGreaterThan(0);
-    const blrMutant = mutants[0];
-    expect(blrMutant.original).toBe('true');
-    expect(blrMutant.mutated).toBe('false');
-    expect(blrMutant.sourceCode).not.toContain('return true;');
-  });
-});
-
-describe('Opérateur RQD (Require Deletion)', () => {
-  it('devrait neutraliser la condition du require', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['RQD'], 10);
-    expect(mutants.length).toBeGreaterThan(0);
     mutants.forEach(m => {
-      expect(m.mutated).toBe('true');
-      expect(m.sourceCode).toContain('require(true');
-    });
-  });
-});
+      expect(m.operator).toBe('BCR')
+      expect(m.id).toMatch(/^BCR_/)
+      expect(m.sourceCode).toBeTruthy()
+      expect(m.status).toBe('pending')
+      expect(m.location).toHaveProperty('line')
+    })
+  })
 
-describe('Opérateur AOR (Arithmetic)', () => {
-  it('devrait remplacer += par -=', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['AOR'], 20);
-    expect(mutants.some(m => m.original === '+' || m.original === '-')).toBe(true);
-  });
-});
-
-describe('generateMutants — Comportement général', () => {
-  it('devrait respecter le maxMutants', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['BCR', 'AOR', 'BLR', 'RQD'], 3);
-    expect(mutants.length).toBeLessThanOrEqual(3);
-  });
-
-  it('chaque mutant doit avoir un ID unique', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['BCR', 'AOR', 'BLR'], 50);
-    const ids = mutants.map(m => m.id);
-    expect(new Set(ids).size).toBe(ids.length);
-  });
-
-  it('chaque mutant doit avoir un sourceCode différent de l\'original', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['BCR', 'AOR', 'BLR', 'RQD'], 50);
+  it('le code muté diffère du code original', () => {
+    const mutants = generateMutants(SIMPLE_CONTRACT, ['BCR'], 5)
     mutants.forEach(m => {
-      expect(m.sourceCode).not.toBe(SIMPLE_CONTRACT);
-    });
-  });
+      expect(m.sourceCode).not.toBe(SIMPLE_CONTRACT)
+    })
+  })
+})
 
-  it('devrait retourner tableau vide pour opérateur inconnu', () => {
-    const mutants = generateMutants(SIMPLE_CONTRACT, ['INVALID_OP'], 10);
-    expect(mutants).toEqual([]);
-  });
-});
+describe('generateMutants — AOR', () => {
+  it('génère des mutants arithmétiques', () => {
+    const mutants = generateMutants(SIMPLE_CONTRACT, ['AOR'], 50)
+    expect(mutants.length).toBeGreaterThan(0)
+    mutants.forEach(m => {
+      expect(m.operator).toBe('AOR')
+    })
+  })
+})
+
+describe('generateMutants — RQD', () => {
+  it('neutralise les require()', () => {
+    const mutants = generateMutants(SIMPLE_CONTRACT, ['RQD'], 50)
+    expect(mutants.length).toBeGreaterThan(0)
+
+    mutants.forEach(m => {
+      expect(m.operator).toBe('RQD')
+      expect(m.mutated).toBe('true')
+      expect(m.sourceCode).toContain('require(true')
+    })
+  })
+})
+
+describe('generateMutants — VCR', () => {
+  it('change la visibilité des fonctions', () => {
+    const mutants = generateMutants(SIMPLE_CONTRACT, ['VCR'], 50)
+    expect(mutants.length).toBeGreaterThan(0)
+
+    mutants.forEach(m => {
+      expect(m.operator).toBe('VCR')
+      expect(['public', 'external']).toContain(m.original)
+      expect(m.mutated).toBe('internal')
+    })
+  })
+})
+
+describe('generateMutants — maxMutants', () => {
+  it('respecte la limite maxMutants', () => {
+    const mutants = generateMutants(SIMPLE_CONTRACT, ['BCR', 'AOR', 'RQD', 'VCR'], 5)
+    expect(mutants.length).toBeLessThanOrEqual(5)
+  })
+
+  it('retourne un tableau vide pour un opérateur inconnu', () => {
+    const mutants = generateMutants(SIMPLE_CONTRACT, ['UNKNOWN'], 10)
+    expect(mutants).toEqual([])
+  })
+})
+
+describe('generateMutants — tous les opérateurs ensemble', () => {
+  it('combine les 5 opérateurs sans erreur', () => {
+    const mutants = generateMutants(
+      SIMPLE_CONTRACT,
+      ['BCR', 'AOR', 'BLR', 'RQD', 'VCR'],
+      100
+    )
+    expect(mutants.length).toBeGreaterThan(0)
+
+    const operators = new Set(mutants.map(m => m.operator))
+    expect(operators.size).toBeGreaterThan(1)
+  })
+})

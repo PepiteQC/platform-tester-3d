@@ -1,41 +1,37 @@
-import { config } from '../config.mjs';
-import { logger } from '../utils/logger.mjs';
+import { timingSafeEqual, createHash } from 'crypto'
+import { config }  from '../config.mjs'
+import { logger }  from '../utils/logger.mjs'
 
 /**
- * Middleware d'authentification admin simple (Bearer token)
- * À remplacer par JWT/OAuth en production
+ * Middleware d'authentification admin — Bearer token
+ * Utilise crypto.timingSafeEqual natif Node.js (résistant aux timing attacks)
  */
 export function requireAdmin(req, res, next) {
-  const authHeader = req.headers.authorization;
+  const authHeader = req.headers['authorization']
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    logger.warn('Tentative d\'accès admin sans token', { ip: req.ip });
+  if (!authHeader?.startsWith('Bearer ')) {
+    logger.warn('Accès admin sans token', { ip: req.ip, url: req.originalUrl })
+
     return res.status(401).json({
       success: false,
-      error: 'Authentification requise.'
-    });
+      error:   'Authentification requise.',
+    })
   }
 
-  const token = authHeader.slice(7); // Retire "Bearer "
+  const token    = authHeader.slice(7).trim()
+  const expected = config.ADMIN_TOKEN
 
-  // Comparaison en temps constant pour éviter les timing attacks
-  if (!timingSafeEqual(token, config.ADMIN_TOKEN)) {
-    logger.warn('Token admin invalide', { ip: req.ip });
+  const tokenHash    = createHash('sha256').update(token).digest()
+  const expectedHash = createHash('sha256').update(expected).digest()
+
+  if (!timingSafeEqual(tokenHash, expectedHash)) {
+    logger.warn('Token admin invalide', { ip: req.ip })
+
     return res.status(403).json({
       success: false,
-      error: 'Accès refusé.'
-    });
+      error:   'Accès refusé.',
+    })
   }
 
-  next();
-}
-
-// Implémentation manuelle de crypto.timingSafeEqual pour les strings
-function timingSafeEqual(a, b) {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return diff === 0;
+  next()
 }
