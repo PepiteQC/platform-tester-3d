@@ -1,0 +1,204 @@
+// TROXT NLP Module - Natural Language Processing & Semantic Understanding
+// Proprietary ETHERWORLD Intelligence - Licensed under TROXT License 2024
+
+export interface ParsedPrompt {
+  intent: string;
+  entities: string[];
+  style: string;
+  complexity: 'simple' | 'moderate' | 'complex';
+  primarySubject: string;
+  secondarySubjects: string[];
+  qualifiers: string[];
+  confidence: number;
+}
+
+export interface PromptAnalysis {
+  raw: string;
+  parsed: ParsedPrompt;
+  tokens: string[];
+  semanticTags: string[];
+  suggestedActions: string[];
+  analysis: string;
+}
+
+const styleKeywords = {
+  realistic: ['photorealistic', 'real', 'detailed', 'lifelike', 'accurate'],
+  cartoon: ['cartoon', 'stylized', 'animated', 'playful', 'fun'],
+  abstract: ['abstract', 'minimalist', 'geometric', 'simple', 'clean'],
+  scifi: ['scifi', 'futuristic', 'cyberpunk', 'hi-tech', 'space'],
+  fantasy: ['fantasy', 'magical', 'mythical', 'dragon', 'wizard'],
+  lowpoly: ['lowpoly', 'low poly', 'blocky', 'minecraft', 'voxel'],
+};
+
+const complexityIndicators = {
+  simple: ['simple', 'basic', 'plain', 'minimalist'],
+  complex: ['detailed', 'intricate', 'complex', 'elaborate', 'ornate', 'high-quality'],
+};
+
+export class TROXTNLPEngine {
+  /**
+   * Analyze a natural language prompt for 3D generation
+   */
+  static analyzePrompt(prompt: string): PromptAnalysis {
+    const normalized = prompt.toLowerCase().trim();
+    const tokens = normalized.split(/\s+/);
+    
+    const parsed = this.parseSemantics(normalized, tokens);
+    const semanticTags = this.extractSemanticTags(tokens);
+    const suggestedActions = this.generateSuggestedActions(parsed);
+
+    return {
+      raw: prompt,
+      parsed,
+      tokens,
+      semanticTags,
+      suggestedActions,
+      analysis: this.generateAnalysis(parsed, tokens),
+    };
+  }
+
+  /**
+   * Extract semantic meaning from tokens
+   */
+  private static parseSemantics(normalized: string, tokens: string[]): ParsedPrompt {
+    const styleDetected = this.detectStyle(normalized);
+    const complexity = this.detectComplexity(normalized);
+    const entities = this.extractEntities(tokens);
+
+    return {
+      intent: this.detectIntent(normalized),
+      entities,
+      style: styleDetected,
+      complexity,
+      primarySubject: entities[0] || 'object',
+      secondarySubjects: entities.slice(1),
+      qualifiers: this.extractQualifiers(tokens),
+      confidence: this.calculateConfidence(normalized),
+    };
+  }
+
+  /**
+   * Detect the desired art style
+   */
+  private static detectStyle(text: string): string {
+    for (const [style, keywords] of Object.entries(styleKeywords)) {
+      if (keywords.some(kw => text.includes(kw))) {
+        return style;
+      }
+    }
+    return 'realistic';
+  }
+
+  /**
+   * Detect complexity level
+   */
+  private static detectComplexity(text: string): 'simple' | 'moderate' | 'complex' {
+    const simpleScore = complexityIndicators.simple.filter(kw => text.includes(kw)).length;
+    const complexScore = complexityIndicators.complex.filter(kw => text.includes(kw)).length;
+
+    if (complexScore > simpleScore) return 'complex';
+    if (simpleScore > complexScore) return 'simple';
+    return 'moderate';
+  }
+
+  /**
+   * Extract main entities from tokens
+   */
+  private static extractEntities(tokens: string[]): string[] {
+    const entities: string[] = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      // Skip common prepositions, articles
+      if (!['a', 'an', 'the', 'in', 'on', 'at', 'of', 'and', 'or', 'is', 'are'].includes(token)) {
+        if (token.length > 2) {
+          entities.push(token);
+        }
+      }
+    }
+    return entities.slice(0, 5);
+  }
+
+  /**
+   * Detect user intent
+   */
+  private static detectIntent(text: string): string {
+    if (text.includes('generate') || text.includes('create')) return 'generate';
+    if (text.includes('modify') || text.includes('change')) return 'modify';
+    if (text.includes('improve') || text.includes('enhance')) return 'enhance';
+    if (text.includes('style') || text.includes('restyle')) return 'restyle';
+    return 'generate';
+  }
+
+  /**
+   * Extract qualifiers (adjectives)
+   */
+  private static extractQualifiers(tokens: string[]): string[] {
+    const qualifiers = ['beautiful', 'detailed', 'stunning', 'epic', 'amazing', 'incredible', 'intricate', 'simple', 'elegant'];
+    return tokens.filter(t => qualifiers.includes(t));
+  }
+
+  /**
+   * Calculate confidence in the parse
+   */
+  private static calculateConfidence(text: string): number {
+    let confidence = 0.5;
+    if (text.length > 20) confidence += 0.2;
+    if (text.length > 50) confidence += 0.1;
+    if (/[!?]/.test(text)) confidence += 0.1;
+    return Math.min(confidence, 1);
+  }
+
+  /**
+   * Extract semantic tags for context
+   */
+  private static extractSemanticTags(tokens: string[]): string[] {
+    const tags = new Set<string>();
+    
+    if (tokens.some(t => ['character', 'person', 'human', 'face'].includes(t))) tags.add('character');
+    if (tokens.some(t => ['weapon', 'sword', 'gun', 'rifle'].includes(t))) tags.add('weapon');
+    if (tokens.some(t => ['nature', 'tree', 'forest', 'landscape'].includes(t))) tags.add('nature');
+    if (tokens.some(t => ['tech', 'robot', 'machine', 'cyber'].includes(t))) tags.add('technology');
+    if (tokens.some(t => ['building', 'house', 'castle', 'structure'].includes(t))) tags.add('architecture');
+    if (tokens.some(t => ['animal', 'creature', 'beast', 'dragon'].includes(t))) tags.add('creature');
+
+    return Array.from(tags);
+  }
+
+  /**
+   * Generate suggested actions based on parse
+   */
+  private static generateSuggestedActions(parsed: ParsedPrompt): string[] {
+    const actions: string[] = [];
+    
+    if (parsed.complexity === 'complex') {
+      actions.push('Use high-quality preset for detailed generation');
+    } else if (parsed.complexity === 'simple') {
+      actions.push('Use fast preset for quick generation');
+    }
+
+    if (parsed.style === 'realistic') {
+      actions.push('Enable photorealistic textures');
+    }
+
+    if (parsed.qualifiers.length > 2) {
+      actions.push('Apply enhanced optimization pass');
+    }
+
+    return actions;
+  }
+
+  /**
+   * Generate human-readable analysis
+   */
+  private static generateAnalysis(parsed: ParsedPrompt, tokens: string[]): string {
+    const parts = [
+      `Intent: ${parsed.intent}`,
+      `Primary subject: ${parsed.primarySubject}`,
+      `Style: ${parsed.style}`,
+      `Complexity: ${parsed.complexity}`,
+      `Entities found: ${parsed.entities.join(', ') || 'none'}`,
+      `Confidence: ${(parsed.confidence * 100).toFixed(0)}%`,
+    ];
+    return parts.join(' | ');
+  }
+}

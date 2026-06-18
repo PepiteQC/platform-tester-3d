@@ -1,0 +1,307 @@
+// TROXT Memory Module - Learning System & User Feedback Integration
+// Proprietary ETHERWORLD Intelligence - Licensed under TROXT License 2024
+
+export interface GenerationMemory {
+  id: string;
+  timestamp: number;
+  input: {
+    type: 'text' | 'image';
+    content: string;
+  };
+  strategy: {
+    quality: string;
+    complexity: string;
+    style: string;
+  };
+  result: {
+    success: boolean;
+    generationTime: number;
+    quality: number;
+  };
+  feedback?: {
+    rating: number;
+    comments?: string;
+    liked: boolean;
+  };
+}
+
+export interface UserPreferences {
+  preferredQuality: 'high' | 'balanced' | 'fast';
+  preferredStyle: string;
+  averageRating: number;
+  totalGenerations: number;
+  preferredComplexity: 'simple' | 'moderate' | 'complex';
+}
+
+export interface LearningInsights {
+  bestPerformingStyle: string;
+  averageGenerationTime: number;
+  successRate: number;
+  userTrends: Record<string, number>;
+  recommendations: string[];
+}
+
+export class TROXTMemoryEngine {
+  private static readonly STORAGE_KEY = 'troxt_memory_v1';
+  private static memory: GenerationMemory[] = [];
+  private static preferences: UserPreferences;
+
+  /**
+   * Initialize memory system
+   */
+  static initialize(): void {
+    this.loadFromStorage();
+    this.initializePreferences();
+  }
+
+  /**
+   * Record a generation event
+   */
+  static recordGeneration(memory: Omit<GenerationMemory, 'id'>): GenerationMemory {
+    const fullMemory: GenerationMemory = {
+      id: `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      ...memory,
+    };
+
+    this.memory.push(fullMemory);
+    this.saveToStorage();
+    this.updatePreferences();
+
+    return fullMemory;
+  }
+
+  /**
+   * Record feedback for a generation
+   */
+  static recordFeedback(
+    generationId: string,
+    feedback: { rating: number; comments?: string; liked: boolean }
+  ): void {
+    const generation = this.memory.find(m => m.id === generationId);
+    if (generation) {
+      generation.feedback = feedback;
+      this.saveToStorage();
+      this.updatePreferences();
+    }
+  }
+
+  /**
+   * Get user preferences based on history
+   */
+  static getUserPreferences(): UserPreferences {
+    return { ...this.preferences };
+  }
+
+  /**
+   * Get learning insights
+   */
+  static getLearningInsights(): LearningInsights {
+    const successfulGenerations = this.memory.filter(m => m.result.success);
+    const ratedGenerations = this.memory.filter(m => m.feedback);
+
+    const stylePerformance: Record<string, number[]> = {};
+    successfulGenerations.forEach(gen => {
+      const style = gen.strategy.style;
+      if (!stylePerformance[style]) stylePerformance[style] = [];
+      stylePerformance[style].push(gen.feedback?.rating || 5);
+    });
+
+    let bestStyle = 'realistic';
+    let bestScore = 0;
+    Object.entries(stylePerformance).forEach(([style, ratings]) => {
+      const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+      if (avg > bestScore) {
+        bestScore = avg;
+        bestStyle = style;
+      }
+    });
+
+    const avgTime = successfulGenerations.reduce((sum, gen) => sum + gen.result.generationTime, 0) / Math.max(1, successfulGenerations.length);
+    const successRate = this.memory.length > 0 ? successfulGenerations.length / this.memory.length : 0;
+
+    const userTrends = this.analyzeUserTrends();
+    const recommendations = this.generateLearningRecommendations(userTrends, bestStyle);
+
+    return {
+      bestPerformingStyle: bestStyle,
+      averageGenerationTime: Math.round(avgTime),
+      successRate: Math.round(successRate * 100),
+      userTrends,
+      recommendations,
+    };
+  }
+
+  /**
+   * Analyze user behavior trends
+   */
+  private static analyzeUserTrends(): Record<string, number> {
+    const trends: Record<string, number> = {};
+
+    this.memory.forEach(gen => {
+      trends[`complexity_${gen.strategy.complexity}`] = (trends[`complexity_${gen.strategy.complexity}`] || 0) + 1;
+      trends[`quality_${gen.strategy.quality}`] = (trends[`quality_${gen.strategy.quality}`] || 0) + 1;
+      trends[`style_${gen.strategy.style}`] = (trends[`style_${gen.strategy.style}`] || 0) + 1;
+    });
+
+    return trends;
+  }
+
+  /**
+   * Generate recommendations based on learning
+   */
+  private static generateLearningRecommendations(trends: Record<string, number>, bestStyle: string): string[] {
+    const recommendations: string[] = [];
+
+    const qualityTrends = Object.entries(trends)
+      .filter(([key]) => key.startsWith('quality_'))
+      .sort((a, b) => b[1] - a[1]);
+
+    if (qualityTrends[0]) {
+      const preferredQuality = qualityTrends[0][0].split('_')[1];
+      recommendations.push(`You prefer ${preferredQuality} quality models`);
+    }
+
+    const complexityTrends = Object.entries(trends)
+      .filter(([key]) => key.startsWith('complexity_'))
+      .sort((a, b) => b[1] - a[1]);
+
+    if (complexityTrends[0]) {
+      const preferredComplexity = complexityTrends[0][0].split('_')[1];
+      recommendations.push(`Most of your generations are ${preferredComplexity} complexity`);
+    }
+
+    recommendations.push(`Try ${bestStyle} style - it performs best for you`);
+
+    return recommendations;
+  }
+
+  /**
+   * Get generation history
+   */
+  static getHistory(limit: number = 50): GenerationMemory[] {
+    return this.memory.slice(-limit).reverse();
+  }
+
+  /**
+   * Clear specific memory
+   */
+  static clearMemory(generationId?: string): void {
+    if (generationId) {
+      this.memory = this.memory.filter(m => m.id !== generationId);
+    } else {
+      this.memory = [];
+    }
+    this.saveToStorage();
+  }
+
+  /**
+   * Export memory for backup
+   */
+  static exportMemory(): string {
+    return JSON.stringify(this.memory, null, 2);
+  }
+
+  /**
+   * Import memory from backup
+   */
+  static importMemory(data: string): boolean {
+    try {
+      const imported = JSON.parse(data);
+      if (Array.isArray(imported)) {
+        this.memory = imported;
+        this.saveToStorage();
+        this.updatePreferences();
+        return true;
+      }
+    } catch (e) {
+      console.error('[TROXT] Failed to import memory:', e);
+    }
+    return false;
+  }
+
+  /**
+   * Save memory to local storage
+   */
+  private static saveToStorage(): void {
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.memory));
+    } catch (e) {
+      console.error('[TROXT] Failed to save memory:', e);
+    }
+  }
+
+  /**
+   * Load memory from local storage
+   */
+  private static loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        this.memory = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('[TROXT] Failed to load memory:', e);
+      this.memory = [];
+    }
+  }
+
+  /**
+   * Initialize user preferences
+   */
+  private static initializePreferences(): void {
+    this.preferences = {
+      preferredQuality: 'balanced',
+      preferredStyle: 'realistic',
+      averageRating: 5,
+      totalGenerations: this.memory.length,
+      preferredComplexity: 'moderate',
+    };
+    this.updatePreferences();
+  }
+
+  /**
+   * Update preferences based on history
+   */
+  private static updatePreferences(): void {
+    if (this.memory.length === 0) return;
+
+    this.preferences.totalGenerations = this.memory.length;
+
+    // Calculate average rating
+    const ratedGens = this.memory.filter(m => m.feedback?.rating);
+    if (ratedGens.length > 0) {
+      const avgRating = ratedGens.reduce((sum, m) => sum + (m.feedback?.rating || 5), 0) / ratedGens.length;
+      this.preferences.averageRating = Math.round(avgRating * 10) / 10;
+    }
+
+    // Determine preferred quality
+    const qualityCounts: Record<string, number> = {};
+    this.memory.forEach(m => {
+      qualityCounts[m.strategy.quality] = (qualityCounts[m.strategy.quality] || 0) + 1;
+    });
+    const maxQuality = Object.entries(qualityCounts).sort((a, b) => b[1] - a[1])[0];
+    if (maxQuality) {
+      this.preferences.preferredQuality = maxQuality[0] as 'high' | 'balanced' | 'fast';
+    }
+
+    // Determine preferred style
+    const styleCounts: Record<string, number> = {};
+    this.memory.forEach(m => {
+      styleCounts[m.strategy.style] = (styleCounts[m.strategy.style] || 0) + 1;
+    });
+    const maxStyle = Object.entries(styleCounts).sort((a, b) => b[1] - a[1])[0];
+    if (maxStyle) {
+      this.preferences.preferredStyle = maxStyle[0];
+    }
+
+    // Determine preferred complexity
+    const complexityCounts: Record<string, number> = {};
+    this.memory.forEach(m => {
+      complexityCounts[m.strategy.complexity] = (complexityCounts[m.strategy.complexity] || 0) + 1;
+    });
+    const maxComplexity = Object.entries(complexityCounts).sort((a, b) => b[1] - a[1])[0];
+    if (maxComplexity) {
+      this.preferences.preferredComplexity = maxComplexity[0] as 'simple' | 'moderate' | 'complex';
+    }
+  }
+}

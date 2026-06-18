@@ -1,0 +1,187 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+
+interface TROXTStatus {
+  initialized: boolean;
+  memory: number;
+  version: string;
+}
+
+interface Insights {
+  bestPerformingStyle: string;
+  averageGenerationTime: number;
+  successRate: number;
+  userTrends: Record<string, number>;
+  recommendations: string[];
+}
+
+export default function TROXTDashboard() {
+  const [status, setStatus] = useState<TROXTStatus | null>(null);
+  const [insights, setInsights] = useState<Insights | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTROXTData();
+    const interval = setInterval(fetchTROXTData, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchTROXTData = async () => {
+    try {
+      const response = await fetch('/api/troxt/insights');
+      const data = await response.json();
+      if (data.success) {
+        setStatus(data.status);
+        setInsights(data.insights);
+      }
+    } catch (error) {
+      console.error('[v0] Failed to fetch TROXT data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center">
+          <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+          <p className="text-foreground/60">Loading TROXT Intelligence...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const trendData = insights?.userTrends
+    ? Object.entries(insights.userTrends)
+        .slice(0, 6)
+        .map(([key, value]) => ({
+          name: key.replace(/_/g, ' ').split(' ').pop() || key,
+          value,
+        }))
+    : [];
+
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-foreground mb-2">TROXT Intelligence Dashboard</h1>
+          <p className="text-foreground/60">Real-time monitoring of your proprietary AI engine</p>
+        </div>
+
+        {/* Status Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+            <div className="text-sm text-foreground/60 mb-2">Status</div>
+            <div className="text-2xl font-bold text-primary">
+              {status?.initialized ? 'Active' : 'Inactive'}
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+            <div className="text-sm text-foreground/60 mb-2">Version</div>
+            <div className="text-2xl font-bold text-primary">{status?.version || 'N/A'}</div>
+          </Card>
+
+          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+            <div className="text-sm text-foreground/60 mb-2">Generations Recorded</div>
+            <div className="text-2xl font-bold text-primary">{status?.memory || 0}</div>
+          </Card>
+
+          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+            <div className="text-sm text-foreground/60 mb-2">Success Rate</div>
+            <div className="text-2xl font-bold text-primary">{insights?.successRate || 0}%</div>
+          </Card>
+        </div>
+
+        {/* Main Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Performance Metrics</h3>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-foreground/60">Avg Generation Time</span>
+                  <span className="font-semibold text-primary">{insights?.averageGenerationTime || 0}s</span>
+                </div>
+                <div className="w-full bg-secondary/20 rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full"
+                    style={{ width: `${Math.min((insights?.averageGenerationTime || 0) / 120 * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-foreground/60">Success Rate</span>
+                  <span className="font-semibold text-primary">{insights?.successRate || 0}%</span>
+                </div>
+                <div className="w-full bg-secondary/20 rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full"
+                    style={{ width: `${insights?.successRate || 0}%` }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-foreground/60">Best Style</span>
+                  <span className="font-semibold text-primary capitalize">{insights?.bestPerformingStyle || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Recommendations</h3>
+            <div className="space-y-3">
+              {insights?.recommendations.map((rec, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 bg-secondary/20 rounded-lg border border-border/30"
+                >
+                  <p className="text-sm text-foreground">{rec}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* Trends Chart */}
+        {trendData.length > 0 && (
+          <Card className="p-6 bg-card/50 backdrop-blur-sm border-border/50">
+            <h3 className="text-lg font-semibold text-foreground mb-4">User Behavior Trends</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" />
+                <YAxis stroke="rgba(255,255,255,0.5)" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        )}
+
+        {/* License Info */}
+        <div className="mt-8 p-4 bg-secondary/10 border border-border/30 rounded-lg">
+          <p className="text-xs text-foreground/50">
+            TROXT Intelligence Engine v{status?.version} • Proprietary ETHERWORLD Technology • Licensed under TROXT License 2024
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

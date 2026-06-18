@@ -1,0 +1,73 @@
+'use client'
+
+import { Suspense, useRef, useEffect, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { OrbitControls, Grid, Environment, PerspectiveCamera } from '@react-three/drei'
+import * as THREE from 'three'
+import { Card } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
+
+function RotatingBox() {
+  const meshRef = useRef<THREE.Mesh>(null)
+  
+  useFrame(() => {
+    if (meshRef.current) {
+      meshRef.current.rotation.x += 0.005
+      meshRef.current.rotation.y += 0.008
+    }
+  })
+
+  return (
+    <mesh ref={meshRef}>
+      <boxGeometry args={[2, 2, 2]} />
+      <meshStandardMaterial 
+        color="#00d4ff" 
+        metalness={0.7}
+        roughness={0.2}
+      />
+    </mesh>
+  )
+}
+
+function Scene() {
+  return (
+    <>
+      <PerspectiveCamera makeDefault position={[0, 0, 5]} />
+      <ambientLight intensity={0.5} />
+      <pointLight position={[10, 10, 10]} intensity={1} />
+      <RotatingBox />
+      <Grid args={[10, 10]} cellSize={0.5} cellColor="#00d4ff" sectionSize={2} sectionColor="#00d4ff" fadeStrength={0.5} />
+      <OrbitControls enableDamping dampingFactor={0.05} />
+      <Environment preset="studio" />
+    </>
+  )
+}
+
+export function Dashboard3DViewer() {
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  useEffect(() => {
+    setIsLoaded(true)
+  }, [])
+
+  return (
+    <Card className="col-span-2 row-span-2 bg-card border-primary/20 overflow-hidden flex flex-col">
+      <div className="p-4 border-b border-primary/10">
+        <h3 className="text-sm font-semibold text-foreground">3D Viewport</h3>
+        <p className="text-xs text-muted-foreground">TROXT Generated Model</p>
+      </div>
+      <div className="flex-1 relative bg-background/50">
+        {!isLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <Spinner />
+          </div>
+        )}
+        <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><Spinner /></div>}>
+          <Canvas>
+            <Scene />
+          </Canvas>
+        </Suspense>
+      </div>
+    </Card>
+  )
+}

@@ -1,0 +1,74 @@
+'use client'
+
+import { Dashboard3DViewer } from '@/components/dashboard-3d-viewer'
+import { TroxtChatInterface } from '@/components/troxt-chat-interface'
+import { UnifiedGenerator } from '@/components/unified-generator'
+import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { Button } from '@/components/ui/button'
+import { Home, Download, Share2 } from 'lucide-react'
+import Link from 'next/link'
+
+export default function DashboardPage() {
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-primary/10 bg-card/60 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">ETHERWORLD Dashboard</h1>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              Powered by <span className="font-mono font-semibold text-primary">TROXT</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/">
+                <Home className="size-4 mr-1" />
+                Home
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Download className="size-4" />
+            </Button>
+            <Button variant="ghost" size="sm">
+              <Share2 className="size-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Grid */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 auto-rows-max">
+          {/* Left Column - Generator */}
+          <div className="lg:col-span-1 space-y-4">
+            <UnifiedGenerator />
+          </div>
+
+          {/* Center - 3D Viewer */}
+          <div className="lg:col-span-2 lg:row-span-2">
+            <Dashboard3DViewer />
+          </div>
+
+          {/* Right Column - Chat */}
+          <div className="lg:col-span-1 space-y-4">
+            <TroxtChatInterface />
+          </div>
+
+          {/* Bottom Right - Sidebar Stats */}
+          <div className="lg:col-span-1 lg:col-start-4">
+            <DashboardSidebar />
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-primary/10 bg-card/30 mt-12 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center text-xs text-muted-foreground">
+          <p className="mb-1">ETHERWORLD • Powered by TROXT Intelligence Engine • {new Date().getFullYear()}</p>
+          <p className="text-[10px]">Proprietary Technology • Licensed under TROXT License 2024</p>
+        </div>
+      </footer>
+    </div>
+  )
+}

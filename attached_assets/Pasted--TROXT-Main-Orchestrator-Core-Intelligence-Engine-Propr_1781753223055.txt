@@ -1,0 +1,286 @@
+// TROXT Main Orchestrator - Core Intelligence Engine
+// Proprietary ETHERWORLD Intelligence - Licensed under TROXT License 2024
+// Built together to evolve and scale with your vision
+
+import { TROXTNLPEngine, ParsedPrompt, PromptAnalysis } from './troxt-nlp';
+import { TROXTVisionEngine, ImageAnalysis } from './troxt-vision';
+import { TROXTOptimizerEngine, GenerationStrategy, OptimizationResult } from './troxt-optimizer';
+import { TROXTMemoryEngine, GenerationMemory, LearningInsights, UserPreferences } from './troxt-memory';
+
+export interface TROXTAnalysisResult {
+  promptAnalysis?: PromptAnalysis;
+  imageAnalysis?: ImageAnalysis;
+  strategy: GenerationStrategy;
+  optimizations: OptimizationResult;
+  userPreferences: UserPreferences;
+  learningInsights?: LearningInsights;
+  finalPrompt: string;
+  estimatedTime: number;
+  confidence: number;
+}
+
+export interface TROXTConfig {
+  enableLearning: boolean;
+  enableOptimization: boolean;
+  visionAnalysis: boolean;
+  autoQualityAdjustment: boolean;
+}
+
+/**
+ * TROXT - The core intelligence engine powering ETHERWORLD
+ * 
+ * TROXT integrates four specialized AI modules:
+ * 1. NLP Engine - Understands user intent from text
+ * 2. Vision Engine - Analyzes images for structure and style
+ * 3. Optimizer Engine - Generates optimal generation strategies
+ * 4. Memory Engine - Learns from user feedback and behavior
+ * 
+ * TROXT is proprietary to ETHERWORLD and licensed under TROXT License 2024
+ */
+export class TROXT {
+  private static initialized = false;
+  private static config: TROXTConfig = {
+    enableLearning: true,
+    enableOptimization: true,
+    visionAnalysis: true,
+    autoQualityAdjustment: true,
+  };
+
+  /**
+   * Initialize TROXT system
+   */
+  static initialize(config?: Partial<TROXTConfig>): void {
+    if (this.initialized) return;
+
+    if (config) {
+      this.config = { ...this.config, ...config };
+    }
+
+    TROXTMemoryEngine.initialize();
+    this.initialized = true;
+
+    console.log('[TROXT] Intelligence engine initialized');
+  }
+
+  /**
+   * Analyze a text prompt and generate optimal generation strategy
+   */
+  static async analyzeTextPrompt(prompt: string): Promise<TROXTAnalysisResult> {
+    if (!this.initialized) this.initialize();
+
+    const promptAnalysis = TROXTNLPEngine.analyzePrompt(prompt);
+    const userPreferences = this.config.enableLearning ? TROXTMemoryEngine.getUserPreferences() : this.getDefaultPreferences();
+
+    // Adjust quality based on user preferences
+    let qualityTier: 'high' | 'balanced' | 'fast' = userPreferences.preferredQuality;
+    if (this.config.autoQualityAdjustment && promptAnalysis.parsed.complexity === 'complex') {
+      qualityTier = userPreferences.preferredQuality === 'fast' ? 'balanced' : userPreferences.preferredQuality;
+    }
+
+    const optimizationResult = TROXTOptimizerEngine.generateStrategy(
+      promptAnalysis.parsed.complexity,
+      promptAnalysis.parsed.style,
+      qualityTier
+    );
+
+    // Check if system can handle this
+    let strategy = optimizationResult.strategy;
+    if (!TROXTOptimizerEngine.canHandleGeneration(strategy)) {
+      strategy = TROXTOptimizerEngine.suggestAlternative(strategy, promptAnalysis.parsed.complexity);
+    }
+
+    const learningInsights = this.config.enableLearning ? TROXTMemoryEngine.getLearningInsights() : undefined;
+
+    // Generate final prompt
+    const finalPrompt = this.constructFinalPrompt(promptAnalysis, strategy);
+
+    return {
+      promptAnalysis,
+      strategy,
+      optimizations: optimizationResult,
+      userPreferences,
+      learningInsights,
+      finalPrompt,
+      estimatedTime: strategy.estimatedTime,
+      confidence: promptAnalysis.parsed.confidence,
+    };
+  }
+
+  /**
+   * Analyze an image and generate strategy
+   */
+  static async analyzeImage(file: File, additionalPrompt?: string): Promise<TROXTAnalysisResult> {
+    if (!this.initialized) this.initialize();
+
+    const imageAnalysis = await TROXTVisionEngine.analyzeImage(file);
+    const userPreferences = this.config.enableLearning ? TROXTMemoryEngine.getUserPreferences() : this.getDefaultPreferences();
+
+    const qualityTier = userPreferences.preferredQuality;
+    const complexity = imageAnalysis.complexity > 0.7 ? 'complex' : imageAnalysis.complexity > 0.3 ? 'moderate' : 'simple';
+
+    const optimizationResult = TROXTOptimizerEngine.generateStrategy(
+      complexity,
+      imageAnalysis.style,
+      qualityTier
+    );
+
+    let strategy = optimizationResult.strategy;
+    if (!TROXTOptimizerEngine.canHandleGeneration(strategy)) {
+      strategy = TROXTOptimizerEngine.suggestAlternative(strategy, complexity);
+    }
+
+    // Construct prompt from image analysis
+    const imageSuggestedPrompt = this.constructPromptFromImage(imageAnalysis);
+    const finalPrompt = additionalPrompt 
+      ? `${imageSuggestedPrompt}. ${additionalPrompt}`
+      : imageSuggestedPrompt;
+
+    return {
+      imageAnalysis,
+      strategy,
+      optimizations: optimizationResult,
+      userPreferences,
+      learningInsights: this.config.enableLearning ? TROXTMemoryEngine.getLearningInsights() : undefined,
+      finalPrompt,
+      estimatedTime: strategy.estimatedTime,
+      confidence: 0.8,
+    };
+  }
+
+  /**
+   * Record a generation result for learning
+   */
+  static recordGeneration(
+    input: string,
+    inputType: 'text' | 'image',
+    strategy: GenerationStrategy,
+    complexity: 'simple' | 'moderate' | 'complex',
+    style: string,
+    success: boolean,
+    generationTime: number,
+    quality: number
+  ): GenerationMemory {
+    if (!this.config.enableLearning) {
+      throw new Error('Learning is disabled');
+    }
+
+    return TROXTMemoryEngine.recordGeneration({
+      timestamp: Date.now(),
+      input: { type: inputType, content: input },
+      strategy: { quality: strategy.quality, complexity, style },
+      result: { success, generationTime, quality },
+    });
+  }
+
+  /**
+   * Record feedback for optimization
+   */
+  static recordFeedback(
+    generationId: string,
+    rating: number,
+    liked: boolean,
+    comments?: string
+  ): void {
+    if (!this.config.enableLearning) {
+      throw new Error('Learning is disabled');
+    }
+
+    TROXTMemoryEngine.recordFeedback(generationId, { rating, liked, comments });
+  }
+
+  /**
+   * Get generation history
+   */
+  static getHistory(limit?: number): GenerationMemory[] {
+    if (!this.config.enableLearning) {
+      return [];
+    }
+
+    return TROXTMemoryEngine.getHistory(limit);
+  }
+
+  /**
+   * Get learning insights
+   */
+  static getLearningInsights(): LearningInsights | null {
+    if (!this.config.enableLearning) {
+      return null;
+    }
+
+    return TROXTMemoryEngine.getLearningInsights();
+  }
+
+  /**
+   * Export TROXT memory
+   */
+  static exportMemory(): string {
+    return TROXTMemoryEngine.exportMemory();
+  }
+
+  /**
+   * Import TROXT memory
+   */
+  static importMemory(data: string): boolean {
+    return TROXTMemoryEngine.importMemory(data);
+  }
+
+  /**
+   * Construct final prompt from analysis
+   */
+  private static constructFinalPrompt(analysis: PromptAnalysis, strategy: GenerationStrategy): string {
+    const parts = [
+      analysis.raw,
+      `Style: ${analysis.parsed.style}`,
+      `Quality: ${strategy.quality}`,
+    ];
+
+    if (analysis.parsed.qualifiers.length > 0) {
+      parts.push(`Features: ${analysis.parsed.qualifiers.join(', ')}`);
+    }
+
+    return parts.join(' | ');
+  }
+
+  /**
+   * Construct prompt from image analysis
+   */
+  private static constructPromptFromImage(analysis: ImageAnalysis): string {
+    const parts = [
+      `A ${analysis.subjects.join(' and ')} with ${analysis.colors.join(', ')} colors`,
+      `Style: ${analysis.style}`,
+      `Features: ${analysis.keyFeatures.join(', ')}`,
+    ];
+
+    return parts.join(' | ');
+  }
+
+  /**
+   * Get default preferences
+   */
+  private static getDefaultPreferences(): UserPreferences {
+    return {
+      preferredQuality: 'balanced',
+      preferredStyle: 'realistic',
+      averageRating: 5,
+      totalGenerations: 0,
+      preferredComplexity: 'moderate',
+    };
+  }
+
+  /**
+   * Check TROXT status
+   */
+  static getStatus(): {
+    initialized: boolean;
+    config: TROXTConfig;
+    memory: number;
+    version: string;
+  } {
+    return {
+      initialized: this.initialized,
+      config: this.config,
+      memory: TROXTMemoryEngine.getHistory().length,
+      version: '1.0.0',
+    };
+  }
+}
