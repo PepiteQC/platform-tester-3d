@@ -1,0 +1,105 @@
+[
+  {
+    "id": "poly_asphalt_qc",
+    "name": "Asphalte QC usé",
+    "category": "road",
+    "color": "#2c3035",
+    "roughness": 0.92,
+    "metallic": 0,
+    "normal": 0.45,
+    "ao": 0.75,
+    "emission": "#000000",
+    "tiling": [
+      6,
+      6
+    ],
+    "notes": "Route sombre, sale, compatible hiver/pluie.",
+    "createdAt": "2026-06-19T04:52:29.211Z"
+  },
+  {
+    "id": "poly_concrete_sidewalk",
+    "name": "Béton trottoir",
+    "category": "city",
+    "color": "#8b8f90",
+    "roughness": 0.88,
+    "metallic": 0,
+    "normal": 0.35,
+    "ao": 0.65,
+    "emission": "#000000",
+    "tiling": [
+      4,
+      4
+    ],
+    "notes": "Trottoirs, stationnement, bordures.",
+    "createdAt": "2026-06-19T04:52:29.211Z"
+  },
+  {
+    "id": "poly_brick_red_old",
+    "name": "Brique rouge vieille",
+    "category": "building",
+    "color": "#8a3d32",
+    "roughness": 0.9,
+    "metallic": 0,
+    "normal": 0.55,
+    "ao": 0.8,
+    "emission": "#000000",
+    "tiling": [
+      3,
+      3
+    ],
+    "notes": "Façades vieux Québec / commerces.",
+    "createdAt": "2026-06-19T04:52:29.211Z"
+  },
+  {
+    "id": "poly_glass_blue",
+    "name": "Vitre bleutée",
+    "category": "glass",
+    "color": "#7ec8ff",
+    "roughness": 0.08,
+    "metallic": 0,
+    "normal": 0.05,
+    "ao": 0.2,
+    "emission": "#000000",
+    "tiling": [
+      1,
+      1
+    ],
+    "opacity": 0.38,
+    "notes": "Fenêtres, portes de dépanneur, bureaux.",
+    "createdAt": "2026-06-19T04:52:29.211Z"
+  },
+  {
+    "id": "poly_snow_dirty",
+    "name": "Neige sale bord de route",
+    "category": "weather",
+    "color": "#d8d9d3",
+    "roughness": 0.96,
+    "metallic": 0,
+    "normal": 0.25,
+    "ao": 0.55,
+    "emission": "#000000",
+    "tiling": [
+      5,
+      5
+    ],
+    "notes": "Accumulation de neige sale façon Québec RP.",
+    "createdAt": "2026-06-19T04:52:29.211Z"
+  },
+  {
+    "id": "poly_neon_cyan",
+    "name": "Néon cyan admin",
+    "category": "emissive",
+    "color": "#00e5ff",
+    "roughness": 0.2,
+    "metallic": 0,
+    "normal": 0,
+    "ao": 0.1,
+    "emission": "#00e5ff",
+    "tiling": [
+      1,
+      1
+    ],
+    "notes": "Boutons, signage, debug props.",
+    "createdAt": "2026-06-19T04:52:29.211Z"
+  }
+]

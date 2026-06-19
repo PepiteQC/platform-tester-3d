@@ -1,0 +1,230 @@
+const path = require("node:path");
+const fs = require("node:fs");
+const http = require("node:http");
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const { WebSocketServer } = require("ws");
+
+const PORT = Number(process.env.PORT || 4100);
+const HOST = process.env.HOST || "127.0.0.1";
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
+
+const ROOT = process.cwd();
+const PUBLIC_DIR = path.join(ROOT, "public");
+const SAVES_DIR = path.join(ROOT, "saves");
+const SNAPSHOTS_DIR = path.join(ROOT, "snapshots");
+const EXPORTS_DIR = path.join(ROOT, "exports");
+
+for (const dir of [PUBLIC_DIR, SAVES_DIR, SNAPSHOTS_DIR, EXPORTS_DIR]) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+const app = express();
+const server = http.createServer(app);
+
+app.disable("x-powered-by");
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
+app.use(
+  cors({
+    origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN,
+    credentials: true,
+  })
+);
+
+app.use(express.json({ limit: "2mb" }));
+
+app.use(
+  rateLimit({
+    windowMs: 15_000,
+    limit: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+  })
+);
+
+app.use("/public", express.static(PUBLIC_DIR));
+
+const platforms = [
+  {
+    id: "spawn_platform",
+    name: "Spawn Platform",
+    type: "spawn",
+    position: [0, 0, 0],
+    size: [8, 0.5, 8],
+    color: "#2d3748",
+    material: "asphalt",
+    safe: true,
+  },
+];
+
+const players = new Map();
+
+app.get("/", (_req, res) => {
+  res.json({
+    ok: true,
+    name: "EtherWorld Platform Tester 3D Server",
+    port: PORT,
+    health: "/health",
+  });
+});
+
+app.get("/health", (_req, res) => {
+  res.json({
+    ok: true,
+    live: true,
+    node: process.version,
+    env: process.env.NODE_ENV || "development",
+    port: PORT,
+    time: new Date().toISOString(),
+  });
+});
+
+app.get("/api/platforms", (_req, res) => {
+  res.json({
+    ok: true,
+    count: platforms.length,
+    platforms,
+  });
+});
+
+app.post("/api/platforms", (req, res) => {
+  const body = req.body || {};
+
+  const platform = {
+    id: String(body.id || `platform_${Date.now()}`),
+    name: String(body.name || "Platform"),
+    type: String(body.type || "custom"),
+    position: Array.isArray(body.position) ? body.position.slice(0, 3).map(Number) : [0, 0, 0],
+    size: Array.isArray(body.size) ? body.size.slice(0, 3).map(Number) : [4, 0.5, 4],
+    color: String(body.color || "#4a5568"),
+    material: String(body.material || "concrete"),
+    safe: Boolean(body.safe ?? false),
+  };
+
+  platforms.push(platform);
+
+  broadcast({
+    type: "platform_created",
+    platform,
+  });
+
+  res.status(201).json({
+    ok: true,
+    platform,
+  });
+});
+
+app.get("/api/world-state", (_req, res) => {
+  res.json({
+    ok: true,
+    platforms,
+    players: Array.from(players.values()),
+    updatedAt: new Date().toISOString(),
+  });
+});
+
+const wss = new WebSocketServer({ server });
+
+function broadcast(payload, exceptSocket = null) {
+  const message = JSON.stringify(payload);
+
+  for (const client of wss.clients) {
+    if (client !== exceptSocket && client.readyState === client.OPEN) {
+      client.send(message);
+    }
+  }
+}
+
+wss.on("connection", (socket) => {
+  const playerId = `player_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+  const player = {
+    id: playerId,
+    position: [0, 2, 0],
+    rotation: [0, 0, 0],
+    connectedAt: new Date().toISOString(),
+  };
+
+  players.set(playerId, player);
+
+  socket.send(
+    JSON.stringify({
+      type: "welcome",
+      playerId,
+      platforms,
+      players: Array.from(players.values()),
+    })
+  );
+
+  broadcast(
+    {
+      type: "player_joined",
+      player,
+      online: players.size,
+    },
+    socket
+  );
+
+  socket.on("message", (raw) => {
+    let data;
+
+    try {
+      data = JSON.parse(String(raw));
+    } catch {
+      socket.send(JSON.stringify({ type: "error", message: "Invalid JSON" }));
+      return;
+    }
+
+    if (data.type === "player_update") {
+      const current = players.get(playerId);
+      if (!current) return;
+
+      current.position = Array.isArray(data.position) ? data.position.slice(0, 3).map(Number) : current.position;
+      current.rotation = Array.isArray(data.rotation) ? data.rotation.slice(0, 3).map(Number) : current.rotation;
+      current.updatedAt = new Date().toISOString();
+
+      broadcast(
+        {
+          type: "player_update",
+          player: current,
+        },
+        socket
+      );
+    }
+
+    if (data.type === "ping") {
+      socket.send(JSON.stringify({ type: "pong", time: Date.now() }));
+    }
+  });
+
+  socket.on("close", () => {
+    players.delete(playerId);
+
+    broadcast({
+      type: "player_left",
+      playerId,
+      online: players.size,
+    });
+  });
+});
+
+server.listen(PORT, HOST, () => {
+  console.log("");
+  console.log("===========================================");
+  console.log(" EtherWorld Platform Tester 3D Server");
+  console.log("===========================================");
+  console.log(` Local:   http://${HOST}:${PORT}`);
+  console.log(` Health:  http://${HOST}:${PORT}/health`);
+  console.log(` WS:      ws://${HOST}:${PORT}`);
+  console.log("===========================================");
+  console.log("");
+});

@@ -1,0 +1,3 @@
+[2026-06-18T23:07:37.444Z] [INFO] [EtherAudit] Serveur démarré {"port":3001,"env":"development","sandbox":true,"ws":"ws://localhost:3001/ws"}
+[2026-06-18T23:07:48.674Z] [INFO] [EtherAudit] Signal reçu: SIGINT. Arrêt propre...
+[2026-06-18T23:07:59.518Z] [INFO] [EtherAudit] Serveur démarré {"port":3001,"env":"development","sandbox":true,"ws":"ws://localhost:3001/ws"}

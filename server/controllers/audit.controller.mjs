@@ -1,10 +1,41 @@
-import { v4 as uuidv4 }        from 'uuid'
-import { compileSolidity, CompilerError } from '../services/compiler.mjs'
-import { analyzeAST }           from '../services/ast-analyzer.mjs'
-import { generateMutants }      from '../services/mutator.mjs'
-import { runMutationTests }     from '../services/runner.mjs'
-import { logger }               from '../utils/logger.mjs'
-import { JobStore }             from '../store/JobStore.mjs'
+import { v4 as uuidv4 } from 'uuid'
+import { analyzeAST } from '../services/ast-analyzer.mjs'
+import { CompilerError, compileSolidity } from '../services/compiler.mjs'
+import { generateMutants } from '../services/mutator.mjs'
+import { runMutationTests } from '../services/runner.mjs'
+import { JobStore } from '../store/JobStore.mjs'
+import { logger } from '../utils/logger.mjs'
+
+// éventuellement injecté depuis ton serveur WS
+import { publishJobEvent } from '../ws/publisher.mjs'
+
+const DEFAULT_MAX_MUTANTS = 25
+const HARD_MAX_MUTANTS = 200
+
+function ok(res, status, data) {
+  return res.status(status).json({
+    success: true,
+    data,
+  })
+}
+
+function fail(res, status, error, details = undefined) {
+  return res.status(status).json({
+    success: false,
+    error,
+    ...(details !== undefined ? { details } : {}),
+  })
+}
+
+function normalizeMaxMutants(value) {
+  const n = Number(value ?? DEFAULT_MAX_MUTANTS)
+
+  if (!Number.isFinite(n) || n <= 0) {
+    return DEFAULT_MAX_MUTANTS
+  }
+
+  return Math.min(Math.floor(n), HARD_MAX_MUTANTS)
+}
 
 // ─── handleCompile ──────────────────────────────────────────────────────────
 export async function handleCompile(req, res) {
@@ -13,18 +44,17 @@ export async function handleCompile(req, res) {
   try {
     const result = await compileSolidity(sourceCode, fileName, compilerVersion)
 
-    return res.status(200).json({
-      success: true,
-      data:    result,
-    })
+    return ok(res, 200, result)
   } catch (err) {
     if (err instanceof CompilerError) {
-      return res.status(422).json({
-        success: false,
-        error:   err.message,
-        details: err.details,
-      })
+      return fail(res, 422, err.message, err.details)
     }
+
+    logger.error('Erreur inattendue compilation', {
+      fileName,
+      error: err.message,
+    })
+
     throw err
   }
 }
@@ -33,40 +63,56 @@ export async function handleCompile(req, res) {
 export async function handleAnalyze(req, res) {
   const { sourceCode } = req.validatedBody
 
-  const analysis = analyzeAST(sourceCode)
+  try {
+    const analysis = analyzeAST(sourceCode)
+    return ok(res, 200, analysis)
+  } catch (err) {
+    logger.warn('Erreur analyse AST', {
+      error: err.message,
+    })
 
-  return res.status(200).json({
-    success: true,
-    data:    analysis,
-  })
+    return fail(res, 422, 'Analyse AST impossible.', {
+      message: err.message,
+    })
+  }
 }
 
 // ─── handleMutate ───────────────────────────────────────────────────────────
 export async function handleMutate(req, res) {
   const {
     sourceCode,
-    operators,
+    operators = [],
     maxMutants,
   } = req.validatedBody
 
-  const mutants = generateMutants(sourceCode, operators, maxMutants)
+  try {
+    const safeMaxMutants = normalizeMaxMutants(maxMutants)
+    const mutants = generateMutants(sourceCode, operators, safeMaxMutants)
 
-  return res.status(200).json({
-    success: true,
-    data: {
-      count:     mutants.length,
+    return ok(res, 200, {
+      count: mutants.length,
       operators,
-      mutants:   mutants.map(m => ({
-        id:          m.id,
-        operator:    m.operator,
+      maxMutants: safeMaxMutants,
+      mutants: mutants.map(m => ({
+        id: m.id,
+        operator: m.operator,
         description: m.description,
-        location:    m.location,
-        original:    m.original,
-        mutated:     m.mutated,
-        status:      m.status,
+        location: m.location,
+        original: m.original,
+        mutated: m.mutated,
+        status: m.status,
       })),
-    },
-  })
+    })
+  } catch (err) {
+    logger.warn('Erreur génération mutants', {
+      error: err.message,
+      operators,
+    })
+
+    return fail(res, 422, 'Génération des mutants impossible.', {
+      message: err.message,
+    })
+  }
 }
 
 // ─── handleRunMutation ──────────────────────────────────────────────────────
@@ -74,61 +120,121 @@ export async function handleRunMutation(req, res) {
   const {
     sourceCode,
     fileName,
-    operators,
+    operators = [],
     testCode,
     framework,
     maxMutants,
   } = req.validatedBody
 
   if (!testCode) {
-    return res.status(400).json({
-      success: false,
-      error:   'Le champ testCode est requis pour exécuter les tests de mutation.',
-    })
+    return fail(
+      res,
+      400,
+      'Le champ testCode est requis pour exécuter les tests de mutation.'
+    )
   }
 
-  const jobId  = uuidv4()
-  const mutants = generateMutants(sourceCode, operators, maxMutants)
+  const safeMaxMutants = normalizeMaxMutants(maxMutants)
+  const jobId = uuidv4()
+
+  let mutants
+
+  try {
+    mutants = generateMutants(sourceCode, operators, safeMaxMutants)
+  } catch (err) {
+    return fail(res, 422, 'Génération des mutants impossible.', {
+      message: err.message,
+    })
+  }
 
   if (mutants.length === 0) {
-    return res.status(422).json({
-      success: false,
-      error:   'Aucun mutant généré. Vérifiez vos opérateurs et votre code source.',
-    })
+    return fail(
+      res,
+      422,
+      'Aucun mutant généré. Vérifiez vos opérateurs et votre code source.'
+    )
   }
+
+  const startedAt = new Date().toISOString()
+
+  JobStore.register(jobId, {
+    jobId,
+    status: 'running',
+    startedAt,
+    finishedAt: null,
+    fileName,
+    framework,
+    operators,
+    mutants: mutants.length,
+    progress: {
+      total: mutants.length,
+      processed: 0,
+      killed: 0,
+      survived: 0,
+    },
+    report: null,
+    error: null,
+  })
 
   logger.info('Job de mutation démarré', {
     jobId,
     fileName,
-    mutants:   mutants.length,
+    mutants: mutants.length,
     operators,
     framework,
   })
 
-  JobStore.register(jobId, {
-    status:    'running',
-    startedAt: new Date().toISOString(),
-    mutants:   mutants.length,
+  publishJobEvent(jobId, {
+    type: 'job_started',
+    jobId,
+    status: 'running',
+    startedAt,
+    mutants: mutants.length,
     framework,
     fileName,
   })
 
-  res.status(202).json({
-    success: true,
-    data: {
-      jobId,
-      message:  'Job de mutation démarré. Suivez la progression via WebSocket.',
-      wsPath:   `/ws`,
-      mutants:  mutants.length,
-      framework,
-    },
+  ok(res, 202, {
+    jobId,
+    message: 'Job de mutation démarré. Suivez la progression via WebSocket.',
+    wsPath: '/ws',
+    mutants: mutants.length,
+    framework,
   })
 
-  runMutationTests(mutants, testCode, framework, jobId)
+  runMutationTests(mutants, testCode, framework, jobId, {
+    onProgress: progress => {
+      JobStore.update(jobId, {
+        progress,
+      })
+
+      publishJobEvent(jobId, {
+        type: 'job_progress',
+        jobId,
+        status: 'running',
+        progress,
+      })
+    },
+  })
     .then(report => {
       JobStore.update(jobId, {
-        status:        'completed',
-        finishedAt:    report.finishedAt,
+        status: 'completed',
+        finishedAt: report.finishedAt,
+        mutationScore: report.mutationScore,
+        report,
+        progress: report.progress ?? {
+          total: mutants.length,
+          processed: mutants.length,
+          killed: report.killed ?? 0,
+          survived: report.survived ?? 0,
+        },
+      })
+
+      publishJobEvent(jobId, {
+        type: 'job_completed',
+        jobId,
+        status: 'completed',
+        finishedAt: report.finishedAt,
         mutationScore: report.mutationScore,
         report,
       })
@@ -139,10 +245,20 @@ export async function handleRunMutation(req, res) {
       })
     })
     .catch(err => {
+      const finishedAt = new Date().toISOString()
+
       JobStore.update(jobId, {
-        status:     'failed',
-        finishedAt: new Date().toISOString(),
-        error:      err.message,
+        status: 'failed',
+        finishedAt,
+        error: err.message,
+      })
+
+      publishJobEvent(jobId, {
+        type: 'job_failed',
+        jobId,
+        status: 'failed',
+        finishedAt,
+        error: err.message,
       })
 
       logger.error('Job échoué', {
@@ -158,14 +274,8 @@ export async function handleGetReport(req, res) {
   const job = JobStore.get(jobId)
 
   if (!job) {
-    return res.status(404).json({
-      success: false,
-      error:   `Job introuvable: ${jobId}`,
-    })
+    return fail(res, 404, `Job introuvable: ${jobId}`)
   }
 
-  return res.status(200).json({
-    success: true,
-    data:    job,
-  })
+  return ok(res, 200, job)
 }

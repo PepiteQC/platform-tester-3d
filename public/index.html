@@ -1,182 +1,1225 @@
+Set-Content public/index.html -Encoding UTF8 @'
 <!DOCTYPE html>
-<html lang="fr-CA">
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="EtherWorld Platform Tester 3D — jeu de plateformes 3D multijoueur avec éditeur de niveaux, génération procédurale, sauvegarde, export GLTF et administration TroxT.">
-  <meta name="application-name" content="EtherWorld Platform Tester 3D">
-  <meta name="theme-color" content="#050810">
-  <meta name="color-scheme" content="dark">
-  <meta name="robots" content="noindex, nofollow">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EtherWorld Platform Tester 3D</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: "Segoe UI", sans-serif; color: #fff; }
+    canvas { display: block; }
 
-  <!-- Performance: résolution anticipée des CDN utilisés par l'import map -->
-  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    #crosshair {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 20px; height: 20px; display: none; pointer-events: none; z-index: 20;
+    }
+    #crosshair::before, #crosshair::after {
+      content: ""; position: absolute; background: rgba(255,255,255,0.85);
+    }
+    #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+    #crosshair::after  { height: 2px; width: 100%; top: 50%;  transform: translateY(-50%); }
 
-  <!-- Chargement UI principal -->
-  <link rel="stylesheet" href="styles.css">
-  <link rel="modulepreload" href="game.js">
+    #top-bar {
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.65); border: 1px solid rgba(0,229,255,0.25);
+      border-radius: 8px; padding: 6px 22px;
+      display: flex; gap: 22px; align-items: center;
+      font-size: 13px; pointer-events: none; z-index: 10;
+    }
+    #fps-counter  { color: #0f9; }
+    #player-pos   { color: #aef; font-family: monospace; }
+    #player-count { color: #fa0; }
+
+    #player-info {
+      position: fixed; top: 12px; left: 16px;
+      background: rgba(0,0,0,0.65); border: 1px solid rgba(0,229,255,0.2);
+      border-radius: 8px; padding: 8px 14px; font-size: 13px;
+      pointer-events: none; z-index: 10;
+    }
+    #player-name   { color: #0ef; font-weight: bold; }
+    #player-status { color: #667; font-size: 11px; margin-top: 2px; }
+
+    #hud-buttons {
+      position: fixed; top: 12px; right: 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      pointer-events: all; z-index: 10;
+    }
+    .hud-btn {
+      background: rgba(0,0,0,0.72); border: 1px solid rgba(0,229,255,0.35);
+      color: #0ef; padding: 8px 14px; border-radius: 6px;
+      cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.18s;
+    }
+    .hud-btn:hover { background: rgba(0,229,255,0.14); border-color: #0ef; }
+
+    /* ── Connexion overlay ── */
+    #connect-overlay {
+      position: fixed; inset: 0;
+      background: rgba(4,9,20,0.97);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; transition: opacity 0.5s;
+    }
+    #connect-box {
+      background: rgba(8,14,30,0.99);
+      border: 1px solid rgba(0,229,255,0.35);
+      border-radius: 18px; padding: 44px 54px;
+      text-align: center; min-width: 350px;
+      box-shadow: 0 0 60px rgba(0,180,255,0.08);
+    }
+    #connect-box h1 {
+      font-size: 28px; color: #0ef; margin-bottom: 6px;
+      text-shadow: 0 0 24px rgba(0,229,255,0.45);
+      letter-spacing: 2px;
+    }
+    #connect-box p { color: #445; font-size: 13px; margin-bottom: 30px; }
+    #connect-box input {
+      width: 100%; padding: 13px 16px; margin-bottom: 14px;
+      background: rgba(0,229,255,0.04); border: 1px solid rgba(0,229,255,0.28);
+      border-radius: 9px; color: #fff; font-size: 15px; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
+    }
+    #connect-box input:focus { border-color: #0ef; }
+    #connect-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #005fa3, #00c8ff);
+      border: none; border-radius: 9px; color: #fff;
+      font-size: 16px; font-weight: bold; cursor: pointer; transition: opacity 0.2s;
+    }
+    #connect-btn:hover   { opacity: 0.88; }
+    #connect-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #connect-status { margin-top: 14px; font-size: 13px; color: #0f9; min-height: 20px; }
+    #connect-error  { margin-top: 8px; font-size: 12px; color: #f55; min-height: 16px; }
+
+    /* ── Chat ── */
+    #chat-container {
+      position: fixed; bottom: 16px; left: 16px;
+      width: 320px; pointer-events: all; z-index: 10;
+    }
+    #chat-messages {
+      background: rgba(0,0,0,0.52); border-radius: 8px 8px 0 0;
+      padding: 8px; max-height: 180px; overflow-y: auto; font-size: 13px; line-height: 1.55;
+    }
+    #chat-messages::-webkit-scrollbar { width: 4px; }
+    #chat-messages::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.3); border-radius: 2px; }
+    .chat-msg { padding: 2px 0; word-break: break-word; }
+    .chat-msg.system { color: #fa0; font-style: italic; }
+    .chat-name { color: #0ef; margin-right: 5px; font-weight: bold; }
+    #chat-input {
+      width: 100%; padding: 8px 12px;
+      background: rgba(0,0,0,0.75); border: 1px solid rgba(0,229,255,0.28);
+      border-top: none; border-radius: 0 0 8px 8px;
+      color: #fff; font-size: 13px; font-family: inherit; outline: none; display: none;
+    }
+    #chat-input.active { display: block; border-color: #0ef; }
+    #chat-hint { font-size: 11px; color: rgba(100,150,180,0.55); padding: 3px 0; text-align: right; }
+
+    /* ── Notifications ── */
+    #notifications {
+      position: fixed; top: 58px; right: 16px;
+      display: flex; flex-direction: column; gap: 6px;
+      pointer-events: none; z-index: 50;
+    }
+    .notification {
+      padding: 10px 16px; border-radius: 8px; font-size: 13px; max-width: 290px;
+      animation: slideIn 0.22s ease, fadeOut 0.4s ease 3.1s forwards;
+    }
+    .notification.success { background: rgba(0,175,75,0.88);  border: 1px solid #0d5; }
+    .notification.error   { background: rgba(195,30,30,0.88); border: 1px solid #f44; }
+    .notification.info    { background: rgba(0,75,175,0.88);  border: 1px solid #09f; }
+    .notification.warning { background: rgba(195,135,0,0.88); border: 1px solid #fa0; }
+    @keyframes slideIn  { from { opacity:0; transform:translateX(18px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes fadeOut  { from { opacity:1; } to { opacity:0; transform:translateX(18px); } }
+
+    /* ── Editor ── */
+    #editor-panel {
+      position: fixed; top: 58px; left: 16px; width: 268px;
+      background: rgba(4,9,24,0.96); border: 1px solid rgba(0,229,255,0.28);
+      border-radius: 11px; padding: 16px; pointer-events: all;
+      font-size: 13px; z-index: 10; max-height: calc(100vh - 80px); overflow-y: auto;
+    }
+    #editor-panel.hidden { display: none; }
+    #editor-panel h3 {
+      color: #0ef; margin-bottom: 14px; font-size: 14px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    #editor-close { cursor: pointer; color: #556; font-size: 18px; line-height: 1; }
+    #editor-close:hover { color: #f55; }
+    .ed-group { margin-bottom: 12px; }
+    .ed-group label { display: block; color: #677; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .ed-row { display: flex; gap: 6px; }
+    .ed-row input { flex: 1; }
+    .ed-input, .ed-select {
+      width: 100%; padding: 6px 9px;
+      background: rgba(0,229,255,0.04); border: 1px solid rgba(0,229,255,0.18);
+      border-radius: 5px; color: #ddf; font-size: 12px; font-family: inherit; outline: none;
+    }
+    .ed-input:focus, .ed-select:focus { border-color: #0ef; }
+    .ed-select option { background: #080e20; }
+    .ed-btn {
+      width: 100%; padding: 8px; margin-top: 4px;
+      background: rgba(0,229,255,0.09); border: 1px solid rgba(0,229,255,0.28);
+      border-radius: 6px; color: #0ef; cursor: pointer; font-size: 12px; transition: all 0.18s;
+    }
+    .ed-btn:hover    { background: rgba(0,229,255,0.2); }
+    .ed-btn.danger   { color: #f55; border-color: rgba(255,75,75,0.28); }
+    .ed-btn.danger:hover { background: rgba(255,75,75,0.14); }
+    .ed-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+    .ed-sep { border: none; border-top: 1px solid rgba(0,229,255,0.1); margin: 12px 0; }
+    #ed-platform-list {
+      max-height: 110px; overflow-y: auto;
+      border: 1px solid rgba(0,229,255,0.1); border-radius: 5px; padding: 4px;
+    }
+    .platform-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 6px; border-radius: 4px; cursor: pointer; transition: background 0.12s;
+    }
+    .platform-item:hover, .platform-item.selected { background: rgba(0,229,255,0.1); }
+    .p-color { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+    .p-info  { color: #aab; font-family: monospace; font-size: 11px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .p-type  { color: #556; font-size: 10px; }
+    #ed-selection-info {
+      padding: 8px; background: rgba(0,229,255,0.04);
+      border-radius: 5px; color: #889; font-size: 11px; line-height: 1.7; min-height: 52px;
+    }
+
+    /* ── Controls hint ── */
+    #controls-hint {
+      position: fixed; bottom: 16px; right: 16px;
+      background: rgba(0,0,0,0.62); border: 1px solid rgba(100,130,160,0.25);
+      border-radius: 8px; padding: 10px 14px; font-size: 11px;
+      color: rgba(140,170,190,0.65); line-height: 1.85;
+      pointer-events: none; z-index: 10;
+    }
+    #controls-hint kbd {
+      background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 3px; padding: 1px 5px; font-size: 10px;
+    }
+
+    /* ── Minimap ── */
+    #minimap {
+      position: fixed; bottom: 16px; right: 200px;
+      width: 120px; height: 120px;
+      background: rgba(0,0,0,0.65); border: 1px solid rgba(0,229,255,0.2);
+      border-radius: 8px; overflow: hidden; pointer-events: none; z-index: 10;
+    }
+    #minimap canvas { width: 100%; height: 100%; }
+  </style>
 </head>
-<body data-app="etherworld-platform-tester-3d">
-  <noscript>
-    <div style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#050810;color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:24px;">
-      EtherWorld Platform Tester 3D nécessite JavaScript pour lancer le moteur Three.js, le multijoueur et le panneau admin.
+<body>
+
+<!-- ══ CONNEXION ═══════════════════════════════════════════════════════ -->
+<div id="connect-overlay">
+  <div id="connect-box">
+    <h1>⬡ EtherWorld</h1>
+    <p>Platform Tester 3D — Multijoueur</p>
+    <input id="name-input" type="text" placeholder="Ton nom de joueur..." maxlength="24" autocomplete="off" spellcheck="false" />
+    <button id="connect-btn">Entrer dans le monde</button>
+    <div id="connect-status"></div>
+    <div id="connect-error"></div>
+  </div>
+</div>
+
+<!-- ══ HUD ════════════════════════════════════════════════════════════ -->
+<div id="crosshair"></div>
+
+<div id="top-bar">
+  <span id="fps-counter">FPS: --</span>
+  <span id="player-pos">[0.0, 0.0, 0.0]</span>
+  <span id="player-count">Players: 1</span>
+</div>
+
+<div id="player-info">
+  <div id="player-name">--</div>
+  <div id="player-status">En attente...</div>
+</div>
+
+<div id="hud-buttons">
+  <button class="hud-btn" id="btn-editor">⚙ Editeur [E]</button>
+  <button class="hud-btn" id="btn-respawn">🔄 Respawn [R]</button>
+  <button class="hud-btn" id="btn-generate">🌍 Reset monde</button>
+</div>
+
+<!-- ══ EDITOR ══════════════════════════════════════════════════════════ -->
+<div id="editor-panel" class="hidden">
+  <h3>⚙ Platform Editor <span id="editor-close">✕</span></h3>
+
+  <div class="ed-group">
+    <label>Type</label>
+    <select id="ed-type" class="ed-select">
+      <option value="custom">Custom</option>
+      <option value="spawn">Spawn</option>
+      <option value="platform">Platform</option>
+      <option value="moving">Moving</option>
+      <option value="falling">Falling</option>
+      <option value="bouncy">Bouncy</option>
+      <option value="rotating">Rotating</option>
+      <option value="goal">Goal</option>
+    </select>
+  </div>
+
+  <div class="ed-group">
+    <label>Nom</label>
+    <input id="ed-name" type="text" class="ed-input" value="Platform" placeholder="Nom..." />
+  </div>
+
+  <div class="ed-group">
+    <label>Couleur</label>
+    <input id="ed-color" type="color" value="#6688cc" class="ed-input" style="height:34px;padding:2px;cursor:pointer;" />
+  </div>
+
+  <div class="ed-group">
+    <label>Position (X Y Z)</label>
+    <div class="ed-row">
+      <input id="ed-px" type="number" class="ed-input" value="0"   step="0.5" placeholder="X" />
+      <input id="ed-py" type="number" class="ed-input" value="0"   step="0.5" placeholder="Y" />
+      <input id="ed-pz" type="number" class="ed-input" value="-10" step="0.5" placeholder="Z" />
     </div>
-  </noscript>
+  </div>
 
-  <h1 id="game-title" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;">
-    EtherWorld Platform Tester 3D
-  </h1>
-
-  <!-- HUD -->
-  <main id="game-shell" aria-labelledby="game-title">
-    <section id="hud" aria-label="Interface de jeu">
-      <div id="hud-top-left" aria-label="Statut du joueur et performance">
-        <div id="player-info" aria-live="polite">
-          <span id="player-name">Player</span>
-          <span id="player-pos">[0, 0, 0]</span>
-        </div>
-        <div id="fps-counter" aria-live="polite">FPS: 60</div>
-        <div id="player-count" aria-live="polite">Players: 1</div>
-      </div>
-
-      <nav id="hud-top-right" aria-label="Actions rapides">
-        <button id="btn-editor" class="hud-btn" type="button" title="Level Editor (E)" aria-label="Open level editor">🔧 Editor</button>
-        <button id="btn-generate" class="hud-btn" type="button" title="Generate New Level" aria-label="Generate new level">🎲 Generate</button>
-        <button id="btn-save" class="hud-btn" type="button" title="Save Level" aria-label="Save current level">💾 Save</button>
-        <button id="btn-load" class="hud-btn" type="button" title="Load Level" aria-label="Load saved level">📂 Load</button>
-        <button id="btn-export" class="hud-btn" type="button" title="Export GLTF" aria-label="Export level as GLTF">📤 Export</button>
-        <button id="btn-import" class="hud-btn" type="button" title="Import GLTF" aria-label="Import GLTF or JSON level">📥 Import</button>
-      </nav>
-
-      <div id="crosshair" aria-hidden="true">+</div>
-
-      <div id="hud-bottom" aria-label="Contrôles">
-        <div id="controls-hint">
-          WASD: Move | SPACE: Jump | SHIFT: Sprint | E: Editor | MOUSE: Look | ESC: Release
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Panneau Éditeur -->
-  <section id="editor-panel" class="panel hidden" role="dialog" aria-modal="false" aria-labelledby="editor-title">
-    <div class="panel-header">
-      <h2 id="editor-title">🔧 Level Editor</h2>
-      <button id="editor-close" class="close-btn" type="button" aria-label="Close level editor">✕</button>
+  <div class="ed-group">
+    <label>Taille (X Y Z)</label>
+    <div class="ed-row">
+      <input id="ed-sx" type="number" class="ed-input" value="4"   step="0.5" min="0.1" placeholder="W" />
+      <input id="ed-sy" type="number" class="ed-input" value="0.5" step="0.1" min="0.1" placeholder="H" />
+      <input id="ed-sz" type="number" class="ed-input" value="4"   step="0.5" min="0.1" placeholder="D" />
     </div>
+  </div>
 
-    <div class="panel-body">
-      <section class="editor-section" aria-labelledby="add-platform-title">
-        <h3 id="add-platform-title">Add Platform</h3>
+  <div class="ed-group">
+    <label>Matériau</label>
+    <select id="ed-material" class="ed-select">
+      <option value="poly_concrete_sidewalk">Béton</option>
+      <option value="poly_asphalt_qc">Asphalte</option>
+      <option value="poly_brick_red_old">Brique</option>
+      <option value="poly_glass_blue">Verre</option>
+      <option value="poly_neon_cyan">Néon</option>
+      <option value="poly_metal_dark">Métal</option>
+      <option value="poly_snow_dirty">Neige</option>
+      <option value="poly_gravel_wet">Gravier</option>
+    </select>
+  </div>
 
-        <label for="ed-type">Type:</label>
-        <select id="ed-type" aria-label="Platform type">
-          <option value="static">Static</option>
-          <option value="moving">Moving</option>
-          <option value="falling">Falling</option>
-          <option value="bouncy">Bouncy</option>
-          <option value="rotating">Rotating</option>
-        </select>
+  <button id="ed-add" class="ed-btn">＋ Ajouter Platform</button>
 
-        <label for="ed-color">Color:</label>
-        <input type="color" id="ed-color" value="#6688cc" aria-label="Platform color">
+  <hr class="ed-sep" />
 
-        <div class="vector-input" role="group" aria-label="Platform position">
-          <label>Position:</label>
-          <input type="number" id="ed-px" value="0" step="0.5" inputmode="decimal" aria-label="Position X">
-          <input type="number" id="ed-py" value="5" step="0.5" inputmode="decimal" aria-label="Position Y">
-          <input type="number" id="ed-pz" value="0" step="0.5" inputmode="decimal" aria-label="Position Z">
-        </div>
+  <div class="ed-group">
+    <label>Platforms (clic pour sélectionner)</label>
+    <div id="ed-platform-list"></div>
+  </div>
 
-        <div class="vector-input" role="group" aria-label="Platform size">
-          <label>Size:</label>
-          <input type="number" id="ed-sx" value="3" step="0.5" min="0.5" inputmode="decimal" aria-label="Size X">
-          <input type="number" id="ed-sy" value="0.4" step="0.1" min="0.1" inputmode="decimal" aria-label="Size Y">
-          <input type="number" id="ed-sz" value="3" step="0.5" min="0.5" inputmode="decimal" aria-label="Size Z">
-        </div>
+  <div class="ed-group">
+    <div id="ed-selection-info">Clique sur une platform pour la sélectionner</div>
+  </div>
 
-        <button id="ed-add" class="editor-btn" type="button">➕ Add Platform</button>
-      </section>
+  <button id="ed-delete" class="ed-btn danger" disabled>🗑 Supprimer sélection</button>
+</div>
 
-      <section class="editor-section" aria-labelledby="selection-title">
-        <h3 id="selection-title">Selection</h3>
-        <div id="ed-selection-info" aria-live="polite">Click a platform to select it</div>
-        <button id="ed-delete" class="editor-btn danger" type="button" disabled>🗑️ Delete Selected</button>
-      </section>
+<!-- ══ CHAT ═══════════════════════════════════════════════════════════ -->
+<div id="chat-container">
+  <div id="chat-messages"></div>
+  <input id="chat-input" type="text" placeholder="Message... Entrée=envoyer Esc=fermer" maxlength="256" autocomplete="off" />
+  <div id="chat-hint">Appuie sur <kbd>T</kbd> pour chatter</div>
+</div>
 
-      <section class="editor-section" aria-labelledby="procedural-title">
-        <h3 id="procedural-title">Procedural Generation</h3>
+<!-- ══ MINIMAP ════════════════════════════════════════════════════════ -->
+<div id="minimap"><canvas id="minimap-canvas" width="120" height="120"></canvas></div>
 
-        <label for="ed-seed">Seed:</label>
-        <input type="number" id="ed-seed" value="42" inputmode="numeric" aria-label="Generation seed">
+<!-- ══ NOTIFICATIONS ══════════════════════════════════════════════════ -->
+<div id="notifications"></div>
 
-        <label for="ed-count">Count:</label>
-        <input type="number" id="ed-count" value="30" min="5" max="200" inputmode="numeric" aria-label="Platform count">
+<!-- ══ CONTROLS HINT ══════════════════════════════════════════════════ -->
+<div id="controls-hint">
+  <kbd>WASD</kbd> Déplacer &nbsp;<kbd>Espace</kbd> Sauter<br>
+  <kbd>Shift</kbd> Sprint &nbsp;<kbd>Scroll</kbd> Zoom caméra<br>
+  <kbd>Clic</kbd> Tourner caméra &nbsp;<kbd>E</kbd> Éditeur<br>
+  <kbd>T</kbd> Chat &nbsp;<kbd>R</kbd> Respawn
+</div>
 
-        <button id="ed-generate" class="editor-btn" type="button">🎲 Generate</button>
-      </section>
+<!-- ══ SCRIPTS ════════════════════════════════════════════════════════ -->
+<script type="importmap">
+{
+  "imports": {
+    "three":       "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/",
+    "cannon-es":   "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+  }
+}
+</script>
 
-      <section class="editor-section" aria-labelledby="platform-list-title">
-        <h3 id="platform-list-title">Platform List</h3>
-        <div id="ed-platform-list" class="platform-list" aria-live="polite"></div>
-      </section>
-    </div>
-  </section>
+<script type="module">
+import * as THREE  from "three";
+import * as CANNON from "cannon-es";
 
-  <!-- Panneau Sauvegarde/Chargement -->
-  <section id="save-panel" class="panel hidden" role="dialog" aria-modal="false" aria-labelledby="save-title">
-    <div class="panel-header">
-      <h2 id="save-title">💾 Save / Load</h2>
-      <button id="save-close" class="close-btn" type="button" aria-label="Close save and load panel">✕</button>
-    </div>
+// ════════════════════════════════════════════════════════════
+//  CONNEXION — onReady passé EN PARAMÈTRE (fix du bug)
+// ════════════════════════════════════════════════════════════
+const overlay       = document.getElementById("connect-overlay");
+const connectBtn    = document.getElementById("connect-btn");
+const nameInput     = document.getElementById("name-input");
+const connectStatus = document.getElementById("connect-status");
+const connectError  = document.getElementById("connect-error");
 
-    <div class="panel-body">
-      <section class="editor-section" aria-labelledby="save-current-title">
-        <h3 id="save-current-title">Save Current Level</h3>
-        <label for="save-name">Name:</label>
-        <input type="text" id="save-name" value="my_level" maxlength="50" autocomplete="off" spellcheck="false" aria-label="Save name">
-        <button id="save-confirm" class="editor-btn" type="button">💾 Save</button>
-      </section>
+nameInput.focus();
+nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") connectBtn.click(); });
 
-      <section class="editor-section" aria-labelledby="saved-levels-title">
-        <h3 id="saved-levels-title">Saved Levels</h3>
-        <div id="saves-list" aria-live="polite"></div>
-      </section>
-    </div>
-  </section>
+connectBtn.addEventListener("click", () => {
+  const name = nameInput.value.trim() || "Joueur";
+  connectStatus.textContent = "Connexion au serveur...";
+  connectError.textContent  = "";
+  connectBtn.disabled       = true;
 
-  <!-- Chat -->
-  <section id="chat-container" aria-label="Chat multijoueur">
-    <div id="chat-messages" aria-live="polite" aria-relevant="additions text"></div>
-    <input type="text" id="chat-input" placeholder="Press T to chat..." maxlength="200" autocomplete="off" spellcheck="true" aria-label="Chat message">
-  </section>
+  // ← onReady est passé AU CONSTRUCTEUR, pas assigné après
+  window.game = new EtherWorldGame(name, () => {
+    connectStatus.textContent = "Connecté !";
+    setTimeout(() => {
+      overlay.style.opacity = "0";
+      setTimeout(() => { overlay.style.display = "none"; }, 500);
+    }, 350);
+  }, (err) => {
+    connectError.textContent = "Erreur : " + err;
+    connectBtn.disabled = false;
+    connectStatus.textContent = "";
+  });
+});
 
-  <!-- Notifications -->
-  <div id="notifications" role="status" aria-live="polite" aria-relevant="additions text"></div>
+// ════════════════════════════════════════════════════════════
+//  GAME ENGINE
+// ════════════════════════════════════════════════════════════
+class EtherWorldGame {
 
-  <!-- Import file input caché -->
-  <input type="file" id="import-file" accept=".gltf,.json,model/gltf+json,application/json" style="display:none" aria-hidden="true">
+  constructor(playerName = "Joueur", onReady = null, onError = null) {
+    this.playerName = playerName;
+    this.onReady    = onReady;   // ← stocké immédiatement
+    this.onError    = onError;
 
-  <!-- Three.js et Cannon-ES via CDN -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
-      "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+    this.scene    = null;
+    this.camera   = null;
+    this.renderer = null;
+    this.clock    = new THREE.Clock();
+
+    this.physicsWorld     = null;
+    this.platformMeshes   = new Map();  // id → { mesh, body, data }
+    this.propMeshes       = new Map();  // id → mesh
+    this.fallingPlatforms = new Map();
+
+    this.playerBody      = null;
+    this.playerMesh      = null;
+    this.leftArm = this.rightArm = this.leftLeg = this.rightLeg = this.playerGlow = null;
+    this.playerBobTime   = 0;
+    this.playerAnimState = "idle";
+    this.moveState = { forward:false, backward:false, left:false, right:false, sprint:false };
+    this.canJump         = false;
+    this.isPointerLocked = false;
+
+    this.cameraYaw      = 0;
+    this.cameraPitch    = 0.3;
+    this.cameraDistance = 6;
+    this.cameraCurrentPos  = new THREE.Vector3();
+    this.cameraLookTarget  = new THREE.Vector3();
+
+    this.ws            = null;
+    this.playerId      = null;
+    this.remotePlayers = new Map();
+
+    this.editorMode       = false;
+    this.selectedPlatform = null;
+    this.raycaster        = new THREE.Raycaster();
+
+    this.frameCount  = 0;
+    this.fpsTime     = 0;
+    this.posInterval = 0;
+
+    this.minimapCtx = document.getElementById("minimap-canvas").getContext("2d");
+
+    this.init();
+  }
+
+  // ── INIT ────────────────────────────────────────────────────
+  init() {
+    this.initThree();
+    this.initPhysics();
+    this.initPlayer();
+    this.initLighting();
+    this.initSkybox();
+    this.initControls();
+    this.initUI();
+    this.connectWebSocket();   // ← WS connecté ici, onReady déjà stocké
+    this.loadWorld();
+    this.animate();
+  }
+
+  // ── THREE ───────────────────────────────────────────────────
+  initThree() {
+    this.scene = new THREE.Scene();
+    this.scene.fog = new THREE.FogExp2(0x080c1a, 0.0075);
+
+    this.camera = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, 0.1, 1000);
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(innerWidth, innerHeight);
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.2;
+    this.renderer.outputColorSpace  = THREE.SRGBColorSpace;
+    document.body.prepend(this.renderer.domElement);
+
+    window.addEventListener("resize", () => {
+      this.camera.aspect = innerWidth/innerHeight;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(innerWidth, innerHeight);
+    });
+  }
+
+  // ── PHYSICS ─────────────────────────────────────────────────
+  initPhysics() {
+    this.physicsWorld = new CANNON.World({ gravity: new CANNON.Vec3(0, -20, 0) });
+    this.physicsWorld.broadphase = new CANNON.NaiveBroadphase();
+    this.physicsWorld.solver.iterations = 10;
+
+    this.playerMat   = new CANNON.Material("player");
+    this.platformMat = new CANNON.Material("platform");
+    this.bouncyMat   = new CANNON.Material("bouncy");
+
+    this.physicsWorld.addContactMaterial(new CANNON.ContactMaterial(this.playerMat, this.platformMat, { friction:0.4, restitution:0.05 }));
+    this.physicsWorld.addContactMaterial(new CANNON.ContactMaterial(this.playerMat, this.bouncyMat,   { friction:0.3, restitution:1.6  }));
+  }
+
+  // ── PLAYER ──────────────────────────────────────────────────
+  initPlayer() {
+    this.playerMesh = new THREE.Group();
+    const mk = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; return m; };
+
+    // Corps
+    const bodyMat = new THREE.MeshStandardMaterial({ color:0x77ddff, metalness:0.3, roughness:0.6, emissive:0x0a1a22, emissiveIntensity:0.4 });
+    this.playerMesh.add(mk(new THREE.CapsuleGeometry(0.35, 0.8, 8, 16), bodyMat));
+
+    // Tête
+    const head = mk(new THREE.SphereGeometry(0.3, 12, 12), new THREE.MeshStandardMaterial({ color:0x88eeff, emissive:0x224455, emissiveIntensity:0.25 }));
+    head.position.y = 0.65;
+    this.playerMesh.add(head);
+
+    // Yeux
+    const eyeMat = new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0xffffff, emissiveIntensity:0.9 });
+    const eyeGeo = new THREE.SphereGeometry(0.07, 8, 8);
+    const le = mk(eyeGeo, eyeMat); le.position.set(-0.12, 0.68, 0.24); this.playerMesh.add(le);
+    const re = mk(eyeGeo, eyeMat.clone()); re.position.set(0.12, 0.68, 0.24); this.playerMesh.add(re);
+
+    // Bras
+    const armGeo = new THREE.CapsuleGeometry(0.1, 0.45, 6, 8);
+    const armMat = new THREE.MeshStandardMaterial({ color:0x55bbdd, roughness:0.6 });
+    this.leftArm  = mk(armGeo, armMat);        this.leftArm.position.set(-0.45, 0.05, 0);  this.playerMesh.add(this.leftArm);
+    this.rightArm = mk(armGeo, armMat.clone()); this.rightArm.position.set(0.45, 0.05, 0); this.playerMesh.add(this.rightArm);
+
+    // Jambes
+    const legGeo = new THREE.CapsuleGeometry(0.12, 0.4, 6, 8);
+    const legMat = new THREE.MeshStandardMaterial({ color:0x3377aa, roughness:0.7 });
+    this.leftLeg  = mk(legGeo, legMat);        this.leftLeg.position.set(-0.15, -0.6, 0);  this.playerMesh.add(this.leftLeg);
+    this.rightLeg = mk(legGeo, legMat.clone()); this.rightLeg.position.set(0.15, -0.6, 0); this.playerMesh.add(this.rightLeg);
+
+    // Glow
+    this.playerGlow = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 8, 8),
+      new THREE.MeshBasicMaterial({ color:0x77ddff, transparent:true, opacity:0.55 })
+    );
+    this.playerGlow.position.y = 1.1;
+    this.playerMesh.add(this.playerGlow);
+
+    // Lumière joueur
+    const pl = new THREE.PointLight(0x77ddff, 0.5, 9);
+    pl.position.y = 1;
+    this.playerMesh.add(pl);
+
+    this.scene.add(this.playerMesh);
+
+    // Corps physique
+    this.playerBody = new CANNON.Body({
+      mass:70, material:this.playerMat,
+      linearDamping:0.3, angularDamping:1.0, fixedRotation:true,
+      position: new CANNON.Vec3(0, 5, 0),
+    });
+    const r = 0.4;
+    this.playerBody.addShape(new CANNON.Sphere(r));
+    this.playerBody.addShape(new CANNON.Sphere(r), new CANNON.Vec3(0,  0.6, 0));
+    this.playerBody.addShape(new CANNON.Sphere(r), new CANNON.Vec3(0, -0.6, 0));
+    this.physicsWorld.addBody(this.playerBody);
+
+    this.playerBody.addEventListener("collide", (e) => {
+      const n = new CANNON.Vec3();
+      const c = e.contact;
+      if (c.bi.id === this.playerBody.id) c.ni.negate(n); else n.copy(c.ni);
+      if (n.y > 0.45) {
+        this.canJump = true;
+        const other = c.bi.id === this.playerBody.id ? c.bj : c.bi;
+        for (const [, pd] of this.platformMeshes) {
+          if (pd.body === other) {
+            if (pd.data.type === "bouncy") this.playerBody.velocity.y = pd.data.bounceForce || 15;
+            if (pd.data.type === "goal")   this.notify("🏆 Objectif atteint !", "success");
+            break;
+          }
+        }
+      }
+    });
+  }
+
+  // ── LIGHTING ────────────────────────────────────────────────
+  initLighting() {
+    this.scene.add(new THREE.AmbientLight(0x223355, 0.65));
+    this.scene.add(new THREE.HemisphereLight(0x3355aa, 0x112233, 0.45));
+
+    const sun = new THREE.DirectionalLight(0xffeedd, 1.3);
+    sun.position.set(50, 80, 30);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = sun.shadow.camera.bottom = -80;
+    sun.shadow.camera.right = sun.shadow.camera.top   =  80;
+    sun.shadow.bias = -0.001;
+    this.scene.add(sun);
+
+    const p1 = new THREE.PointLight(0x4488ff, 0.6, 60);
+    p1.position.set(-15, 18, -15);
+    this.scene.add(p1);
+  }
+
+  // ── SKYBOX ──────────────────────────────────────────────────
+  initSkybox() {
+    const skyMat = new THREE.ShaderMaterial({
+      uniforms: {
+        topColor:    { value: new THREE.Color(0x080820) },
+        bottomColor: { value: new THREE.Color(0x141430) },
+      },
+      vertexShader: `
+        varying vec3 vPos;
+        void main() { vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }
+      `,
+      fragmentShader: `
+        uniform vec3 topColor, bottomColor;
+        varying vec3 vPos;
+        void main() {
+          float t = clamp((normalize(vPos).y + 1.) * .5, 0., 1.);
+          gl_FragColor = vec4(mix(bottomColor, topColor, t), 1.);
+        }
+      `,
+      side: THREE.BackSide,
+    });
+    this.scene.add(new THREE.Mesh(new THREE.SphereGeometry(450, 32, 32), skyMat));
+
+    // Étoiles
+    const pos = new Float32Array(3000 * 3);
+    for (let i = 0; i < 3000; i++) {
+      const r=320, t=Math.random()*Math.PI*2, p=Math.acos(2*Math.random()-1);
+      pos[i*3]=r*Math.sin(p)*Math.cos(t); pos[i*3+1]=Math.abs(r*Math.cos(p)); pos[i*3+2]=r*Math.sin(p)*Math.sin(t);
+    }
+    const sg = new THREE.BufferGeometry();
+    sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    this.scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color:0xffffff, size:1.4, sizeAttenuation:true, transparent:true, opacity:0.85 })));
+  }
+
+  // ── CONTRÔLES ───────────────────────────────────────────────
+  initControls() {
+    const canvas = this.renderer.domElement;
+
+    canvas.addEventListener("click", () => { if (!this.isPointerLocked) canvas.requestPointerLock(); });
+    document.addEventListener("pointerlockchange", () => {
+      this.isPointerLocked = document.pointerLockElement === canvas;
+      document.getElementById("crosshair").style.display = this.isPointerLocked ? "block" : "none";
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!this.isPointerLocked) return;
+      this.cameraYaw   -= e.movementX * 0.003;
+      this.cameraPitch  = Math.max(-0.5, Math.min(1.2, this.cameraPitch - e.movementY * 0.003));
+    });
+
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      this.cameraDistance = Math.max(2, Math.min(18, this.cameraDistance + e.deltaY * 0.012));
+    }, { passive:false });
+
+    document.addEventListener("keydown", (e) => {
+      if (this.isChatActive()) return;
+      switch (e.code) {
+        case "KeyW": case "ArrowUp":    this.moveState.forward  = true; break;
+        case "KeyS": case "ArrowDown":  this.moveState.backward = true; break;
+        case "KeyA": case "ArrowLeft":  this.moveState.left     = true; break;
+        case "KeyD": case "ArrowRight": this.moveState.right    = true; break;
+        case "ShiftLeft": case "ShiftRight": this.moveState.sprint = true; break;
+        case "Space":
+          e.preventDefault();
+          if (this.canJump) { this.playerBody.velocity.y = 11; this.canJump = false; }
+          break;
+        case "KeyE": this.toggleEditor(); break;
+        case "KeyR": this.respawn(); break;
+        case "KeyT": e.preventDefault(); this.openChat(); break;
+        case "Escape": if (this.editorMode) this.toggleEditor(); break;
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      switch (e.code) {
+        case "KeyW": case "ArrowUp":    this.moveState.forward  = false; break;
+        case "KeyS": case "ArrowDown":  this.moveState.backward = false; break;
+        case "KeyA": case "ArrowLeft":  this.moveState.left     = false; break;
+        case "KeyD": case "ArrowRight": this.moveState.right    = false; break;
+        case "ShiftLeft": case "ShiftRight": this.moveState.sprint = false; break;
+      }
+    });
+
+    canvas.addEventListener("mousedown", (e) => { if (this.editorMode && e.button === 0) this.editorPick(); });
+  }
+
+  // ── MONDE ───────────────────────────────────────────────────
+  async loadWorld() {
+    try {
+      const res  = await fetch("/api/world-state");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      this.clearWorld();
+      for (const p of data.world.platforms) this.createPlatformMesh(p);
+      for (const p of data.world.props)     this.createPropMesh(p);
+      this.updateEditorList();
+      this.notify(`🌍 ${data.world.platforms.length} platforms · ${data.world.props.length} props chargés`, "success");
+    } catch (err) {
+      this.notify("Erreur chargement monde : " + err.message, "error");
     }
   }
-  </script>
 
-  <script type="module" src="game.js"></script>
-  <script src="admin.js"></script>
-  <script src="admin-troxt-enhanced.js"></script>
-  <script type="module" src="ether-particles.js"></script>
-  <script type="module" src="ether-city-buildings.js"></script>
-  <script type="module" src="etherglue/main.js"></script>
-  <script type="module" src="ether-materials.js"></script>
+  createPlatformMesh(data) {
+    if (this.platformMeshes.has(data.id)) return;
+    const [sx, sy, sz] = data.size || [4, 0.5, 4];
+    const color = new THREE.Color(data.color || "#4a5568");
+    const geo   = new THREE.BoxGeometry(sx, sy, sz);
+    const mat   = new THREE.MeshStandardMaterial({ color, metalness:0.2, roughness:0.72, transparent: data.type==="falling", opacity:1 });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(...(data.position || [0,0,0]));
+    mesh.castShadow = mesh.receiveShadow = true;
+    mesh.userData = { platformId: data.id };
+
+    // Bords lumineux
+    mesh.add(new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color: color.clone().multiplyScalar(1.6), transparent:true, opacity:0.35 })
+    ));
+
+    this.scene.add(mesh);
+
+    const body = new CANNON.Body({
+      mass:0, material: data.type==="bouncy" ? this.bouncyMat : this.platformMat,
+      shape: new CANNON.Box(new CANNON.Vec3(sx/2, sy/2, sz/2)),
+      position: new CANNON.Vec3(...(data.position || [0,0,0])),
+    });
+    this.physicsWorld.addBody(body);
+    this.platformMeshes.set(data.id, { mesh, body, data });
+  }
+
+  createPropMesh(data) {
+    if (this.propMeshes.has(data.id)) return;
+    const [sx, sy, sz] = data.size || [1,1,1];
+    const color = new THREE.Color(data.color || "#ffffff");
+    const mat   = new THREE.MeshStandardMaterial({ color, metalness:0.15, roughness:0.75 });
+
+    const isNeon = data.material?.includes("neon") || data.material?.includes("emissive");
+    if (isNeon) { mat.emissive = color.clone(); mat.emissiveIntensity = 0.45; }
+
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
+    mesh.position.set(...(data.position || [0,1,0]));
+    if (data.rotation) mesh.rotation.set(...data.rotation);
+    mesh.castShadow = mesh.receiveShadow = true;
+    mesh.userData = { propId: data.id };
+    this.scene.add(mesh);
+
+    if (isNeon) {
+      const l = new THREE.PointLight(color, 0.6, 8);
+      mesh.add(l);
+    }
+
+    this.propMeshes.set(data.id, mesh);
+  }
+
+  clearWorld() {
+    for (const [, pd] of this.platformMeshes) { this.scene.remove(pd.mesh); this.physicsWorld.removeBody(pd.body); }
+    for (const [, m]  of this.propMeshes)     this.scene.remove(m);
+    this.platformMeshes.clear();
+    this.propMeshes.clear();
+    this.fallingPlatforms.clear();
+  }
+
+  // ── WEBSOCKET ────────────────────────────────────────────────
+  connectWebSocket() {
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    this.ws = new WebSocket(`${proto}//${location.host}`);
+
+    this.ws.onopen = () => {
+      document.getElementById("player-status").textContent = "En ligne ✓";
+    };
+
+    this.ws.onmessage = (e) => {
+      try { this.handleMessage(JSON.parse(e.data)); } catch {}
+    };
+
+    this.ws.onclose = () => {
+      document.getElementById("player-status").textContent = "Hors ligne — reconnexion...";
+      this.notify("Déconnecté du serveur", "error");
+      setTimeout(() => this.connectWebSocket(), 3000);
+    };
+
+    this.ws.onerror = () => {
+      this.onError?.("Impossible de contacter le serveur WS");
+    };
+  }
+
+  handleMessage(msg) {
+    switch (msg.type) {
+
+      case "welcome":
+        this.playerId = msg.playerId;
+        document.getElementById("player-name").textContent   = this.playerName;
+        document.getElementById("player-count").textContent  = `Players: ${msg.state?.meta?.online ?? 1}`;
+        // Envoyer son nom immédiatement
+        this.wsSend({ type:"player_update", name:this.playerName, position:[0,2,0], rotation:[0,0,0] });
+        // ← appel du callback passé au constructeur
+        this.onReady?.();
+        break;
+
+      case "player_joined":
+        if (msg.player?.id !== this.playerId) {
+          this.addRemotePlayer(msg.player);
+          this.addChat(`${msg.player.name || "Joueur"} a rejoint`, null, true);
+        }
+        document.getElementById("player-count").textContent = `Players: ${msg.online}`;
+        break;
+
+      case "player_left":
+        this.removeRemotePlayer(msg.playerId);
+        this.addChat("Un joueur est parti", null, true);
+        document.getElementById("player-count").textContent = `Players: ${msg.online}`;
+        break;
+
+      case "player_update":
+        if (msg.player?.id && msg.player.id !== this.playerId) this.updateRemotePlayer(msg.player);
+        break;
+
+      case "chat":
+        this.addChat(msg.message, msg.name);
+        break;
+
+      case "world_saved":
+        this.notify("💾 Monde sauvegardé", "success");
+        break;
+
+      case "world_reset":
+        this.loadWorld();
+        this.respawn();
+        this.notify("🔄 Monde réinitialisé", "info");
+        break;
+
+      case "platform_created":
+        if (msg.platform) { this.createPlatformMesh(msg.platform); this.updateEditorList(); }
+        break;
+
+      case "platform_updated":
+        if (msg.platform) {
+          const pd = this.platformMeshes.get(msg.platform.id);
+          if (pd) { this.scene.remove(pd.mesh); this.physicsWorld.removeBody(pd.body); this.platformMeshes.delete(msg.platform.id); }
+          this.createPlatformMesh(msg.platform); this.updateEditorList();
+        }
+        break;
+
+      case "platform_deleted":
+        if (msg.id) {
+          const pd = this.platformMeshes.get(msg.id);
+          if (pd) { this.scene.remove(pd.mesh); this.physicsWorld.removeBody(pd.body); this.platformMeshes.delete(msg.id); }
+          this.updateEditorList();
+        }
+        break;
+
+      case "prop_created":
+        if (msg.prop) this.createPropMesh(msg.prop);
+        break;
+
+      case "autosave":
+      case "entity_created":
+      case "entity_updated":
+        break;
+    }
+  }
+
+  wsSend(data) {
+    if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(data));
+  }
+
+  // ── REMOTE PLAYERS ───────────────────────────────────────────
+  addRemotePlayer(data) {
+    if (!data?.id || this.remotePlayers.has(data.id) || data.id === this.playerId) return;
+    const g = new THREE.Group();
+    const c = new THREE.Color(data.color || "#ffaa44");
+    const mk = (geo) => { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:c.clone() })); m.castShadow=true; return m; };
+
+    g.add(mk(new THREE.CapsuleGeometry(0.35, 0.8, 8, 16)));
+    const head = mk(new THREE.SphereGeometry(0.3, 12, 12)); head.position.y=0.65; g.add(head);
+    const aGeo = new THREE.CapsuleGeometry(0.1, 0.45, 6, 8);
+    const la=mk(aGeo); la.position.set(-0.45,0.05,0); g.add(la);
+    const ra=mk(aGeo); ra.position.set( 0.45,0.05,0); g.add(ra);
+    const lGeo = new THREE.CapsuleGeometry(0.12, 0.4, 6, 8);
+    const ll=mk(lGeo); ll.position.set(-0.15,-0.6,0); g.add(ll);
+    const rl=mk(lGeo); rl.position.set( 0.15,-0.6,0); g.add(rl);
+
+    // Nom flottant
+    const nc=document.createElement("canvas"); nc.width=256; nc.height=64;
+    const nx=nc.getContext("2d");
+    nx.fillStyle="rgba(0,0,0,0.5)"; nx.fillRect(0,0,256,64);
+    nx.font="bold 26px sans-serif"; nx.textAlign="center";
+    nx.fillStyle="#"+c.getHexString(); nx.fillText(data.name||data.id, 128, 44);
+    const ns=new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(nc), transparent:true }));
+    ns.scale.set(2, 0.5, 1); ns.position.y=1.5; g.add(ns);
+
+    g.position.set(...(data.position||[0,2,0]));
+    this.scene.add(g);
+    this.remotePlayers.set(data.id, { group:g, la,ra,ll,rl, targetPos:new THREE.Vector3(...(data.position||[0,2,0])), walkTime:0 });
+  }
+
+  updateRemotePlayer(data) {
+    if (!data?.id) return;
+    const rp = this.remotePlayers.get(data.id);
+    if (!rp) { this.addRemotePlayer(data); return; }
+    rp.targetPos.set(...(data.position||[0,2,0]));
+  }
+
+  removeRemotePlayer(id) {
+    const rp = this.remotePlayers.get(id);
+    if (rp) { this.scene.remove(rp.group); this.remotePlayers.delete(id); }
+  }
+
+  // ── EDITOR ───────────────────────────────────────────────────
+  toggleEditor() {
+    this.editorMode = !this.editorMode;
+    document.getElementById("editor-panel").classList.toggle("hidden", !this.editorMode);
+    if (this.editorMode) this.updateEditorList();
+  }
+
+  editorPick() {
+    this.raycaster.setFromCamera(new THREE.Vector2(0,0), this.camera);
+    const meshes = [...this.platformMeshes.values()].map(p=>p.mesh);
+    const hits   = this.raycaster.intersectObjects(meshes, false);
+    if (hits.length) this.selectPlatform(hits[0].object.userData.platformId);
+    else this.deselectPlatform();
+  }
+
+  selectPlatform(id) {
+    this.deselectPlatform();
+    const pd = this.platformMeshes.get(id);
+    if (!pd) return;
+    this.selectedPlatform = id;
+    pd.mesh.material.emissive          = new THREE.Color(0xffffff);
+    pd.mesh.material.emissiveIntensity = 0.3;
+    document.getElementById("ed-selection-info").innerHTML =
+      `<b>ID:</b> ${id}<br><b>Nom:</b> ${pd.data.name||"?"}<br><b>Type:</b> ${pd.data.type}<br><b>Pos:</b> [${pd.data.position.map(v=>v.toFixed(1)).join(", ")}]<br><b>Taille:</b> [${pd.data.size.map(v=>v.toFixed(1)).join(", ")}]`;
+    document.getElementById("ed-delete").disabled = pd.data.locked ?? false;
+    document.querySelectorAll(".platform-item").forEach(el => el.classList.toggle("selected", el.dataset.id === id));
+  }
+
+  deselectPlatform() {
+    if (this.selectedPlatform) {
+      const pd = this.platformMeshes.get(this.selectedPlatform);
+      if (pd) { pd.mesh.material.emissive = new THREE.Color(0); pd.mesh.material.emissiveIntensity = 0; }
+    }
+    this.selectedPlatform = null;
+    document.getElementById("ed-selection-info").textContent = "Clique sur une platform pour la sélectionner";
+    document.getElementById("ed-delete").disabled = true;
+    document.querySelectorAll(".platform-item").forEach(el => el.classList.remove("selected"));
+  }
+
+  updateEditorList() {
+    const list = document.getElementById("ed-platform-list");
+    if (!list) return;
+    list.innerHTML = "";
+    this.platformMeshes.forEach((pd, id) => {
+      const item = document.createElement("div");
+      item.className = "platform-item";
+      item.dataset.id = id;
+      item.innerHTML = `<div class="p-color" style="background:${pd.data.color}"></div><span class="p-info">${pd.data.name||id}</span><span class="p-type">${pd.data.type}</span>`;
+      item.onclick = () => this.selectPlatform(id);
+      list.appendChild(item);
+    });
+  }
+
+  // ── UI ───────────────────────────────────────────────────────
+  initUI() {
+    document.getElementById("btn-editor").onclick   = () => this.toggleEditor();
+    document.getElementById("editor-close").onclick = () => this.toggleEditor();
+    document.getElementById("btn-respawn").onclick  = () => this.respawn();
+
+    document.getElementById("btn-generate").onclick = async () => {
+      if (!confirm("Réinitialiser le monde ?")) return;
+      try {
+        await fetch("/api/world-state/reset", { method:"POST" });
+        this.notify("Monde réinitialisé", "success");
+      } catch { this.notify("Erreur reset", "error"); }
+    };
+
+    document.getElementById("ed-add").onclick = async () => {
+      const body = {
+        name:     document.getElementById("ed-name").value.trim() || "Platform",
+        type:     document.getElementById("ed-type").value,
+        color:    document.getElementById("ed-color").value,
+        material: document.getElementById("ed-material").value,
+        position: [
+          parseFloat(document.getElementById("ed-px").value)||0,
+          parseFloat(document.getElementById("ed-py").value)||0,
+          parseFloat(document.getElementById("ed-pz").value)||-10,
+        ],
+        size: [
+          parseFloat(document.getElementById("ed-sx").value)||4,
+          parseFloat(document.getElementById("ed-sy").value)||0.5,
+          parseFloat(document.getElementById("ed-sz").value)||4,
+        ],
+      };
+      try {
+        const res  = await fetch("/api/platforms", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+        const data = await res.json();
+        if (data.ok) { this.createPlatformMesh(data.platform); this.updateEditorList(); this.notify("Platform ajoutée !", "success"); }
+        else this.notify("Erreur : " + (data.error||"?"), "error");
+      } catch { this.notify("Erreur réseau", "error"); }
+    };
+
+    document.getElementById("ed-delete").onclick = async () => {
+      if (!this.selectedPlatform) return;
+      if (!confirm(`Supprimer la platform "${this.selectedPlatform}" ?`)) return;
+      try {
+        const res = await fetch(`/api/platforms/${this.selectedPlatform}?force=1`, { method:"DELETE" });
+        const data = await res.json();
+        if (data.ok || data.deleted) {
+          const pd = this.platformMeshes.get(this.selectedPlatform);
+          if (pd) { this.scene.remove(pd.mesh); this.physicsWorld.removeBody(pd.body); this.platformMeshes.delete(this.selectedPlatform); }
+          this.deselectPlatform(); this.updateEditorList(); this.notify("Platform supprimée", "info");
+        } else this.notify("Erreur : " + (data.error||"?"), "error");
+      } catch { this.notify("Erreur réseau", "error"); }
+    };
+
+    // Chat
+    const ci = document.getElementById("chat-input");
+    ci.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") {
+        const msg = ci.value.trim();
+        if (msg) this.wsSend({ type:"chat", message:msg });
+        ci.value = ""; ci.classList.remove("active"); ci.blur();
+      }
+      if (e.key === "Escape") { ci.value = ""; ci.classList.remove("active"); ci.blur(); }
+    });
+  }
+
+  respawn() {
+    this.playerBody.position.set(0, 5, 0);
+    this.playerBody.velocity.setZero();
+    this.playerBody.angularVelocity.setZero();
+    this.notify("🔄 Respawn !", "info");
+  }
+
+  isChatActive() { return document.getElementById("chat-input").classList.contains("active"); }
+  openChat()     { const i = document.getElementById("chat-input"); i.classList.add("active"); i.focus(); }
+
+  addChat(text, name=null, system=false) {
+    const c   = document.getElementById("chat-messages");
+    const div = document.createElement("div");
+    div.className = `chat-msg${system?" system":""}`;
+    div.innerHTML = name ? `<span class="chat-name">${name}:</span>${text}` : text;
+    c.appendChild(div);
+    c.scrollTop = c.scrollHeight;
+    while (c.children.length > 60) c.removeChild(c.firstChild);
+  }
+
+  notify(text, type="info") {
+    const div = document.createElement("div");
+    div.className = `notification ${type}`;
+    div.textContent = text;
+    document.getElementById("notifications").appendChild(div);
+    setTimeout(() => div.remove(), 3600);
+  }
+
+  // ── MINIMAP ──────────────────────────────────────────────────
+  drawMinimap() {
+    const ctx = this.minimapCtx;
+    const W = 120, H = 120, scale = 2.5;
+    ctx.clearRect(0, 0, W, H);
+
+    // Fond
+    ctx.fillStyle = "rgba(0,0,0,0.7)";
+    ctx.fillRect(0, 0, W, H);
+
+    const cx = W/2, cy = H/2;
+    const px = this.playerBody.position.x;
+    const pz = this.playerBody.position.z;
+
+    // Platforms
+    for (const [, pd] of this.platformMeshes) {
+      const [ex,,ez] = pd.data.position;
+      const [sx,, sz] = pd.data.size;
+      const rx = cx + (ex - px) * scale - (sx*scale)/2;
+      const ry = cy + (ez - pz) * scale - (sz*scale)/2;
+      ctx.fillStyle = pd.data.color || "#4a5568";
+      ctx.fillRect(rx, ry, sx*scale, sz*scale);
+    }
+
+    // Joueurs distants
+    for (const [, rp] of this.remotePlayers) {
+      const rx = cx + (rp.targetPos.x - px) * scale;
+      const ry = cy + (rp.targetPos.z - pz) * scale;
+      ctx.fillStyle = "#ffaa44";
+      ctx.beginPath(); ctx.arc(rx, ry, 3, 0, Math.PI*2); ctx.fill();
+    }
+
+    // Joueur local
+    ctx.fillStyle = "#00eeff";
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.fill();
+    // Direction caméra
+    ctx.strokeStyle = "#00eeff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx - Math.sin(this.cameraYaw)*10, cy - Math.cos(this.cameraYaw)*10);
+    ctx.stroke();
+  }
+
+  // ── GAME LOOP ────────────────────────────────────────────────
+  animate() {
+    requestAnimationFrame(() => this.animate());
+    const delta = Math.min(this.clock.getDelta(), 0.05);
+    const time  = this.clock.getElapsedTime();
+
+    this.physicsWorld.step(1/60, delta, 3);
+    this.#updateMovement(delta);
+    this.#updatePlayerAnim(time, delta);
+    this.#updateCamera(delta);
+    this.#updateRemotePlayers(delta);
+    this.drawMinimap();
+
+    // Respawn automatique
+    if (this.playerBody.position.y < -60) {
+      this.respawn();
+      this.notify("Tu es tombé ! Respawn...", "warning");
+    }
+
+    // Envoi position
+    this.posInterval++;
+    if (this.posInterval % 3 === 0) {
+      const p = this.playerBody.position;
+      this.wsSend({ type:"player_update", name:this.playerName, position:[p.x,p.y,p.z], rotation:[0,this.cameraYaw,0] });
+    }
+
+    // FPS
+    this.frameCount++;
+    this.fpsTime += delta;
+    if (this.fpsTime >= 0.5) {
+      document.getElementById("fps-counter").textContent = `FPS: ${Math.round(this.frameCount/this.fpsTime)}`;
+      this.frameCount = 0; this.fpsTime = 0;
+    }
+
+    // Position HUD
+    const p = this.playerBody.position;
+    document.getElementById("player-pos").textContent = `[${p.x.toFixed(1)}, ${p.y.toFixed(1)}, ${p.z.toFixed(1)}]`;
+
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  #updateMovement(delta) {
+    if (this.isChatActive()) return;
+    const speed = this.moveState.sprint ? 16 : 9;
+    const fwd   = new THREE.Vector3(-Math.sin(this.cameraYaw), 0, -Math.cos(this.cameraYaw));
+    const right = new THREE.Vector3(-Math.sin(this.cameraYaw - Math.PI/2), 0, -Math.cos(this.cameraYaw - Math.PI/2));
+    const dir   = new THREE.Vector3();
+
+    if (this.moveState.forward)  dir.add(fwd);
+    if (this.moveState.backward) dir.sub(fwd);
+    if (this.moveState.left)     dir.add(right);
+    if (this.moveState.right)    dir.sub(right);
+
+    if (dir.length() > 0) {
+      dir.normalize().multiplyScalar(speed);
+      const angle = Math.atan2(dir.x, dir.z);
+      let diff = angle - this.playerMesh.rotation.y;
+      while (diff >  Math.PI) diff -= Math.PI*2;
+      while (diff < -Math.PI) diff += Math.PI*2;
+      this.playerMesh.rotation.y += diff * Math.min(1, delta*12);
+    }
+
+    this.playerBody.velocity.x = dir.x;
+    this.playerBody.velocity.z = dir.z;
+
+    const hs = Math.sqrt(dir.x*dir.x + dir.z*dir.z);
+    this.playerAnimState = !this.canJump ? "jump" : hs > 5 ? "run" : hs > 0.5 ? "walk" : "idle";
+  }
+
+  #updatePlayerAnim(time, delta) {
+    const p = this.playerBody.position;
+    this.playerMesh.position.set(p.x, p.y - 0.3, p.z);
+    const spd = this.playerAnimState === "run" ? 12 : 6;
+
+    switch (this.playerAnimState) {
+      case "walk": case "run":
+        this.playerBobTime += delta * spd;
+        this.leftArm.rotation.x  =  Math.sin(this.playerBobTime) * 0.6;
+        this.rightArm.rotation.x = -Math.sin(this.playerBobTime) * 0.6;
+        this.leftLeg.rotation.x  = -Math.sin(this.playerBobTime) * 0.5;
+        this.rightLeg.rotation.x =  Math.sin(this.playerBobTime) * 0.5;
+        this.playerMesh.position.y += Math.abs(Math.sin(this.playerBobTime*2)) * 0.05;
+        break;
+      case "jump":
+        this.leftArm.rotation.x=-0.8; this.rightArm.rotation.x=-0.8;
+        this.leftArm.rotation.z=-0.3; this.rightArm.rotation.z= 0.3;
+        this.leftLeg.rotation.x= 0.3; this.rightLeg.rotation.x= 0.3;
+        break;
+      default:
+        this.leftArm.rotation.x  *= 0.9; this.rightArm.rotation.x *= 0.9;
+        this.leftLeg.rotation.x  *= 0.9; this.rightLeg.rotation.x *= 0.9;
+        this.leftArm.rotation.z  *= 0.9; this.rightArm.rotation.z *= 0.9;
+        this.playerMesh.position.y += Math.sin(time*2) * 0.018;
+    }
+
+    if (this.playerGlow) {
+      this.playerGlow.material.opacity = 0.38 + Math.sin(time*3)*0.18;
+      const s = 1 + Math.sin(time*3)*0.1;
+      this.playerGlow.scale.set(s,s,s);
+    }
+  }
+
+  #updateCamera(delta) {
+    const pp = this.playerBody.position;
+    const pv = new THREE.Vector3(pp.x, pp.y, pp.z);
+    const tx = pp.x + this.cameraDistance * Math.sin(this.cameraYaw)   * Math.cos(this.cameraPitch);
+    const ty = pp.y + this.cameraDistance * Math.sin(this.cameraPitch) + 2;
+    const tz = pp.z + this.cameraDistance * Math.cos(this.cameraYaw)   * Math.cos(this.cameraPitch);
+    this.cameraCurrentPos.lerp(new THREE.Vector3(tx,ty,tz), Math.min(1, delta*8));
+    this.camera.position.copy(this.cameraCurrentPos);
+    this.cameraLookTarget.lerp(pv.clone().add(new THREE.Vector3(0,1,0)), Math.min(1, delta*10));
+    this.camera.lookAt(this.cameraLookTarget);
+  }
+
+  #updateRemotePlayers(delta) {
+    for (const rp of this.remotePlayers.values()) {
+      const prev = rp.group.position.clone();
+      rp.group.position.lerp(rp.targetPos, Math.min(1, delta*12));
+      const moved = prev.distanceTo(rp.group.position) > 0.01;
+      if (moved) {
+        rp.walkTime += delta*8;
+        rp.la.rotation.x =  Math.sin(rp.walkTime)*0.5;
+        rp.ra.rotation.x = -Math.sin(rp.walkTime)*0.5;
+        rp.ll.rotation.x = -Math.sin(rp.walkTime)*0.4;
+        rp.rl.rotation.x =  Math.sin(rp.walkTime)*0.4;
+        const dir = rp.group.position.clone().sub(prev);
+        rp.group.rotation.y += (Math.atan2(dir.x, dir.z) - rp.group.rotation.y) * Math.min(1, delta*8);
+      } else {
+        rp.la.rotation.x*=0.9; rp.ra.rotation.x*=0.9;
+        rp.ll.rotation.x*=0.9; rp.rl.rotation.x*=0.9;
+      }
+    }
+  }
+}
+</script>
 </body>
 </html>
+'@

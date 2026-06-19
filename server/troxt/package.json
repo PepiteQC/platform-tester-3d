@@ -1,0 +1,76 @@
+{
+  "name": "troxt",
+  "version": "1.0.0",
+  "description": "TroxT - Autonomous Smart Contract Audit & RPA Orchestration Engine",
+  "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./routes/*": "./dist/routes/*.js",
+    "./controllers/*": "./dist/controllers/*.js",
+    "./services/*": "./dist/services/*.js",
+    "./utils/*": "./dist/utils/*.js"
+  },
+  "scripts": {
+    "dev": "node --watch --env-file=.env --experimental-strip-types src/index.js",
+    "start": "node --env-file=.env dist/index.js",
+    "build": "node build.mjs",
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/**/*.js --cache --fix",
+    "format": "prettier --write \"src/**/*.js\"",
+    "audit": "npm audit --audit-level=high",
+    "deps:check": "depcheck",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "solidity",
+    "audit",
+    "mutation-testing",
+    "rpa",
+    "foundry",
+    "security",
+    "web3"
+  ],
+  "author": "TroxT Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "zod": "^3.23.8",
+    "robotjs": "^0.6.0",
+    "async-mutex": "^0.5.0",
+    "bullmq": "^5.12.0",
+    "ioredis": "^5.4.1",
+    "pino": "^9.1.0",
+    "pino-pretty": "^11.2.0",
+    "uuid": "^10.0.0",
+    "express-rate-limit": "^7.3.0",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "eslint": "^9.3.0",
+    "@eslint/js": "^9.3.0",
+    "prettier": "^3.3.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.0",
+    "depcheck": "^1.4.7",
+    "@types/node": "^20.12.0",
+    "@types/express": "^4.17.21",
+    "@types/robotjs": "^0.0.3",
+    "globals": "^15.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "robotjs"
+    ]
+  },
+  "packageManager": "pnpm@9.1.0"
+}

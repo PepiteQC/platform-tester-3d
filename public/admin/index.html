@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EtherWorld Admin Sandbox</title>
+  <link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">EW</div>
+        <div>
+          <h1>Admin Sandbox</h1>
+          <p>Poly Texture / Node Server</p>
+        </div>
+      </div>
+
+      <nav>
+        <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-btn" data-tab="spawn">Spawn Menu</button>
+        <button class="nav-btn" data-tab="textures">Poly Textures</button>
+        <button class="nav-btn" data-tab="platforms">Platforms</button>
+        <button class="nav-btn" data-tab="props">Props</button>
+        <button class="nav-btn" data-tab="logs">Logs</button>
+      </nav>
+
+      <div class="token-box">
+        <label>Admin Token</label>
+        <input id="adminToken" type="password" placeholder="dev-admin" />
+        <button id="saveToken">Sauver token</button>
+      </div>
+
+      <div class="server-pill">
+        <span id="wsLight"></span>
+        <b id="serverStatus">Connexion...</b>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSubtitle">Contrôle live du serveur EtherWorld.</p>
+        </div>
+        <div class="top-actions">
+          <button id="refreshBtn">Refresh</button>
+          <button id="saveWorldBtn">Save</button>
+          <button id="exportWorldBtn">Export</button>
+          <button id="resetWorldBtn" class="danger">Reset</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="tab active">
+        <div class="grid cards">
+          <article class="card stat">
+            <span>Platforms</span>
+            <strong id="statPlatforms">0</strong>
+          </article>
+          <article class="card stat">
+            <span>Props</span>
+            <strong id="statProps">0</strong>
+          </article>
+          <article class="card stat">
+            <span>Textures</span>
+            <strong id="statTextures">0</strong>
+          </article>
+          <article class="card stat">
+            <span>Players</span>
+            <strong id="statPlayers">0</strong>
+          </article>
+        </div>
+
+        <div class="card">
+          <h3>World State</h3>
+          <pre id="worldPreview"></pre>
+        </div>
+      </section>
+
+      <section id="spawn" class="tab">
+        <div class="card">
+          <h3>Spawn Menu Sandbox</h3>
+          <p class="muted">Crée des objets rapides pour tester ton monde 3D comme un menu sandbox.</p>
+
+          <div class="preset-grid">
+            <button class="preset" data-preset="cube">Cube</button>
+            <button class="preset" data-preset="wall">Wall</button>
+            <button class="preset" data-preset="ramp">Ramp</button>
+            <button class="preset" data-preset="glass">Glass</button>
+            <button class="preset" data-preset="snow">Snow Pile</button>
+            <button class="preset" data-preset="neon">Neon Panel</button>
+          </div>
+
+          <div class="form-grid small">
+            <label>X <input id="spawnX" type="number" value="0" step="0.5" /></label>
+            <label>Y <input id="spawnY" type="number" value="1" step="0.5" /></label>
+            <label>Z <input id="spawnZ" type="number" value="0" step="0.5" /></label>
+          </div>
+        </div>
+      </section>
+
+      <section id="textures" class="tab">
+        <div class="card">
+          <h3>Créer Poly Texture</h3>
+          <div class="form-grid">
+            <label>Nom <input id="texName" placeholder="Métal brossé bleu" /></label>
+            <label>Catégorie <input id="texCategory" placeholder="metal / road / glass" /></label>
+            <label>Couleur <input id="texColor" type="color" value="#ffffff" /></label>
+            <label>Emission <input id="texEmission" type="color" value="#000000" /></label>
+            <label>Roughness <input id="texRoughness" type="number" min="0" max="1" step="0.01" value="0.75" /></label>
+            <label>Metallic <input id="texMetallic" type="number" min="0" max="1" step="0.01" value="0" /></label>
+            <label>Normal <input id="texNormal" type="number" min="0" max="1" step="0.01" value="0.25" /></label>
+            <label>AO <input id="texAo" type="number" min="0" max="1" step="0.01" value="0.6" /></label>
+          </div>
+          <textarea id="texNotes" placeholder="Notes texture..."></textarea>
+          <button id="createTextureBtn">Créer Texture</button>
+        </div>
+
+        <div class="card">
+          <h3>Textures disponibles</h3>
+          <div id="textureList" class="list"></div>
+        </div>
+      </section>
+
+      <section id="platforms" class="tab">
+        <div class="card">
+          <h3>Créer Platform</h3>
+          <div class="form-grid">
+            <label>Nom <input id="platformName" placeholder="Route 138 segment" /></label>
+            <label>Type <input id="platformType" placeholder="road / spawn / floor" value="custom" /></label>
+            <label>Couleur <input id="platformColor" type="color" value="#4a5568" /></label>
+            <label>Material <select id="platformMaterial"></select></label>
+            <label>Pos X <input id="platformX" type="number" value="0" step="0.5" /></label>
+            <label>Pos Y <input id="platformY" type="number" value="0" step="0.5" /></label>
+            <label>Pos Z <input id="platformZ" type="number" value="0" step="0.5" /></label>
+            <label>Size X <input id="platformSX" type="number" value="4" step="0.5" /></label>
+            <label>Size Y <input id="platformSY" type="number" value="0.5" step="0.5" /></label>
+            <label>Size Z <input id="platformSZ" type="number" value="4" step="0.5" /></label>
+          </div>
+          <button id="createPlatformBtn">Créer Platform</button>
+        </div>
+
+        <div class="card">
+          <h3>Platforms</h3>
+          <div id="platformList" class="list"></div>
+        </div>
+      </section>
+
+      <section id="props" class="tab">
+        <div class="card">
+          <h3>Créer Prop</h3>
+          <div class="form-grid">
+            <label>Nom <input id="propName" placeholder="Caisse / panneau / terminal" /></label>
+            <label>Type <input id="propType" placeholder="cube / sign / terminal" value="cube" /></label>
+            <label>Couleur <input id="propColor" type="color" value="#ffffff" /></label>
+            <label>Material <select id="propMaterial"></select></label>
+            <label>Pos X <input id="propX" type="number" value="0" step="0.5" /></label>
+            <label>Pos Y <input id="propY" type="number" value="1" step="0.5" /></label>
+            <label>Pos Z <input id="propZ" type="number" value="0" step="0.5" /></label>
+            <label>Size X <input id="propSX" type="number" value="1" step="0.5" /></label>
+            <label>Size Y <input id="propSY" type="number" value="1" step="0.5" /></label>
+            <label>Size Z <input id="propSZ" type="number" value="1" step="0.5" /></label>
+          </div>
+          <button id="createPropBtn">Créer Prop</button>
+        </div>
+
+        <div class="card">
+          <h3>Props</h3>
+          <div id="propList" class="list"></div>
+        </div>
+      </section>
+
+      <section id="logs" class="tab">
+        <div class="card">
+          <h3>Logs Admin</h3>
+          <div id="logList" class="list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="/admin/admin.js"></script>
+</body>
+</html>

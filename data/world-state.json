@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "name": "EtherWorld Platform Tester 3D",
+  "createdAt": "2026-06-19T08:01:59.842Z",
+  "updatedAt": "2026-06-19T18:41:23.334Z",
+  "platforms": [
+    {
+      "id": "spawn_platform",
+      "name": "Spawn Platform",
+      "type": "spawn",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        8,
+        0.5,
+        8
+      ],
+      "color": "#2d3748",
+      "material": "poly_asphalt_qc",
+      "safe": true,
+      "locked": false,
+      "createdAt": "2026-06-19T08:01:59.842Z"
+    }
+  ],
+  "props": [
+    {
+      "id": "admin_terminal",
+      "name": "Admin Terminal",
+      "type": "terminal",
+      "position": [
+        0,
+        1,
+        -4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        1.2,
+        1.8,
+        0.25
+      ],
+      "color": "#00e5ff",
+      "material": "poly_neon_cyan",
+      "interactive": true,
+      "createdAt": "2026-06-19T08:01:59.842Z"
+    }
+  ],
+  "players": {},
+  "logs": [],
+  "lastSaveReason": "autosave"
+}
