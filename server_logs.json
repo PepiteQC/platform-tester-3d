@@ -1,0 +1,139 @@
+[
+  {
+    "id": "27c443bf-7d59-4624-9d0f-c2c206c29cd8",
+    "timestamp": "2026-06-19T02:04:28.022Z",
+    "event_type": "snapshot_created",
+    "user_id": null,
+    "message": "Snapshot: 7eaae397-6790-404a-bb91-359440b9a812",
+    "data": {
+      "type": "auto"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "260dd38c-b40a-4991-8766-1e5a5a9a7441",
+    "timestamp": "2026-06-19T02:03:28.008Z",
+    "event_type": "snapshot_created",
+    "user_id": null,
+    "message": "Snapshot: 410d4545-a1c1-47f8-9fca-9c1a545d438d",
+    "data": {
+      "type": "auto"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "9b017c8a-22c3-4a15-9a8a-c62e2b2b51f1",
+    "timestamp": "2026-06-19T02:02:28.010Z",
+    "event_type": "snapshot_created",
+    "user_id": null,
+    "message": "Snapshot: 2158fdc0-2bfd-47cb-bfdb-3ee7bd6fa5c7",
+    "data": {
+      "type": "auto"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "f109667c-291c-4833-9e8c-aba9636f9e42",
+    "timestamp": "2026-06-19T02:01:59.786Z",
+    "event_type": "player_leave",
+    "user_id": "7c08841f",
+    "message": "Player 7c08841f left",
+    "data": {},
+    "severity": "info"
+  },
+  {
+    "id": "5c99fdbb-3d3a-4207-b1c9-9e8210790528",
+    "timestamp": "2026-06-19T02:01:27.995Z",
+    "event_type": "snapshot_created",
+    "user_id": null,
+    "message": "Snapshot: c064b950-0e1a-4433-af8a-4ef52efe2caa",
+    "data": {
+      "type": "auto"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "1e108829-6edf-4efc-86bc-fc1e3ca407dc",
+    "timestamp": "2026-06-19T02:00:27.989Z",
+    "event_type": "snapshot_created",
+    "user_id": null,
+    "message": "Snapshot: 049ea551-71e1-4212-aab1-7bf4b61d785e",
+    "data": {
+      "type": "auto"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "0ca9ffbe-edfb-48a5-ab42-d8d6ee13ac58",
+    "timestamp": "2026-06-19T01:59:57.132Z",
+    "event_type": "world_generated",
+    "user_id": null,
+    "message": "Seed 55252",
+    "data": {
+      "seed": 55252
+    },
+    "severity": "info"
+  },
+  {
+    "id": "46a11439-7e65-4b6c-aa96-4aaed5268e86",
+    "timestamp": "2026-06-19T01:59:54.503Z",
+    "event_type": "world_generated",
+    "user_id": null,
+    "message": "Seed 41197",
+    "data": {
+      "seed": 41197
+    },
+    "severity": "info"
+  },
+  {
+    "id": "4438c0c2-57c9-4f22-a095-10069d98a085",
+    "timestamp": "2026-06-19T01:59:27.985Z",
+    "event_type": "snapshot_created",
+    "user_id": null,
+    "message": "Snapshot: 82056e5c-314d-42c5-a58c-050612cc7a9f",
+    "data": {
+      "type": "auto"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "6c0042ee-99e8-46e3-a609-1e3abb791eb7",
+    "timestamp": "2026-06-19T01:59:03.994Z",
+    "event_type": "player_join",
+    "user_id": "7c08841f",
+    "message": "Player 7c08841f connected",
+    "data": {},
+    "severity": "info"
+  },
+  {
+    "id": "f1e3f23d-2c36-46a6-acd5-70162377ad63",
+    "timestamp": "2026-06-19T01:58:27.988Z",
+    "event_type": "snapshot_created",
+    "user_id": null,
+    "message": "Snapshot: 555fae15-fc0d-49ac-85bd-ed33a22a2807",
+    "data": {
+      "type": "auto"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "340ebae7-4e0f-4ab4-a749-ab69033f7895",
+    "timestamp": "2026-06-19T01:57:27.981Z",
+    "event_type": "snapshot_created",
+    "user_id": null,
+    "message": "Snapshot: d4753d99-e317-4d41-9fbe-a9ef745bfd03",
+    "data": {
+      "type": "auto"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "3358e2ee-7f25-4162-8aff-ada632ec0302",
+    "timestamp": "2026-06-19T01:56:27.972Z",
+    "event_type": "server_start",
+    "user_id": null,
+    "message": "Server started",
+    "data": {},
+    "severity": "info"
+  }
+]

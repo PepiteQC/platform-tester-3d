@@ -1,8 +1,3 @@
-// ============================================================
-//  Memory — Mémoire partagée TroxT
-//  Stockage global accessible par tous les modules
-// ============================================================
-
 export interface MemoryEntry<T = unknown> {
   key: string
   value: T
@@ -21,73 +16,88 @@ export interface MemoryQuery {
   limit?: number
 }
 
-// ─── Memory Store ────────────────────────────────────────────
 export class Memory {
   private store: Map<string, MemoryEntry> = new Map()
 
-  // TODO: Écrire en mémoire
-  set<T = unknown>(
-    _key: string,
-    _value: T,
-    _options?: { source?: string; ttl?: number; tags?: string[] }
-  ): void {}
+  set<T = unknown>(key: string, value: T, options?: { source?: string; ttl?: number; tags?: string[] }): void {
+    const now = Date.now()
+    const existing = this.store.get(key)
+    this.store.set(key, {
+      key,
+      value,
+      source: options?.source || 'unknown',
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+      ttl: options?.ttl,
+      tags: options?.tags || []
+    })
+  }
 
-  // TODO: Lire depuis la mémoire
-  get<T = unknown>(_key: string): T | null {
-    const entry = this.store.get(_key)
+  get<T = unknown>(key: string): T | null {
+    const entry = this.store.get(key)
     if (!entry) return null
-    // TODO: Vérifier le TTL
+    if (entry.ttl && Date.now() > entry.createdAt + entry.ttl) {
+      this.store.delete(key)
+      return null
+    }
     return entry.value as T
   }
 
-  // TODO: Vérifier l'existence
-  has(_key: string): boolean {
-    return this.store.has(_key)
+  has(key: string): boolean {
+    const entry = this.store.get(key)
+    if (!entry) return false
+    if (entry.ttl && Date.now() > entry.createdAt + entry.ttl) {
+      this.store.delete(key)
+      return false
+    }
+    return true
   }
 
-  // TODO: Supprimer une entrée
-  delete(_key: string): void {
-    this.store.delete(_key)
+  delete(key: string): void { this.store.delete(key) }
+
+  query(query: MemoryQuery): MemoryEntry[] {
+    const now = Date.now()
+    let results: MemoryEntry[] = []
+    this.store.forEach(entry => {
+      if (entry.ttl && now > entry.createdAt + entry.ttl) return
+      if (query.tag && !entry.tags.includes(query.tag)) return
+      if (query.source && entry.source !== query.source) return
+      if (query.before && entry.updatedAt >= query.before) return
+      if (query.after && entry.updatedAt <= query.after) return
+      results.push(entry)
+    })
+    results.sort((a, b) => b.updatedAt - a.updatedAt)
+    if (query.limit) results = results.slice(0, query.limit)
+    return results
   }
 
-  // TODO: Requête par tags / source
-  query(_query: MemoryQuery): MemoryEntry[] {
-    return []
-  }
-
-  // TODO: Nettoyage des TTL expirés
   cleanup(): number {
+    const now = Date.now()
     let removed = 0
-    // TODO: Implémenter
+    this.store.forEach((entry, key) => {
+      if (entry.ttl && now > entry.createdAt + entry.ttl) {
+        this.store.delete(key)
+        removed++
+      }
+    })
     return removed
   }
 
-  // TODO: Snapshot de la mémoire
   snapshot(): Record<string, unknown> {
     const snap: Record<string, unknown> = {}
-    this.store.forEach((entry, key) => {
-      snap[key] = entry.value
-    })
+    this.store.forEach((entry, key) => { snap[key] = entry.value })
     return snap
   }
 
-  // TODO: Restaurer depuis un snapshot
-  restore(_snap: Record<string, unknown>, _source = 'restore'): void {}
-
-  // TODO: Effacer toute la mémoire
-  clear(): void {
-    this.store.clear()
+  restore(snap: Record<string, unknown>, source = 'restore'): void {
+    Object.entries(snap).forEach(([key, value]) => {
+      this.set(key, value, { source })
+    })
   }
 
-  // TODO: Taille actuelle
-  size(): number {
-    return this.store.size
-  }
+  clear(): void { this.store.clear() }
 
-  // TODO: Toutes les clés
-  keys(): string[] {
-    return Array.from(this.store.keys())
-  }
+  size(): number { return this.store.size }
 }
 
 export const memory = new Memory()

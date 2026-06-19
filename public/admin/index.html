@@ -3,185 +3,438 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>EtherWorld Admin Sandbox</title>
+  <title>EtherWorld Admin v2</title>
   <link rel="stylesheet" href="/admin/admin.css" />
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark">EW</div>
-        <div>
-          <h1>Admin Sandbox</h1>
-          <p>Poly Texture / Node Server</p>
-        </div>
+<div class="app">
+
+  <!-- ══ SIDEBAR ═══════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">EW</div>
+      <div>
+        <h1>Admin Sandbox</h1>
+        <p>EtherWorld v2.0</p>
       </div>
+    </div>
 
-      <nav>
-        <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
-        <button class="nav-btn" data-tab="spawn">Spawn Menu</button>
-        <button class="nav-btn" data-tab="textures">Poly Textures</button>
-        <button class="nav-btn" data-tab="platforms">Platforms</button>
-        <button class="nav-btn" data-tab="props">Props</button>
-        <button class="nav-btn" data-tab="logs">Logs</button>
-      </nav>
+    <nav>
+      <button class="nav-btn active" data-tab="dashboard"  data-subtitle="Vue d'ensemble du serveur">📊 Dashboard</button>
+      <button class="nav-btn" data-tab="spawn" data-subtitle="Spawner des objets rapidement">🎲 Spawn Menu</button>
+      <button class="nav-btn" data-tab="generator" data-subtitle="Génération procédurale de niveaux">🌍 Générateur</button>
+      <button class="nav-btn" data-tab="textures"  data-subtitle="Gérer les poly-textures">🎨 Textures</button>
+      <button class="nav-btn" data-tab="platforms" data-subtitle="Gérer les plateformes">🏗 Platforms</button>
+      <button class="nav-btn" data-tab="props"     data-subtitle="Gérer les props">📦 Props</button>
+      <button class="nav-btn" data-tab="entities"  data-subtitle="Entités avancées (NPC, triggers, physics)">🤖 Entities</button>
+      <button class="nav-btn" data-tab="settings"  data-subtitle="Paramètres monde">⚙️ Settings</button>
+      <button class="nav-btn" data-tab="snapshots" data-subtitle="Sauvegardes point-in-time">📸 Snapshots</button>
+      <button class="nav-btn" data-tab="players"   data-subtitle="Joueurs connectés en live">👥 Players</button>
+      <button class="nav-btn" data-tab="logs" data-subtitle="Journal des actions admin">📋 Logs</button>
+      <button class="nav-btn" data-tab="troxt" data-subtitle="Agent IA TroxT — Cerveau du monde">🤖 TroxT</button>
+    </nav>
 
-      <div class="token-box">
-        <label>Admin Token</label>
-        <input id="adminToken" type="password" placeholder="dev-admin" />
-        <button id="saveToken">Sauver token</button>
-      </div>
+    <div class="token-box">
+      <label>Admin Token</label>
+      <input id="adminToken" type="password" placeholder="Optionnel" />
+      <button id="saveToken">Sauver</button>
+    </div>
 
-      <div class="server-pill">
-        <span id="wsLight"></span>
+    <div class="server-pill">
+      <span id="wsLight"></span>
+      <div>
         <b id="serverStatus">Connexion...</b>
+        <div id="lastSave" style="font-size:11px;color:#667;margin-top:2px"></div>
       </div>
-    </aside>
+    </div>
+  </aside>
 
-    <main class="main">
-      <header class="topbar">
+  <!-- ══ MAIN ══════════════════════════════════════════════ -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h2 id="pageTitle">Dashboard</h2>
+        <p id="pageSubtitle">Vue d'ensemble du serveur EtherWorld.</p>
+      </div>
+      <div class="top-actions">
+        <button id="refreshBtn">🔄 Refresh</button>
+        <button id="saveWorldBtn">💾 Save</button>
+        <button id="exportWorldBtn">📤 Export</button>
+        <button id="resetWorldBtn" class="danger">⚠️ Reset</button>
+      </div>
+    </header>
+
+    <!-- ── Dashboard ── -->
+    <section id="dashboard" class="tab active">
+      <div class="grid cards">
+        <article class="card stat"><span>Platforms</span><strong id="statPlatforms">0</strong></article>
+        <article class="card stat"><span>Props</span><strong id="statProps">0</strong></article>
+        <article class="card stat"><span>Textures</span><strong id="statTextures">0</strong></article>
+        <article class="card stat"><span>Players</span><strong id="statPlayers">0</strong></article>
+        <article class="card stat"><span>Entities</span><strong id="statEntities">0</strong></article>
+      </div>
+      <div class="card">
+        <h3>World State</h3>
+        <pre id="worldPreview"></pre>
+      </div>
+    </section>
+
+    <!-- ── Spawn ── -->
+    <section id="spawn" class="tab">
+      <div class="card">
+        <h3>Spawn Menu Sandbox</h3>
+        <p class="muted">Crée des objets rapides pour tester ton monde 3D.</p>
+        <div class="preset-grid">
+          <button class="preset" data-preset="cube">📦 Cube</button>
+          <button class="preset" data-preset="wall">🧱 Wall</button>
+          <button class="preset" data-preset="ramp">📐 Ramp</button>
+          <button class="preset" data-preset="glass">🪟 Glass</button>
+          <button class="preset" data-preset="snow">❄️ Snow</button>
+          <button class="preset" data-preset="neon">💡 Neon</button>
+          <button class="preset" data-preset="metalbeam">🔩 Beam</button>
+          <button class="preset" data-preset="platform">🏗 Platform</button>
+        </div>
+        <div class="form-grid small" style="margin-top:16px">
+          <label>X <input id="spawnX" type="number" value="0" step="0.5" /></label>
+          <label>Y <input id="spawnY" type="number" value="1" step="0.5" /></label>
+          <label>Z <input id="spawnZ" type="number" value="0" step="0.5" /></label>
+        </div>
+      </div>
+        </section>
+
+    <!-- ── Procedural Generator ── -->
+    <section id="generator" class="tab">
+      <div class="card">
+        <h3>🌍 Générateur de monde procédural</h3>
+        <p class="muted">Génère un niveau complet à partir d un seed. Remplace le monde actuel.</p>
+        <div class="form-grid" style="margin-top:16px">
+          <label>Style
+            <select id="genStyle" class="ed-select" style="margin-top:6px">
+              <option value="tower">🗼 Tower — Montée verticale</option>
+              <option value="parkour">🏃 Parkour — Sauts latéraux</option>
+              <option value="island">🏝 Islands — Îles flottantes</option>
+              <option value="maze">🌀 Maze — Labyrinthe</option>
+              <option value="spiral">🌀 Spiral — Spirale montante</option>
+            </select>
+          </label>
+          <label>Thème
+            <select id="genTheme" class="ed-select" style="margin-top:6px">
+              <option value="urban">🏙 Urban — Ville</option>
+              <option value="winter">❄️ Winter — Hiver</option>
+              <option value="neon">💡 Neon — Cyberpunk</option>
+              <option value="ruins">🏚 Ruins — Ruines</option>
+            </select>
+          </label>
+          <label>Platforms
+            <input id="genCount" type="number" value="20" min="5" max="60" style="margin-top:6px" />
+          </label>
+          <label>Seed (vide = aléatoire)
+            <input id="genSeed" type="number" placeholder="Ex: 42069" style="margin-top:6px" />
+          </label>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+          <button id="generateWorldBtn">🎲 Générer le monde</button>
+          <button id="randomSeedBtn" class="small">🎰 Seed aléatoire</button>
+          <span id="genStatus" class="muted" style="font-size:13px"></span>
+        </div>
+      </div>
+      <div class="card" id="genResultBox" style="display:none">
+        <h3>✅ Résultat</h3>
+        <div id="genResult" style="font-size:13px;line-height:1.8;color:#b7ffea"></div>
+      </div>
+    </section>
+
+    <!-- ── Textures ── -->
+    <section id="textures" class="tab">
+      <div class="card">
+        <h3>Créer Poly Texture</h3>
+        <div class="form-grid">
+          <label>Nom <input id="texName" placeholder="Métal brossé" /></label>
+          <label>Catégorie <input id="texCategory" placeholder="metal / road / glass" /></label>
+          <label>Couleur <input id="texColor" type="color" value="#ffffff" /></label>
+          <label>Emission <input id="texEmission" type="color" value="#000000" /></label>
+          <label>Roughness <input id="texRoughness" type="number" min="0" max="1" step="0.01" value="0.75" /></label>
+          <label>Metallic <input id="texMetallic" type="number" min="0" max="1" step="0.01" value="0" /></label>
+          <label>Normal <input id="texNormal" type="number" min="0" max="1" step="0.01" value="0.25" /></label>
+          <label>AO <input id="texAo" type="number" min="0" max="1" step="0.01" value="0.6" /></label>
+        </div>
+        <textarea id="texNotes" placeholder="Notes..."></textarea>
+        <button id="createTextureBtn">＋ Créer Texture</button>
+      </div>
+      <div class="card"><h3>Textures <span id="texCount" class="badge"></span></h3><div id="textureList" class="list"></div></div>
+    </section>
+
+    <!-- ── Platforms ── -->
+    <section id="platforms" class="tab">
+      <div class="card">
+        <h3>Créer Platform</h3>
+        <div class="form-grid">
+          <label>Nom <input id="platformName" placeholder="Route 138" /></label>
+          <label>Type
+            <select id="platformType">
+              <option value="custom">Custom</option>
+              <option value="spawn">Spawn</option>
+              <option value="platform">Platform</option>
+              <option value="road">Road</option>
+              <option value="floor">Floor</option>
+            </select>
+          </label>
+          <label>Couleur <input id="platformColor" type="color" value="#4a5568" /></label>
+          <label>Matériau <select id="platformMaterial"></select></label>
+          <label>Pos X <input id="platformX" type="number" value="0" step="0.5" /></label>
+          <label>Pos Y <input id="platformY" type="number" value="0" step="0.5" /></label>
+          <label>Pos Z <input id="platformZ" type="number" value="0" step="0.5" /></label>
+          <label>Size X <input id="platformSX" type="number" value="4" step="0.5" /></label>
+          <label>Size Y <input id="platformSY" type="number" value="0.5" step="0.1" /></label>
+          <label>Size Z <input id="platformSZ" type="number" value="4" step="0.5" /></label>
+        </div>
+        <button id="createPlatformBtn">＋ Créer Platform</button>
+      </div>
+      <div class="card"><h3>Platforms</h3><div id="platformList" class="list"></div></div>
+    </section>
+
+    <!-- ── Props ── -->
+    <section id="props" class="tab">
+      <div class="card">
+        <h3>Créer Prop</h3>
+        <div class="form-grid">
+          <label>Nom <input id="propName" placeholder="Caisse / terminal" /></label>
+          <label>Type <input id="propType" placeholder="cube / sign / terminal" value="cube" /></label>
+          <label>Couleur <input id="propColor" type="color" value="#ffffff" /></label>
+          <label>Matériau <select id="propMaterial"></select></label>
+          <label>Interactif <input id="propInteractive" type="checkbox" style="width:auto;margin-top:10px" /></label>
+          <label>Pos X <input id="propX" type="number" value="0" step="0.5" /></label>
+          <label>Pos Y <input id="propY" type="number" value="1" step="0.5" /></label>
+          <label>Pos Z <input id="propZ" type="number" value="0" step="0.5" /></label>
+          <label>Size X <input id="propSX" type="number" value="1" step="0.5" /></label>
+          <label>Size Y <input id="propSY" type="number" value="1" step="0.5" /></label>
+          <label>Size Z <input id="propSZ" type="number" value="1" step="0.5" /></label>
+        </div>
+        <button id="createPropBtn">＋ Créer Prop</button>
+      </div>
+      <div class="card"><h3>Props</h3><div id="propList" class="list"></div></div>
+    </section>
+
+    <!-- ── Entities ── -->
+    <section id="entities" class="tab">
+      <div class="card">
+        <h3>Créer Entité</h3>
+        <div class="form-grid">
+          <label>Type
+            <select id="entityTypeSel">
+              <option value="static_prop">static_prop</option>
+              <option value="interactive_prop">interactive_prop</option>
+              <option value="physics_prop">physics_prop</option>
+              <option value="trigger_zone">trigger_zone</option>
+              <option value="npc">npc</option>
+              <option value="vehicle_spawn">vehicle_spawn</option>
+            </select>
+          </label>
+          <label>Nom <input id="entityName" placeholder="Nom entité" /></label>
+          <label>Couleur <input id="entityColor" type="color" value="#ffffff" /></label>
+          <label>Matériau <select id="entityMaterialSel"></select></label>
+          <label>Pos X <input id="entityX" type="number" value="0" step="0.5" /></label>
+          <label>Pos Y <input id="entityY" type="number" value="1" step="0.5" /></label>
+          <label>Pos Z <input id="entityZ" type="number" value="0" step="0.5" /></label>
+        </div>
+
+        <!-- Champs NPC -->
+        <div id="entityFieldsNpc" class="hidden entity-extra">
+          <h4 style="color:#0ef;margin:12px 0 8px">Champs NPC</h4>
+          <div class="form-grid">
+            <label>Rôle
+              <select id="entityRole">
+                <option value="civilian">Civilian</option>
+                <option value="guard">Guard</option>
+                <option value="vendor">Vendor</option>
+                <option value="quest">Quest</option>
+              </select>
+            </label>
+            <label>HP <input id="entityHealth" type="number" value="100" /></label>
+          </div>
+          <label style="display:block;margin-top:10px;color:#667;font-size:12px">Dialogues (1 par ligne)
+            <textarea id="entityDialogue" placeholder="Bonjour !&#10;Tu veux acheter ?&#10;Bonne journée !"></textarea>
+          </label>
+        </div>
+
+        <!-- Champs Interactive -->
+        <div id="entityFieldsInteractive" class="hidden entity-extra">
+          <h4 style="color:#0ef;margin:12px 0 8px">Champs Interactive Prop</h4>
+          <div class="form-grid">
+            <label>Prompt <input id="entityPrompt" placeholder="Appuyer sur E" /></label>
+            <label>Cooldown ms <input id="entityCooldown" type="number" value="1000" /></label>
+            <label>Action
+              <select id="entityAction">
+                <option value="none">none</option>
+                <option value="toggle">toggle</option>
+                <option value="trigger">trigger</option>
+                <option value="give">give</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <!-- Champs Trigger -->
+        <div id="entityFieldsTrigger" class="hidden entity-extra">
+          <h4 style="color:#0ef;margin:12px 0 8px">Champs Trigger Zone</h4>
+          <div class="form-grid">
+            <label>Forme
+              <select id="entityShape">
+                <option value="box">Box</option>
+                <option value="sphere">Sphere</option>
+                <option value="cylinder">Cylinder</option>
+              </select>
+            </label>
+            <label>Size X <input id="entitySX" type="number" value="4" /></label>
+            <label>Size Y <input id="entitySY" type="number" value="3" /></label>
+            <label>Size Z <input id="entitySZ" type="number" value="4" /></label>
+            <label>On Enter event <input id="entityOnEnter" placeholder="vip:entered" /></label>
+            <label>One Shot <input id="entityOneShot" type="checkbox" style="width:auto;margin-top:10px" /></label>
+          </div>
+        </div>
+
+        <button id="createEntityBtn" style="margin-top:14px">＋ Créer Entité</button>
+      </div>
+      <div class="card"><h3>Entités actives</h3><div id="entityList" class="list"></div></div>
+    </section>
+
+    <!-- ── Settings ── -->
+    <section id="settings" class="tab">
+      <div class="card">
+        <h3>Paramètres Monde</h3>
+        <div class="form-grid">
+          <label>Grid <input id="set_grid" type="checkbox" style="width:auto" /></label>
+          <label>Snap <input id="set_snap" type="checkbox" style="width:auto" /></label>
+          <label>Snap Size <input id="set_snapSize" type="number" step="0.1" value="0.5" /></label>
+          <label>Physics Debug <input id="set_physicsDebug" type="checkbox" style="width:auto" /></label>
+          <label>Admin Theme <input id="set_adminTheme" placeholder="dark-neon" /></label>
+          <label>Max Players <input id="set_maxPlayers" type="number" value="50" /></label>
+          <label>Gravity <input id="set_gravity" type="number" step="0.1" value="-9.81" /></label>
+          <label>Fog Enabled <input id="set_fogEnabled" type="checkbox" style="width:auto" /></label>
+          <label>Fog Color <input id="set_fogColor" type="color" value="#0a0e1a" /></label>
+          <label>Fog Near <input id="set_fogNear" type="number" value="80" /></label>
+          <label>Fog Far <input id="set_fogFar" type="number" value="200" /></label>
+        </div>
+        <button id="saveSettingsBtn" style="margin-top:14px">💾 Sauvegarder Settings</button>
+      </div>
+    </section>
+
+    <!-- ── Snapshots ── -->
+    <section id="snapshots" class="tab">
+      <div class="card">
+        <h3>Snapshots Point-in-time</h3>
+        <p class="muted">Crée une sauvegarde complète du monde (world + entities + settings).</p>
+        <button id="snapshotBtn">📸 Créer Snapshot maintenant</button>
+      </div>
+      <div class="card"><h3>Snapshots disponibles</h3><div id="snapshotList" class="list"></div></div>
+    </section>
+
+    <!-- ── Players ── -->
+    <section id="players" class="tab">
+      <div class="card">
+        <h3>Joueurs en ligne</h3>
+        <p class="muted">Mis à jour en temps réel via WebSocket.</p>
+        <div id="playerList" class="list"></div>
+      </div>
+    </section>
+
+    <!-- ── Logs ── -->
+    <section id="logs" class="tab">
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0">
+        <h3 style="margin:0">Logs Admin</h3>
+        <button id="clearLogsBtn" class="danger small">🗑 Clear</button>
+      </div>
+      <div class="card"><div id="logList" class="list"></div></div>
+    </section>
+
+  </main>
+</div>
+
+    <!-- ── TroxT ── -->
+    <section id="troxt" class="tab">
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div>
-          <h2 id="pageTitle">Dashboard</h2>
-          <p id="pageSubtitle">Contrôle live du serveur EtherWorld.</p>
+          <h3 style="margin:0;color:#00e5ff">🤖 TroxT — Agent IA</h3>
+          <p class="muted" style="margin:4px 0 0">Parle à TroxT pour contrôler le monde EtherWorld.</p>
         </div>
-        <div class="top-actions">
-          <button id="refreshBtn">Refresh</button>
-          <button id="saveWorldBtn">Save</button>
-          <button id="exportWorldBtn">Export</button>
-          <button id="resetWorldBtn" class="danger">Reset</button>
+        <div id="troxtOnline" style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:10px">
+          <span id="troxtLight" style="width:9px;height:9px;border-radius:50%;background:#ff4d6d;box-shadow:0 0 10px #ff4d6d"></span>
+          <span id="troxtStatus" style="font-size:13px;color:#8fa6bd">Chargement...</span>
         </div>
-      </header>
+      </div>
 
-      <section id="dashboard" class="tab active">
-        <div class="grid cards">
-          <article class="card stat">
-            <span>Platforms</span>
-            <strong id="statPlatforms">0</strong>
-          </article>
-          <article class="card stat">
-            <span>Props</span>
-            <strong id="statProps">0</strong>
-          </article>
-          <article class="card stat">
-            <span>Textures</span>
-            <strong id="statTextures">0</strong>
-          </article>
-          <article class="card stat">
-            <span>Players</span>
-            <strong id="statPlayers">0</strong>
-          </article>
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:16px">
 
-        <div class="card">
-          <h3>World State</h3>
-          <pre id="worldPreview"></pre>
-        </div>
-      </section>
-
-      <section id="spawn" class="tab">
-        <div class="card">
-          <h3>Spawn Menu Sandbox</h3>
-          <p class="muted">Crée des objets rapides pour tester ton monde 3D comme un menu sandbox.</p>
-
-          <div class="preset-grid">
-            <button class="preset" data-preset="cube">Cube</button>
-            <button class="preset" data-preset="wall">Wall</button>
-            <button class="preset" data-preset="ramp">Ramp</button>
-            <button class="preset" data-preset="glass">Glass</button>
-            <button class="preset" data-preset="snow">Snow Pile</button>
-            <button class="preset" data-preset="neon">Neon Panel</button>
+        <!-- Chat TroxT -->
+        <div class="card" style="margin:0;display:flex;flex-direction:column;height:600px">
+          <h3 style="margin:0 0 12px">💬 Chat avec TroxT</h3>
+          <div id="troxtMessages" style="flex:1;overflow-y:auto;background:rgba(0,0,0,0.3);border:1px solid rgba(0,229,255,0.1);border-radius:10px;padding:12px;font-size:13px;line-height:1.7;margin-bottom:12px"></div>
+          <div style="display:flex;gap:8px">
+            <input id="troxtInput" type="text" placeholder='Essaie: "spawn un cube", "état du monde", "liste les joueurs"...' style="flex:1" />
+            <button id="troxtSendBtn" style="white-space:nowrap">Envoyer ↵</button>
           </div>
-
-          <div class="form-grid small">
-            <label>X <input id="spawnX" type="number" value="0" step="0.5" /></label>
-            <label>Y <input id="spawnY" type="number" value="1" step="0.5" /></label>
-            <label>Z <input id="spawnZ" type="number" value="0" step="0.5" /></label>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="small troxt-quick" data-msg="état du monde">🌍 Monde</button>
+            <button class="small troxt-quick" data-msg="liste les joueurs">👥 Joueurs</button>
+            <button class="small troxt-quick" data-msg="spawn un cube cyan">📦 Spawn</button>
+            <button class="small troxt-quick" data-msg="créer une plateforme">🏗 Platform</button>
+            <button class="small troxt-quick" data-msg="aide">❓ Aide</button>
+            <button class="small troxt-quick" data-msg="nettoie les props troxt">🧹 Cleanup</button>
           </div>
         </div>
-      </section>
 
-      <section id="textures" class="tab">
-        <div class="card">
-          <h3>Créer Poly Texture</h3>
-          <div class="form-grid">
-            <label>Nom <input id="texName" placeholder="Métal brossé bleu" /></label>
-            <label>Catégorie <input id="texCategory" placeholder="metal / road / glass" /></label>
-            <label>Couleur <input id="texColor" type="color" value="#ffffff" /></label>
-            <label>Emission <input id="texEmission" type="color" value="#000000" /></label>
-            <label>Roughness <input id="texRoughness" type="number" min="0" max="1" step="0.01" value="0.75" /></label>
-            <label>Metallic <input id="texMetallic" type="number" min="0" max="1" step="0.01" value="0" /></label>
-            <label>Normal <input id="texNormal" type="number" min="0" max="1" step="0.01" value="0.25" /></label>
-            <label>AO <input id="texAo" type="number" min="0" max="1" step="0.01" value="0.6" /></label>
+        <!-- Panneau droit -->
+        <div style="display:flex;flex-direction:column;gap:16px">
+
+          <!-- Stats cognitives -->
+          <div class="card" style="margin:0">
+            <h3 style="margin:0 0 12px;font-size:14px">🧠 État Cognitif</h3>
+            <div id="troxtStats" style="font-size:12px;line-height:2;color:#8fa6bd">Chargement...</div>
           </div>
-          <textarea id="texNotes" placeholder="Notes texture..."></textarea>
-          <button id="createTextureBtn">Créer Texture</button>
-        </div>
 
-        <div class="card">
-          <h3>Textures disponibles</h3>
-          <div id="textureList" class="list"></div>
-        </div>
-      </section>
-
-      <section id="platforms" class="tab">
-        <div class="card">
-          <h3>Créer Platform</h3>
-          <div class="form-grid">
-            <label>Nom <input id="platformName" placeholder="Route 138 segment" /></label>
-            <label>Type <input id="platformType" placeholder="road / spawn / floor" value="custom" /></label>
-            <label>Couleur <input id="platformColor" type="color" value="#4a5568" /></label>
-            <label>Material <select id="platformMaterial"></select></label>
-            <label>Pos X <input id="platformX" type="number" value="0" step="0.5" /></label>
-            <label>Pos Y <input id="platformY" type="number" value="0" step="0.5" /></label>
-            <label>Pos Z <input id="platformZ" type="number" value="0" step="0.5" /></label>
-            <label>Size X <input id="platformSX" type="number" value="4" step="0.5" /></label>
-            <label>Size Y <input id="platformSY" type="number" value="0.5" step="0.5" /></label>
-            <label>Size Z <input id="platformSZ" type="number" value="4" step="0.5" /></label>
+          <!-- Skills -->
+          <div class="card" style="margin:0;flex:1;overflow:hidden">
+            <h3 style="margin:0 0 10px;font-size:14px">⚡ Skills disponibles</h3>
+            <div id="troxtSkillList" style="font-size:12px;max-height:280px;overflow-y:auto"></div>
           </div>
-          <button id="createPlatformBtn">Créer Platform</button>
-        </div>
 
-        <div class="card">
-          <h3>Platforms</h3>
-          <div id="platformList" class="list"></div>
-        </div>
-      </section>
-
-      <section id="props" class="tab">
-        <div class="card">
-          <h3>Créer Prop</h3>
-          <div class="form-grid">
-            <label>Nom <input id="propName" placeholder="Caisse / panneau / terminal" /></label>
-            <label>Type <input id="propType" placeholder="cube / sign / terminal" value="cube" /></label>
-            <label>Couleur <input id="propColor" type="color" value="#ffffff" /></label>
-            <label>Material <select id="propMaterial"></select></label>
-            <label>Pos X <input id="propX" type="number" value="0" step="0.5" /></label>
-            <label>Pos Y <input id="propY" type="number" value="1" step="0.5" /></label>
-            <label>Pos Z <input id="propZ" type="number" value="0" step="0.5" /></label>
-            <label>Size X <input id="propSX" type="number" value="1" step="0.5" /></label>
-            <label>Size Y <input id="propSY" type="number" value="1" step="0.5" /></label>
-            <label>Size Z <input id="propSZ" type="number" value="1" step="0.5" /></label>
+          <!-- Mémoire récente -->
+          <div class="card" style="margin:0">
+            <h3 style="margin:0 0 10px;font-size:14px">🧩 Mémoire récente</h3>
+            <div id="troxtMemory" style="font-size:11px;max-height:150px;overflow-y:auto;color:#8fa6bd;line-height:1.6"></div>
           </div>
-          <button id="createPropBtn">Créer Prop</button>
         </div>
+      </div>
+    </section>
 
-        <div class="card">
-          <h3>Props</h3>
-          <div id="propList" class="list"></div>
-        </div>
-      </section>
-
-      <section id="logs" class="tab">
-        <div class="card">
-          <h3>Logs Admin</h3>
-          <div id="logList" class="list"></div>
-        </div>
-      </section>
-    </main>
+<!-- ══ MODAL EDIT ═══════════════════════════════════════════ -->
+<div id="editModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3 id="modalTitle">Modifier</h3>
+    <input type="hidden" id="modalType" />
+    <input type="hidden" id="modalId"   />
+    <div class="form-grid">
+      <label>Nom <input id="modalName" /></label>
+      <label>Couleur <input id="modalColor" type="color" /></label>
+      <label>Pos X <input id="modalPX" type="number" step="0.1" /></label>
+      <label>Pos Y <input id="modalPY" type="number" step="0.1" /></label>
+      <label>Pos Z <input id="modalPZ" type="number" step="0.1" /></label>
+      <label>Size X <input id="modalSX" type="number" step="0.1" /></label>
+      <label>Size Y <input id="modalSY" type="number" step="0.1" /></label>
+      <label>Size Z <input id="modalSZ" type="number" step="0.1" /></label>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button id="modalSaveBtn">💾 Sauvegarder</button>
+      <button id="modalCancelBtn" class="danger">Annuler</button>
+    </div>
   </div>
+</div>
 
-  <div id="toast"></div>
+<!-- ══ TOAST ════════════════════════════════════════════════ -->
+<div id="toast"></div>
 
-  <script src="/admin/admin.js"></script>
+<script src="/admin/admin.js"></script>
 </body>
 </html>
+
+

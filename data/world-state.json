@@ -2,7 +2,7 @@
   "version": 2,
   "name": "EtherWorld Platform Tester 3D",
   "createdAt": "2026-06-19T08:01:59.842Z",
-  "updatedAt": "2026-06-19T18:41:23.334Z",
+  "updatedAt": "2026-06-19T22:35:57.604Z",
   "platforms": [
     {
       "id": "spawn_platform",
@@ -28,6 +28,32 @@
       "safe": true,
       "locked": false,
       "createdAt": "2026-06-19T08:01:59.842Z"
+    },
+    {
+      "id": "platform_troxt_dacf60b8",
+      "name": "TroxT Platform",
+      "type": "platform",
+      "position": [
+        0,
+        0,
+        -10
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        4,
+        0.5,
+        4
+      ],
+      "color": "#2d3748",
+      "material": "poly_concrete_sidewalk",
+      "safe": false,
+      "locked": false,
+      "createdAt": "2026-06-19T19:49:10.242Z",
+      "updatedAt": "2026-06-19T19:49:10.242Z"
     }
   ],
   "props": [
@@ -54,9 +80,107 @@
       "material": "poly_neon_cyan",
       "interactive": true,
       "createdAt": "2026-06-19T08:01:59.842Z"
+    },
+    {
+      "id": "prop_troxt_ca195daa",
+      "name": "TroxT Prop",
+      "type": "cube",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        1,
+        1,
+        1
+      ],
+      "color": "#00e5ff",
+      "material": "poly_neon_cyan",
+      "interactive": false,
+      "locked": false,
+      "metadata": {
+        "spawnedBy": "troxt"
+      },
+      "createdAt": "2026-06-19T19:49:10.109Z",
+      "updatedAt": "2026-06-19T19:49:10.109Z"
     }
   ],
-  "players": {},
+  "players": {
+    "player_563520e8": {
+      "id": "player_563520e8",
+      "name": "beni",
+      "ip": "127.0.0.1",
+      "position": [
+        -0.5656758132883505,
+        1.249751512884884,
+        -0.45091277929138945
+      ],
+      "rotation": [
+        0,
+        -1.2899999999999996,
+        0
+      ],
+      "connectedAt": "2026-06-19T19:02:08.252Z",
+      "updatedAt": "2026-06-19T19:02:19.200Z"
+    },
+    "player_2ed8b7d8": {
+      "id": "player_2ed8b7d8",
+      "name": "Guest",
+      "ip": "127.0.0.1",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "connectedAt": "2026-06-19T19:13:47.110Z",
+      "updatedAt": "2026-06-19T19:13:47.110Z"
+    },
+    "player_b96c56ad": {
+      "id": "player_b96c56ad",
+      "name": "beni",
+      "ip": "127.0.0.1",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "connectedAt": "2026-06-19T20:10:48.933Z",
+      "updatedAt": "2026-06-19T20:10:48.935Z"
+    },
+    "player_af27fba4": {
+      "id": "player_af27fba4",
+      "name": "beni",
+      "ip": "127.0.0.1",
+      "position": [
+        -3.959184851454066,
+        -14.04625168699167,
+        -0.6835845610521423
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "connectedAt": "2026-06-19T22:08:14.908Z",
+      "updatedAt": "2026-06-19T22:08:31.719Z"
+    }
+  },
   "logs": [],
   "lastSaveReason": "autosave"
 }

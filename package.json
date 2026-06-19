@@ -1,62 +1,95 @@
 {
-  "name": "troxt",
+  "name": "platform-tester-3d",
   "version": "1.0.0",
-  "description": "TroxT - Autonomous Smart Contract Audit & RPA Orchestration Engine",
+  "description": "EtherWorld Platform Tester 3D - Garry's Mod Style Entity System",
   "type": "module",
   "engines": {
     "node": ">=20.10.0"
   },
-  "main": "./src/index.js",
+  "main": "server/server.mjs",
   "scripts": {
+    "start": "node server/server.mjs",
     "dev": "node --watch --env-file=.env src/index.js",
-    "start": "node --env-file=.env dist/index.js",
-    "build": "node build.mjs",
+    "dev:client": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "test": "vitest run --reporter=verbose",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/**/*.js --cache --fix",
-    "format": "prettier --write \"src/**/*.js\"",
-    "audit:fix": "pnpm audit --fix",
-    "deps:check": "pnpm outdated"
+    "format": "prettier --write \"src/**/*.{js,mjs,ts}\"",
+    "deps:check": "pnpm outdated",
+    "clean": "rm -rf dist node_modules/.cache",
+    "full:install": "pnpm install",
+    "full:start": "pnpm install && pnpm start"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PepiteQC/platform-tester-3d.git"
+  },
+  "bugs": {
+    "url": "https://github.com/PepiteQC/platform-tester-3d/issues"
+  },
+  "homepage": "https://github.com/PepiteQC/platform-tester-3d#readme",
   "keywords": [
-    "solidity",
-    "audit",
-    "mutation-testing",
-    "rpa",
-    "foundry",
-    "security",
-    "web3"
+    "threejs",
+    "cannon-es",
+    "websocket",
+    "game",
+    "3d",
+    "etherworld",
+    "gmod",
+    "physics",
+    "multiplayer"
   ],
-  "author": "TroxT Team",
+  "author": "EtherWorld QC",
   "license": "MIT",
   "dependencies": {
     "@solidity-parser/parser": "^0.20.2",
     "async-mutex": "^0.5.0",
-    "bullmq": "^5.12.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-rate-limit": "^7.3.0",
-    "helmet": "^7.1.0",
-    "ioredis": "^5.4.1",
-    "pino": "^9.1.0",
-    "pino-pretty": "^11.2.0",
-    "solc": "0.8.28",
-    "uuid": "^11.0.0",
+    "bullmq": "^5.78.1",
+    "cannon-es": "^0.20.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "express-async-errors": "^3.1.1",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^7.2.0",
+    "ioredis": "^5.11.1",
+    "pino": "^9.14.0",
+    "pino-pretty": "^11.3.0",
+    "robotjs": "^0.7.1",
+    "solc": "^0.8.35",
+    "three": "^0.184.0",
+    "uuid": "^11.1.1",
     "ws": "^8.21.0",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^25.9.3",
-    "@vitest/coverage-v8": "^2.1.0",
-    "eslint": "^9.3.0",
-    "prettier": "^3.3.0",
-    "vitest": "^2.1.0"
+    "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^2.1.9",
+    "eslint": "^9.39.4",
+    "prettier": "^3.8.4",
+    "vitest": "^2.1.9"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "msgpackr-extract"
+      "msgpackr-extract",
+      "cannon-es"
     ]
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "node": true,
+      "es2022": true
+    }
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "printWidth": 100
   }
 }

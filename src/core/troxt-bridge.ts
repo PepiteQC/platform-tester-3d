@@ -1,15 +1,4 @@
-// ============================================================
-//  TroxT Bridge — Pont entre TroxT et tous les outils
-//  Point de connexion central Etherworld
-// ============================================================
-
-import type { TroxTEvent } from '../agents/troxt/TroxT'
-
-export type ModuleId =
-  | 'ether-prism'
-  | 'ether-forge'
-  | 'ether-weave'
-  | 'ether-lens'
+export type ModuleId = 'ether-prism' | 'ether-forge' | 'ether-weave' | 'ether-lens'
 
 export interface BridgeChannel {
   moduleId: ModuleId
@@ -27,57 +16,69 @@ export interface BridgeMessage {
   timestamp: number
 }
 
-// ─── TroxT Bridge ────────────────────────────────────────────
 export class TroxTBridge {
   private channels: Map<ModuleId, BridgeChannel> = new Map()
   private messageQueue: BridgeMessage[] = []
   private listeners: Map<string, ((msg: BridgeMessage) => void)[]> = new Map()
 
-  // TODO: Connecter un module au bridge
-  connect(_moduleId: ModuleId): BridgeChannel {
+  connect(moduleId: ModuleId): BridgeChannel {
     const channel: BridgeChannel = {
-      moduleId: _moduleId,
+      moduleId,
       isConnected: true,
       lastSync: Date.now(),
       messageCount: 0
     }
-    this.channels.set(_moduleId, channel)
+    this.channels.set(moduleId, channel)
     return channel
   }
 
-  // TODO: Déconnecter un module
-  disconnect(_moduleId: ModuleId): void {
-    const ch = this.channels.get(_moduleId)
+  disconnect(moduleId: ModuleId): void {
+    const ch = this.channels.get(moduleId)
     if (ch) ch.isConnected = false
   }
 
-  // TODO: Envoyer un message d'un module à un autre
-  send(_message: Omit<BridgeMessage, 'id' | 'timestamp'>): void {}
-
-  // TODO: Broadcast à tous les modules
-  broadcast(_from: ModuleId | 'troxt', _type: string, _payload: unknown): void {}
-
-  // TODO: Écouter les messages
-  on(_type: string, _callback: (msg: BridgeMessage) => void): void {
-    const existing = this.listeners.get(_type) || []
-    existing.push(_callback)
-    this.listeners.set(_type, existing)
+  send(message: Omit<BridgeMessage, 'id' | 'timestamp'>): void {
+    const full: BridgeMessage = {
+      ...message,
+      id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: Date.now()
+    }
+    this.messageQueue.push(full)
+    const ch = this.channels.get(message.from as ModuleId)
+    if (ch) ch.messageCount++
+    const handlers = this.listeners.get(message.type) || []
+    const wildcards = this.listeners.get('message') || []
+    ;[...handlers, ...wildcards].forEach(h => { try { h(full) } catch {} })
   }
 
-  // TODO: Retirer un listener
-  off(_type: string, _callback: (msg: BridgeMessage) => void): void {}
-
-  // TODO: Convertir un événement TroxT en message Bridge
-  fromTroxTEvent(_event: TroxTEvent): BridgeMessage {
-    return {} as BridgeMessage
+  broadcast(from: ModuleId | 'troxt', type: string, payload: unknown): void {
+    const msg: BridgeMessage = {
+      id: `bcast_${Date.now()}`,
+      from,
+      to: 'broadcast',
+      type,
+      payload,
+      timestamp: Date.now()
+    }
+    this.messageQueue.push(msg)
+    const handlers = this.listeners.get(type) || []
+    const wildcards = this.listeners.get('message') || []
+    ;[...handlers, ...wildcards].forEach(h => { try { h(msg) } catch {} })
   }
 
-  // TODO: Obtenir l'état de tous les canaux
-  getChannels(): BridgeChannel[] {
-    return Array.from(this.channels.values())
+  on(type: string, callback: (msg: BridgeMessage) => void): void {
+    const existing = this.listeners.get(type) || []
+    existing.push(callback)
+    this.listeners.set(type, existing)
   }
 
-  // TODO: Vider la queue
+  off(type: string, callback: (msg: BridgeMessage) => void): void {
+    const existing = this.listeners.get(type) || []
+    this.listeners.set(type, existing.filter(h => h !== callback))
+  }
+
+  getChannels(): BridgeChannel[] { return Array.from(this.channels.values()) }
+
   flushQueue(): BridgeMessage[] {
     const messages = [...this.messageQueue]
     this.messageQueue = []

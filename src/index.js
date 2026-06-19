@@ -1,3 +1,4 @@
+import { troxtmodRouter } from "../server/troxtmod-server.mjs";
 import "dotenv/config";
 
 import path from "node:path";
@@ -178,8 +179,8 @@ app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false 
 app.use(cors({ origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN, credentials: true }));
 app.use(express.json({ limit: "8mb" }));
 app.use(rateLimit({ windowMs: 15_000, limit: 500, standardHeaders: true, legacyHeaders: false }));
+app.use(express.static(PUBLIC_DIR, { maxAge: "0", index: false }));
 app.use("/public", express.static(PUBLIC_DIR, { maxAge: "1h" }));
-app.use(express.static(PUBLIC_DIR, { maxAge: "0" }));
 app.use("/admin",  express.static(ADMIN_DIR,  { maxAge: "1h" }));
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -222,7 +223,12 @@ function broadcast(payload, exceptSocket = null) {
 // ROUTES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-app.get("/",       (_req, res) => res.redirect("/admin"));
+app.get("/", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "landing.html")));
+app.get("/game",              (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+app.get("/landing",           (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "landing.html")));
+app.get("/etherforge",        (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "etherforge.html")));
+app.get("/character-creator", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "character-creator.html")));
+app.get("/troxt-chat",        (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "troxt-chat.html")));
 app.get("/health", (_req, res) => res.json({
   ok: true, live: true,
   name: "EtherWorld Admin Sandbox",
@@ -503,7 +509,7 @@ app.post("/api/admin/clear-logs", requireAdmin, (_req, res) => {
 });
 
 // ─── Entities CRUD ────────────────────────────────────────────────────────────
-app.get("/api/entities", (_req, res) => {
+app.get("/api/entities", (req, res) => {
   const { type, tag, category } = req.query;
   let result = entityManager.all();
   if (type)     result = entityManager.byType(type);
@@ -588,6 +594,9 @@ app.get("/api/entity-types", (_req, res) => {
 });
 
 // ─── 404 + Error handlers ────────────────────────────────────────────────────
+app.use("/troxtmod", troxtmodRouter);
+app.use("/api/troxtmod", troxtmodRouter);
+
 app.use((_req, res) => res.status(404).json({ ok: false, error: "NOT_FOUND" }));
 app.use((err, _req, res, _next) => {
   console.error("[Express Error]", err);
@@ -718,3 +727,13 @@ server.listen(PORT, HOST, () => {
   console.log("══════════════════════════════════════════════════");
   console.log("");
 });
+
+
+
+
+
+
+
+
+
+

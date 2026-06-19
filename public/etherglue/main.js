@@ -1,139 +1,119 @@
 // ============================================================
-//  EtherGlue — Platform Tester Integration Entry
+//  EtherGlue — Platform Tester Integration Entry v2.0
+//  Se branche sur window.game apres son initialisation
 // ============================================================
 
-import { Game as EtherGlueGame } from './Game.js'
-import { ConstructionPackPlugin } from './plugins/ConstructionPack.js'
-import { UltimatePropsPackPlugin } from './plugins/UltimatePropsPack.js'
+import { Game as EtherGlueGame } from "./Game.js";
+import { ConstructionPackPlugin }  from "./plugins/ConstructionPack.js";
+import { UltimatePropsPackPlugin } from "./plugins/UltimatePropsPack.js";
 
-const MAX_TRIES = 120
-const POLL_MS = 250
+const MAX_TRIES = 120;
+const POLL_MS   = 250;
 
-let tries = 0
-let timer = null
+let tries = 0;
+let timer = null;
 
-function patchTroxTAdmin(glue) {
-  const bridge = window.troxtAdmin || window.EtherWorldAdminBridge
-  if (!bridge || bridge.__etherGluePatched) return
-  const originalExecute = typeof bridge.execute === 'function' ? bridge.execute.bind(bridge) : null
+// ── Attendre que window.game soit dispo ───────────────────────
+function waitForGame() {
+  timer = setInterval(() => {
+    tries++;
 
-  bridge.execute = (command, payload = {}) => {
-    const text = String(command || '').trim()
-    const first = text.split(/\s+/)[0]?.toLowerCase()
-    if (['glue', 'etherglue', 'troxtmod', 'gmod'].includes(first)) {
-      return executeGlueCommand(glue, text, payload)
+    if (window.game && window.game.scene && window.game.renderer) {
+      clearInterval(timer);
+      initEtherGlue(window.game);
+      return;
     }
-    return originalExecute ? originalExecute(command, payload) : null
+
+    if (tries >= MAX_TRIES) {
+      clearInterval(timer);
+      console.warn("[EtherGlue] window.game non trouvé après", MAX_TRIES * POLL_MS, "ms — abandon");
+    }
+  }, POLL_MS);
+}
+
+// ── Init EtherGlue ────────────────────────────────────────────
+function initEtherGlue(sourceGame) {
+  console.log("[EtherGlue] Branchement sur window.game...");
+
+  const glue = new EtherGlueGame({ sourceGame });
+
+  // Plugins
+  glue.plugins.register(new ConstructionPackPlugin());
+  glue.plugins.register(new UltimatePropsPackPlugin());
+
+  // Initialisation
+  glue.init();
+
+  // Exposer globalement
+  window.etherGlue = glue;
+  window.EtherWorldAdminBridge = createAdminBridge(glue);
+
+  // Notification dans le jeu
+  if (typeof sourceGame.notify === "function") {
+    sourceGame.notify("⚙ EtherGlue chargé — PhysicsGun actif !", "success");
   }
 
-  bridge.etherGlue = glue
-  bridge.__etherGluePatched = true
-  glue.notify('Commandes TroxT/Admin branchées', 'success')
+  // Touche G pour ouvrir le menu EtherGlue
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "KeyG" && !e.ctrlKey && !e.altKey) {
+      const chatActive = document.getElementById("chat-input")?.classList.contains("active");
+      if (chatActive) return;
+      glue.ui.toggle();
+    }
+  });
+
+  console.log("[EtherGlue] Initialisé — version", glue.version);
+  console.log("[EtherGlue] Tools:", glue.tools.list?.() ?? "OK");
+  console.log("[EtherGlue] Props:", glue.propFactory.list?.()?.length ?? "OK", "types");
+}
+
+// ── Bridge Admin ──────────────────────────────────────────────
+function createAdminBridge(glue) {
+  return {
+    version: "2.0",
+    __etherGluePatched: true,
+
+    execute(command, payload = {}) {
+      const text  = String(command || "").trim();
+      const first = text.split(/\s+/)[0]?.toLowerCase();
+
+      if (["glue", "etherglue", "gmod"].includes(first)) {
+        return executeGlueCommand(glue, text, payload);
+      }
+      return null;
+    },
+
+    spawnProp(type, position, options = {}) {
+      return glue.propFactory.spawn(type, { position, ...options });
+    },
+
+    getStatus() {
+      return glue.status?.() ?? { ok: true };
+    },
+
+    listProps() {
+      return glue.propFactory.list?.() ?? [];
+    },
+
+    listTools() {
+      return glue.tools.list?.() ?? [];
+    },
+
+    etherGlue: glue,
+  };
 }
 
 function executeGlueCommand(glue, command, payload = {}) {
-  const parts = command.split(/\s+/).filter(Boolean)
-  const action = (parts[1] || 'status').toLowerCase()
+  const parts  = command.split(/\s+/).filter(Boolean);
+  const action = (parts[1] || "status").toLowerCase();
 
-  if (action === 'status') return { success: true, status: glue.status() }
-  if (action === 'props') return { success: true, props: glue.propFactory.list() }
-  if (action === 'tools') return { success: true, tools: glue.tools.list() }
-  if (action === 'tool') {
-    const tool = parts[2] || payload.tool
-    return { success: Boolean(glue.tools.use(tool)), status: glue.status() }
-  }
-  if (action === 'spawn') {
-    const propId = parts[2] || payload.prop || 'crate'
-    const hit = glue.raycastForward(6)
-    const pos = hit?.point || glue.defaultSpawnPosition
-    const record = glue.propFactory.create(propId, { position: pos, ...(payload.options || {}) })
-    glue.selectObject(record.mesh)
-    return { success: true, prop: record.id, status: glue.status() }
-  }
-  if (action === 'clear') {
-    glue.propFactory.clear()
-    glue.clearSelection()
-    return { success: true, status: glue.status() }
-  }
-  if (action === 'save' || action === 'export') {
-    const data = {
-      generator: 'EtherGlue TroxTMOD',
-      exportedAt: new Date().toISOString(),
-      props: glue.propFactory.serialize(),
-      status: glue.status()
-    }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `etherglue_props_${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-    return { success: true, exported: data.props.length }
-  }
+  if (action === "status") return { success: true, status: glue.status?.() };
+  if (action === "props")  return { success: true, props:  glue.propFactory.list?.() };
+  if (action === "tools")  return { success: true, tools:  glue.tools.list?.() };
+  if (action === "toggle") { glue.ui.toggle(); return { success: true }; }
 
-  return {
-    success: true,
-    status: glue.status(),
-    commands: [
-      'glue status',
-      'glue props',
-      'glue tools',
-      'glue tool spawner|physgun|material|delete',
-      'glue spawn crate',
-      'glue clear',
-      'glue export'
-    ]
-  }
+  return { success: false, error: `Commande inconnue: ${action}` };
 }
 
-function boot(sourceGame) {
-  if (window.EtherGlue?.game) return window.EtherGlue.game
-
-  const glue = new EtherGlueGame({ sourceGame })
-  glue.plugins.use(ConstructionPackPlugin)
-  glue.plugins.use(UltimatePropsPackPlugin)
-  glue.ui.render()
-  patchTroxTAdmin(glue)
-
-  window.EtherGlue = {
-    version: glue.version,
-    game: glue,
-    status: () => glue.status(),
-    command: command => executeGlueCommand(glue, command),
-    spawn: (prop, options) => glue.propFactory.create(prop, options),
-    clear: () => glue.propFactory.clear()
-  }
-
-  window.dispatchEvent(new CustomEvent('etherworld:etherglue:ready', {
-    detail: { version: glue.version, status: glue.status() }
-  }))
-
-  return glue
-}
-
-function waitForPlatformTester() {
-  if (window.game?.scene && window.game?.camera && window.game?.renderer) {
-    clearInterval(timer)
-    timer = null
-    boot(window.game)
-    return
-  }
-
-  tries++
-  if (tries >= MAX_TRIES) {
-    clearInterval(timer)
-    timer = null
-    console.warn('[EtherGlue] Platform Tester non détecté. EtherGlue non démarré.')
-  }
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    timer = setInterval(waitForPlatformTester, POLL_MS)
-    waitForPlatformTester()
-  }, { once: true })
-} else {
-  timer = setInterval(waitForPlatformTester, POLL_MS)
-  waitForPlatformTester()
-}
+// ── Démarrer ──────────────────────────────────────────────────
+waitForGame();

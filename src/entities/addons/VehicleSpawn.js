@@ -1,4 +1,3 @@
-// src/entities/addons/VehicleSpawn.js
 import { BaseEntity } from "../BaseEntity.js";
 
 export class VehicleSpawn extends BaseEntity {
@@ -6,17 +5,13 @@ export class VehicleSpawn extends BaseEntity {
   static category = "addon";
 
   onInit(data) {
-    this.vehicleModel  = String(data.vehicleModel || "sedan");
-    this.respawnMs     = Number(data.respawnMs    || 30_000);
-    this.maxVehicles   = Number(data.maxVehicles  || 1);
-    this.spawnedCount  = 0;
+    this.vehicleModel = String(data.vehicleModel || "sedan");
+    this.respawnMs    = Number(data.respawnMs    || 30000);
+    this.maxVehicles  = Number(data.maxVehicles  || 1);
+    this.spawnedCount = 0;
   }
 
   toJSON() {
     return { ...super.toJSON(), vehicleModel: this.vehicleModel, respawnMs: this.respawnMs, spawnedCount: this.spawnedCount };
   }
 }
-
-// Dans index.js — enregistrer le type custom :
-// import { VehicleSpawn } from "./entities/addons/VehicleSpawn.js";
-// registerEntityType("vehicle_spawn", VehicleSpawn);

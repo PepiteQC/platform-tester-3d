@@ -1,8 +1,34 @@
+# Dependencies
 node_modules/
+.pnpm-store/
+
+# Build output
 dist/
+
+# Data persistee (ne pas versionner)
+data/
 saves/
 snapshots/
-server_logs.json
-etherprism_db.json
-*.zip
+exports/
+
+# Env
 .env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
+*.backup-*
+*.backup
+*.bak
+
+# Cache
+.eslintcache
+.vite/
