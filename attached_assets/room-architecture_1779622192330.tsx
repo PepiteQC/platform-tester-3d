@@ -1,0 +1,532 @@
+'use client'
+
+import { useRef } from 'react'
+import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
+import { useEtherWorldStore } from '@/lib/etherworld/store'
+
+// Room dimensions - EXPANDED x2
+const ROOM_WIDTH = 14
+const ROOM_DEPTH = 18
+const ROOM_HEIGHT = 3.5
+const WALL_THICKNESS = 0.18
+const BATHROOM_WIDTH = 4
+const BATHROOM_DEPTH = 5
+
+export function RoomArchitecture() {
+  return (
+    <group>
+      {/* Main Floor - Parquet */}
+      <Floor />
+      
+      {/* Ceiling */}
+      <Ceiling />
+      
+      {/* Walls */}
+      <Walls />
+      
+      {/* Bathroom partition */}
+      <BathroomPartition />
+    </group>
+  )
+}
+
+function Floor() {
+  const { lights } = useEtherWorldStore()
+  
+  return (
+    <group>
+      {/* Main room floor - dark parquet */}
+      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[ROOM_WIDTH, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1615" roughness={0.7} metalness={0.1} />
+      </mesh>
+      
+      {/* Parquet pattern overlay */}
+      {[...Array(10)].map((_, row) => (
+        [...Array(8)].map((_, col) => (
+          <mesh 
+            key={`${row}-${col}`}
+            position={[
+              -ROOM_WIDTH / 2 + 0.5 + col * 1,
+              0.001,
+              -ROOM_DEPTH / 2 + 0.5 + row * 1
+            ]}
+            rotation={[-Math.PI / 2, 0, (row + col) % 2 === 0 ? 0 : Math.PI / 2]}
+            receiveShadow
+          >
+            <planeGeometry args={[0.95, 0.2]} />
+            <meshStandardMaterial 
+              color={(row + col) % 2 === 0 ? "#1f1b1a" : "#252120"} 
+              roughness={0.6} 
+            />
+          </mesh>
+        ))
+      ))}
+      
+      {/* Bathroom floor - tiles */}
+      <mesh 
+        position={[-ROOM_WIDTH / 2 + BATHROOM_WIDTH / 2 + WALL_THICKNESS, 0.002, -ROOM_DEPTH / 2 + BATHROOM_DEPTH / 2 + WALL_THICKNESS]} 
+        rotation={[-Math.PI / 2, 0, 0]} 
+        receiveShadow
+      >
+        <planeGeometry args={[BATHROOM_WIDTH - 0.1, BATHROOM_DEPTH - 0.1]} />
+        <meshStandardMaterial color="#374151" roughness={0.3} metalness={0.2} />
+      </mesh>
+      
+      {/* Tile grid for bathroom */}
+      {[...Array(6)].map((_, row) => (
+        [...Array(5)].map((_, col) => (
+          <mesh 
+            key={`bath-${row}-${col}`}
+            position={[
+              -ROOM_WIDTH / 2 + 0.4 + col * 0.5,
+              0.003,
+              -ROOM_DEPTH / 2 + 0.4 + row * 0.5
+            ]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry args={[0.48, 0.48]} />
+            <meshStandardMaterial color="#4b5563" roughness={0.2} />
+          </mesh>
+        ))
+      ))}
+    </group>
+  )
+}
+
+function Ceiling() {
+  const { lights } = useEtherWorldStore()
+  const ceilingOn = lights.ceiling?.isOn ?? true
+  
+  return (
+    <group>
+      {/* Main ceiling */}
+      <mesh position={[0, ROOM_HEIGHT, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[ROOM_WIDTH, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Main recessed lighting track - center */}
+      <mesh position={[0, ROOM_HEIGHT - 0.02, 0]}>
+        <boxGeometry args={[0.12, 0.05, ROOM_DEPTH - 2]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Side lighting tracks */}
+      <mesh position={[-3, ROOM_HEIGHT - 0.02, 0]}>
+        <boxGeometry args={[0.1, 0.04, ROOM_DEPTH - 4]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[3, ROOM_HEIGHT - 0.02, 0]}>
+        <boxGeometry args={[0.1, 0.04, ROOM_DEPTH - 4]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* LED strip perimeter */}
+      <LEDStrip position={[0, ROOM_HEIGHT - 0.08, 0]} width={ROOM_WIDTH - 1} depth={ROOM_DEPTH - 1} isOn={ceilingOn} />
+      
+      {/* Ceiling spots - 3x5 grid */}
+      {[-4, 0, 4].map((x, xi) => (
+        [-6, -3, 0, 3, 6].map((z, zi) => (
+          <CeilingSpot key={`${xi}-${zi}`} position={[x, ROOM_HEIGHT - 0.05, z]} />
+        ))
+      ))}
+      
+      {/* Accent LED panels */}
+      <LEDPanel position={[-5, ROOM_HEIGHT - 0.03, -6]} size={[1.5, 1]} color="#8b5cf6" />
+      <LEDPanel position={[5, ROOM_HEIGHT - 0.03, -6]} size={[1.5, 1]} color="#3b82f6" />
+      <LEDPanel position={[5, ROOM_HEIGHT - 0.03, 6]} size={[1.5, 1]} color="#22c55e" />
+      
+      {/* AC unit - larger */}
+      <mesh position={[4, ROOM_HEIGHT - 0.18, -7]}>
+        <boxGeometry args={[1.8, 0.3, 0.45]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.4} />
+      </mesh>
+      <mesh position={[4, ROOM_HEIGHT - 0.34, -7]}>
+        <boxGeometry args={[1.5, 0.02, 0.25]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.5} />
+      </mesh>
+      
+      {/* Smoke detector */}
+      <mesh position={[-2, ROOM_HEIGHT - 0.05, 3]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.04, 16]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.7} />
+      </mesh>
+      <mesh position={[-2, ROOM_HEIGHT - 0.07, 3]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.02, 8]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.3} />
+      </mesh>
+    </group>
+  )
+}
+
+// LED Strip around ceiling perimeter
+function LEDStrip({ position, width, depth, isOn }: { position: [number, number, number], width: number, depth: number, isOn: boolean }) {
+  return (
+    <group position={position}>
+      {/* Front */}
+      <mesh position={[0, 0, depth / 2]}>
+        <boxGeometry args={[width, 0.02, 0.04]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+      {/* Back */}
+      <mesh position={[0, 0, -depth / 2]}>
+        <boxGeometry args={[width, 0.02, 0.04]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+      {/* Left */}
+      <mesh position={[-width / 2, 0, 0]}>
+        <boxGeometry args={[0.04, 0.02, depth]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+      {/* Right */}
+      <mesh position={[width / 2, 0, 0]}>
+        <boxGeometry args={[0.04, 0.02, depth]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+// LED Panel accent light
+function LEDPanel({ position, size, color }: { position: [number, number, number], size: [number, number], color: string }) {
+  return (
+    <mesh position={position}>
+      <boxGeometry args={[size[0], 0.02, size[1]]} />
+      <meshStandardMaterial 
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.5}
+        transparent
+        opacity={0.8}
+      />
+    </mesh>
+  )
+}
+
+function CeilingSpot({ position }: { position: [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.ceiling?.isOn ?? true
+  
+  return (
+    <group position={position}>
+      <mesh>
+        <cylinderGeometry args={[0.08, 0.1, 0.05, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, -0.03, 0]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.02, 16]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#374151"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.8 : 0}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+function Walls() {
+  return (
+    <group>
+      {/* Back wall (with window) */}
+      <mesh position={[0, ROOM_HEIGHT / 2, -ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[ROOM_WIDTH, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Front wall (with main door) - left part */}
+      <mesh position={[-ROOM_WIDTH / 2 + 1.5, ROOM_HEIGHT / 2, ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[3, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Front wall - right part */}
+      <mesh position={[ROOM_WIDTH / 2 - 1.5, ROOM_HEIGHT / 2, ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[3, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Front wall - above door */}
+      <mesh position={[0, ROOM_HEIGHT - 0.35, ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[2, 0.7, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Left wall */}
+      <mesh position={[-ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[WALL_THICKNESS, ROOM_HEIGHT, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Right wall */}
+      <mesh position={[ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[WALL_THICKNESS, ROOM_HEIGHT, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Baseboard trim */}
+      <Baseboards />
+      
+      {/* Crown molding */}
+      <CrownMolding />
+    </group>
+  )
+}
+
+function Baseboards() {
+  const baseboardHeight = 0.1
+  const baseboardDepth = 0.02
+  
+  return (
+    <group>
+      {/* Back wall */}
+      <mesh position={[0, baseboardHeight / 2, -ROOM_DEPTH / 2 + WALL_THICKNESS / 2 + baseboardDepth / 2]}>
+        <boxGeometry args={[ROOM_WIDTH - WALL_THICKNESS * 2, baseboardHeight, baseboardDepth]} />
+        <meshStandardMaterial color="#111827" roughness={0.7} />
+      </mesh>
+      
+      {/* Left wall */}
+      <mesh position={[-ROOM_WIDTH / 2 + WALL_THICKNESS / 2 + baseboardDepth / 2, baseboardHeight / 2, 0]}>
+        <boxGeometry args={[baseboardDepth, baseboardHeight, ROOM_DEPTH - WALL_THICKNESS * 2]} />
+        <meshStandardMaterial color="#111827" roughness={0.7} />
+      </mesh>
+      
+      {/* Right wall */}
+      <mesh position={[ROOM_WIDTH / 2 - WALL_THICKNESS / 2 - baseboardDepth / 2, baseboardHeight / 2, 0]}>
+        <boxGeometry args={[baseboardDepth, baseboardHeight, ROOM_DEPTH - WALL_THICKNESS * 2]} />
+        <meshStandardMaterial color="#111827" roughness={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
+function CrownMolding() {
+  const moldingSize = 0.08
+  
+  return (
+    <group>
+      {/* Back wall */}
+      <mesh position={[0, ROOM_HEIGHT - moldingSize / 2, -ROOM_DEPTH / 2 + WALL_THICKNESS / 2 + moldingSize / 2]}>
+        <boxGeometry args={[ROOM_WIDTH, moldingSize, moldingSize]} />
+        <meshStandardMaterial color="#111827" roughness={0.6} />
+      </mesh>
+      
+      {/* Left wall */}
+      <mesh position={[-ROOM_WIDTH / 2 + WALL_THICKNESS / 2 + moldingSize / 2, ROOM_HEIGHT - moldingSize / 2, 0]}>
+        <boxGeometry args={[moldingSize, moldingSize, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#111827" roughness={0.6} />
+      </mesh>
+      
+      {/* Right wall */}
+      <mesh position={[ROOM_WIDTH / 2 - WALL_THICKNESS / 2 - moldingSize / 2, ROOM_HEIGHT - moldingSize / 2, 0]}>
+        <boxGeometry args={[moldingSize, moldingSize, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#111827" roughness={0.6} />
+      </mesh>
+    </group>
+  )
+}
+
+function BathroomPartition() {
+  const doorWidth = 0.8
+  const wallStartX = -ROOM_WIDTH / 2 + WALL_THICKNESS
+  const wallEndX = wallStartX + BATHROOM_WIDTH
+  const wallZ = -ROOM_DEPTH / 2 + BATHROOM_DEPTH + WALL_THICKNESS
+  
+  return (
+    <group>
+      {/* Partition wall - left of door */}
+      <mesh position={[wallStartX + 0.5, ROOM_HEIGHT / 2, wallZ]} castShadow receiveShadow>
+        <boxGeometry args={[1, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.85} />
+      </mesh>
+      
+      {/* Partition wall - right of door */}
+      <mesh position={[wallEndX - 0.5, ROOM_HEIGHT / 2, wallZ]} castShadow receiveShadow>
+        <boxGeometry args={[1, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.85} />
+      </mesh>
+      
+      {/* Above door */}
+      <mesh position={[wallStartX + BATHROOM_WIDTH / 2, ROOM_HEIGHT - 0.35, wallZ]} castShadow receiveShadow>
+        <boxGeometry args={[doorWidth + 0.2, 0.7, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.85} />
+      </mesh>
+      
+      {/* Back bathroom wall (partial, for depth) */}
+      <mesh position={[wallStartX + BATHROOM_WIDTH / 2, ROOM_HEIGHT / 2, -ROOM_DEPTH / 2 + WALL_THICKNESS]}>
+        <boxGeometry args={[BATHROOM_WIDTH, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#374151" roughness={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// LIGHTING SYSTEM
+// ============================================
+
+export function RoomLighting() {
+  const { lights } = useEtherWorldStore()
+  
+  return (
+    <group>
+      {/* Ambient base */}
+      <ambientLight intensity={0.15} color="#1a1a2e" />
+      
+      {/* Main ceiling lights */}
+      {lights.ceiling?.isOn && (
+        <>
+          <spotLight
+            position={[0, 2.9, -2]}
+            angle={Math.PI / 4}
+            penumbra={0.5}
+            intensity={1.5}
+            color="#fff5e6"
+            castShadow
+            shadow-mapSize={[1024, 1024]}
+          />
+          <spotLight
+            position={[0, 2.9, 0]}
+            angle={Math.PI / 4}
+            penumbra={0.5}
+            intensity={1.5}
+            color="#fff5e6"
+            castShadow
+          />
+          <spotLight
+            position={[0, 2.9, 2]}
+            angle={Math.PI / 4}
+            penumbra={0.5}
+            intensity={1.5}
+            color="#fff5e6"
+            castShadow
+          />
+        </>
+      )}
+      
+      {/* Desk lamp */}
+      {lights.desk?.isOn && (
+        <pointLight
+          position={[3.2, 1.5, 2]}
+          intensity={0.8}
+          color="#fef3c7"
+          distance={3}
+          castShadow
+        />
+      )}
+      
+      {/* Bathroom light */}
+      {lights.bathroom?.isOn && (
+        <pointLight
+          position={[-2.5, 2.5, -3.5]}
+          intensity={1}
+          color="#ffffff"
+          distance={4}
+        />
+      )}
+      
+      {/* TV ambient */}
+      {lights.tv?.isOn && (
+        <pointLight
+          position={[-2, 1.5, -3]}
+          intensity={0.4}
+          color="#3b82f6"
+          distance={4}
+        />
+      )}
+      
+      {/* Neon accent */}
+      {lights.neon?.isOn && (
+        <pointLight
+          position={[2, 2.2, -4.5]}
+          intensity={0.5}
+          color="#8b5cf6"
+          distance={4}
+        />
+      )}
+      
+      {/* Window light (moonlight/city) */}
+      <directionalLight
+        position={[0, 3, -8]}
+        intensity={0.2}
+        color="#6366f1"
+      />
+    </group>
+  )
+}
+
+// ============================================
+// SPAWN PARTICLES
+// ============================================
+
+export function SpawnParticles({ active }: { active: boolean }) {
+  const particlesRef = useRef<THREE.Points>(null)
+  const particleCount = 100
+  
+  const positions = useRef<Float32Array>(
+    new Float32Array(particleCount * 3).map((_, i) => {
+      const idx = i % 3
+      if (idx === 0) return (Math.random() - 0.5) * 3 // x
+      if (idx === 1) return Math.random() * 2 + 0.5 // y
+      return (Math.random() - 0.5) * 3 // z
+    })
+  )
+  
+  useFrame((state) => {
+    if (particlesRef.current && active) {
+      const positions = particlesRef.current.geometry.attributes.position.array as Float32Array
+      
+      for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3
+        positions[i3 + 1] += 0.01 + Math.sin(state.clock.elapsedTime + i) * 0.005
+        
+        if (positions[i3 + 1] > 3) {
+          positions[i3 + 1] = 0.5
+        }
+      }
+      
+      particlesRef.current.geometry.attributes.position.needsUpdate = true
+      particlesRef.current.rotation.y += 0.001
+    }
+  })
+  
+  if (!active) return null
+  
+  return (
+    <points ref={particlesRef} position={[0, 0, 0]}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={particleCount}
+          array={positions.current}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.03}
+        color="#8b5cf6"
+        transparent
+        opacity={0.6}
+        sizeAttenuation
+      />
+    </points>
+  )
+}

@@ -1,0 +1,345 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useEtherWorldStore } from '@/lib/etherworld/store'
+import { CARD_COLORS, type CardAccessLevel } from '@/lib/etherworld/types'
+import { cn } from '@/lib/utils'
+import { Settings, Crosshair } from 'lucide-react'
+
+export function GameHUD() {
+  const {
+    roomConfig,
+    playerCard,
+    lights,
+    toggleLight,
+    showNotification,
+    gameTime,
+    setGameTime,
+    playerStats,
+    toggleInventory,
+    toggleEditor,
+    currentView,
+    setCurrentView,
+  } = useEtherWorldStore()
+
+  const [currentTime, setCurrentTime] = useState(gameTime)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(prev => {
+        const newTime = new Date(prev)
+        newTime.setMinutes(newTime.getMinutes() + 1)
+        return newTime
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    setGameTime(currentTime)
+  }, [currentTime, setGameTime])
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50">
+      {/* Top left - Room info */}
+      <div className="absolute top-4 left-4 pointer-events-auto">
+        <RoomInfo
+          roomNumber={roomConfig.roomNumber}
+          floor={roomConfig.floor}
+          type={roomConfig.type}
+        />
+      </div>
+
+      {/* Top right - Time & Card */}
+      <div className="absolute top-4 right-4 flex flex-col items-end gap-3 pointer-events-auto">
+        <TimeDisplay time={formatTime(currentTime)} />
+        {playerCard && (
+          <KeyCardDisplay
+            level={playerCard.level}
+            name={playerCard.name}
+          />
+        )}
+      </div>
+
+      {/* Bottom left - Light controls */}
+      <div className="absolute bottom-4 left-4 pointer-events-auto">
+        <LightControls lights={lights} toggleLight={toggleLight} />
+      </div>
+
+      {/* Bottom center - View toggle & quick actions */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+        <QuickActions
+          currentView={currentView}
+          setCurrentView={setCurrentView}
+          toggleInventory={toggleInventory}
+          toggleEditor={toggleEditor}
+        />
+      </div>
+
+      {/* Bottom right - Controls hint */}
+      <div className="absolute bottom-4 right-4 pointer-events-auto">
+        <ControlsHint />
+      </div>
+
+      {/* Center - Notification */}
+      {showNotification && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+          <Notification message={showNotification} />
+        </div>
+      )}
+
+      {/* Top center - EtherWorld logo */}
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2">
+        <Logo />
+      </div>
+
+      {/* Player stats bar - left side */}
+      <div className="absolute top-1/2 left-4 -translate-y-1/2 pointer-events-auto">
+        <PlayerStatsBar stats={playerStats} />
+      </div>
+    </div>
+  )
+}
+
+function RoomInfo({ roomNumber, floor, type }: { roomNumber: string, floor: number, type: string }) {
+  return (
+    <div className="bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/50 rounded-lg p-3 min-w-[140px]">
+      <div className="flex items-center gap-2 mb-1">
+        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+        <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-semibold">Chambre</span>
+      </div>
+      <div className="text-2xl font-bold text-white tracking-tight">{roomNumber}</div>
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-xs text-zinc-500">Etage {floor}</span>
+        <span className="text-xs text-cyan-400 uppercase font-semibold">{type}</span>
+      </div>
+    </div>
+  )
+}
+
+function TimeDisplay({ time }: { time: string }) {
+  return (
+    <div className="bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/50 rounded-lg px-4 py-2">
+      <div className="text-xl font-mono font-bold text-white tracking-wider">
+        {time}
+      </div>
+    </div>
+  )
+}
+
+function KeyCardDisplay({ level, name: _name }: { level: CardAccessLevel, name: string }) {
+  const levelLabels: Record<CardAccessLevel, string> = {
+    guest: 'Invité',
+    resident: 'Résident',
+    vip: 'VIP',
+    admin: 'Admin',
+  }
+
+  return (
+    <div className="bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/50 rounded-lg p-3 min-w-[120px]">
+      <div className="flex items-center gap-2 mb-2">
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          style={{ color: CARD_COLORS[level] }}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 9h3m-3 4h3m-6-8v12a1 1 0 01-1 1H6a1 1 0 01-1-1V5a1 1 0 011-1h5a1 1 0 011 1zm0 0h3a1 1 0 011 1v3M7 8h2m-2 4h2" />
+        </svg>
+        <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-semibold">Carte</span>
+      </div>
+      <div
+        className="text-sm font-bold"
+        style={{ color: CARD_COLORS[level] }}
+      >
+        {levelLabels[level]}
+      </div>
+    </div>
+  )
+}
+
+function LightControls({
+  lights,
+  toggleLight
+}: {
+  lights: Record<string, { id: string, isOn: boolean, intensity: number, color: string }>,
+  toggleLight: (id: string) => void
+}) {
+  const lightItems = [
+    { id: 'ceiling', label: 'Plafond', icon: '💡' },
+    { id: 'desk', label: 'Bureau', icon: '🔦' },
+    { id: 'neon', label: 'Néon', icon: '✨' },
+    { id: 'bathroom', label: 'SDB', icon: '🚿' },
+  ]
+
+  return (
+    <div className="bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/50 rounded-lg p-3">
+      <div className="text-[10px] text-zinc-400 mb-2 uppercase tracking-widest font-semibold">Eclairage</div>
+      <div className="flex gap-2">
+        {lightItems.map(item => (
+          <button
+            key={item.id}
+            onClick={() => toggleLight(item.id)}
+            className={cn(
+              "w-10 h-10 rounded-lg border transition-all duration-200",
+              "flex items-center justify-center text-lg",
+              lights[item.id]?.isOn
+                ? "bg-cyan-500/20 border-cyan-500/50 text-white"
+                : "bg-zinc-800/50 border-zinc-700/50 text-zinc-500 hover:border-zinc-500"
+            )}
+            title={item.label}
+          >
+            <span className="text-sm">{item.icon}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function QuickActions({
+  currentView,
+  setCurrentView,
+  toggleInventory,
+  toggleEditor,
+}: {
+  currentView: 'room' | 'corridor'
+  setCurrentView: (view: 'room' | 'corridor') => void
+  toggleInventory: () => void
+  toggleEditor: () => void
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setCurrentView(currentView === 'room' ? 'corridor' : 'room')}
+        className="px-4 py-2 bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/50 text-white rounded-lg text-xs font-bold tracking-wider hover:bg-zinc-800 hover:border-zinc-500 transition-all"
+      >
+        {currentView === 'room' ? 'COULOIR' : 'CHAMBRE'}
+      </button>
+      <button
+        onClick={toggleInventory}
+        className="p-2 bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/50 text-zinc-300 rounded-lg hover:bg-zinc-800 hover:border-zinc-500 transition-all"
+        title="Inventaire"
+      >
+        <Crosshair className="w-4 h-4" />
+      </button>
+      <button
+        onClick={toggleEditor}
+        className="p-2 bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/50 text-zinc-300 rounded-lg hover:bg-zinc-800 hover:border-zinc-500 transition-all"
+        title="Editeur"
+      >
+        <Settings className="w-4 h-4" />
+      </button>
+    </div>
+  )
+}
+
+function ControlsHint() {
+  return (
+    <div className="bg-zinc-900/60 backdrop-blur-sm border border-zinc-700/50 rounded-lg p-3 text-xs text-zinc-500">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300 font-mono text-[10px]">Clic</kbd>
+          <span>Interagir</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300 font-mono text-[10px]">Glisser</kbd>
+          <span>Caméra</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <kbd className="px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300 font-mono text-[10px]">Droit</kbd>
+          <span>Menu</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Notification({ message }: { message: string }) {
+  const isSuccess = message.includes('autorisé') || message.includes('verrouillée') || message.includes('livré') || message.includes('Utilisé')
+  const isDenied = message.includes('refusé') || message.includes('requise')
+
+  return (
+    <div
+      className={cn(
+        "px-6 py-3 rounded-lg border backdrop-blur-sm animate-in fade-in zoom-in duration-300",
+        isSuccess && "bg-emerald-500/20 border-emerald-500/50 text-emerald-400",
+        isDenied && "bg-red-500/20 border-red-500/50 text-red-400",
+        !isSuccess && !isDenied && "bg-zinc-900/90 border-zinc-700/50 text-white"
+      )}
+    >
+      <div className="flex items-center gap-3">
+        {isSuccess && (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+        {isDenied && (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        )}
+        <span className="font-medium">{message}</span>
+      </div>
+    </div>
+  )
+}
+
+function Logo() {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center">
+        <span className="text-white font-bold text-sm">E</span>
+      </div>
+      <div>
+        <div className="text-sm font-bold text-white tracking-tight">ETHERWORLD</div>
+        <div className="text-[10px] text-zinc-500 uppercase tracking-widest">Roleplay</div>
+      </div>
+    </div>
+  )
+}
+
+function PlayerStatsBar({ stats }: { stats: { energy: number, hunger: number, hygiene: number, mood: number, money: number, reputation: number } }) {
+  const bars = [
+    { label: 'NRJ', value: stats.energy, color: '#22c55e' },
+    { label: 'FIM', value: stats.hunger, color: '#f59e0b' },
+    { label: 'HYG', value: stats.hygiene, color: '#3b82f6' },
+    { label: 'HUM', value: stats.mood, color: '#8b5cf6' },
+  ]
+
+  return (
+    <div className="bg-zinc-900/90 backdrop-blur-sm border border-zinc-700/50 rounded-lg p-2 space-y-1.5">
+      {bars.map((bar) => (
+        <div key={bar.label} className="flex items-center gap-1.5">
+          <span className="text-[9px] text-zinc-500 font-mono w-6">{bar.label}</span>
+          <div className="w-16 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${bar.value}%`, backgroundColor: bar.color }}
+            />
+          </div>
+          <span className="text-[9px] text-zinc-400 font-mono w-6 text-right">{bar.value}</span>
+        </div>
+      ))}
+      <div className="border-t border-zinc-700/30 pt-1.5 mt-1.5">
+        <div className="flex items-center justify-between text-[9px]">
+          <span className="text-zinc-500">💰</span>
+          <span className="text-amber-400 font-mono">{stats.money}cr</span>
+        </div>
+        <div className="flex items-center justify-between text-[9px] mt-0.5">
+          <span className="text-zinc-500">⭐</span>
+          <span className="text-cyan-400 font-mono">{stats.reputation}</span>
+        </div>
+      </div>
+    </div>
+  )
+}

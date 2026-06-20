@@ -1,0 +1,73 @@
+import { create } from 'zustand';
+
+export type ChatMessage = {
+  id: string;
+  sender: string;
+  text: string;
+  type: 'chat' | 'system' | 'admin';
+  timestamp: number;
+};
+
+interface GameState {
+  buildMode: boolean;
+  chatOpen: boolean;
+  adminOpen: boolean;
+  isGodMode: boolean;
+  flyMode: boolean;
+  chatMessages: ChatMessage[];
+  playerPos: [number, number, number];
+  timeOfDay: number;
+  weather: string;
+  
+  // Builder state placeholders
+  selectedModelType: string | null;
+  ghostPosition: [number, number, number] | null;
+  ghostRotation: number;
+  ghostScale: number;
+  placedObjects: any[];
+  selectedPlacedId: string | null;
+}
+
+export const useGameState = create<GameState>(() => ({
+  buildMode: false,
+  chatOpen: false,
+  adminOpen: false,
+  isGodMode: false,
+  flyMode: false,
+  chatMessages: [],
+  playerPos: [0, 0, 0],
+  timeOfDay: 14,
+  weather: 'clear',
+  
+  selectedModelType: null,
+  ghostPosition: null,
+  ghostRotation: 0,
+  ghostScale: 1,
+  placedObjects: [],
+  selectedPlacedId: null,
+}));
+
+export const setGlobal = (partial: Partial<GameState>) => useGameState.setState(partial);
+
+export const toggleBuild = () => useGameState.setState(s => ({ buildMode: !s.buildMode }));
+export const setChatOpen = (v: boolean) => useGameState.setState({ chatOpen: v });
+export const setAdminOpen = (v: boolean) => useGameState.setState({ adminOpen: v });
+export const toggleGod = () => useGameState.setState(s => ({ isGodMode: !s.isGodMode }));
+export const toggleFly = () => useGameState.setState(s => ({ flyMode: !s.flyMode }));
+
+export const addChat = (sender: string, text: string, type: ChatMessage['type'] = 'chat') => {
+  useGameState.setState(s => ({
+    chatMessages: [
+      ...s.chatMessages,
+      { id: Math.random().toString(), sender, text, type, timestamp: Date.now() }
+    ]
+  }));
+};
+
+// --- Stubs du Builder ---
+export const addPlaced = (o: any) => {};
+export const removePlaced = (id: string) => {};
+export const selectPlaced = (id: string|null) => {};
+export const selectModel = (id: string|null) => {};
+export const rotateGhost = () => {};
+export const updatePlaced = (id: string, partial: any) => {};

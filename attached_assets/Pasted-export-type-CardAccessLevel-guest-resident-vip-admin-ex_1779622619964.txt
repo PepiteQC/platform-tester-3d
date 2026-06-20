@@ -1,0 +1,3965 @@
+export type CardAccessLevel = 'guest' | 'resident' | 'vip' | 'admin'
+
+export const CARD_COLORS: Record<CardAccessLevel, string> = {
+  guest: '#FF9A3A',
+  resident: '#00E0FF',
+  vip: '#FFD700',
+  admin: '#FF3AF2',
+}
+
+export type ItemCategory = 'weapon' | 'clothing' | 'consumable' | 'key' | 'furniture' | 'misc' | 'currency'
+export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+
+export const RARITY_COLORS: Record<ItemRarity, string> = {
+  common: '#a1a1a1',
+  uncommon: '#0070dd',
+  rare: '#a335ee',
+  epic: '#ff8000',
+  legendary: '#ff0000',
+}
+
+export const CATEGORY_ICONS: Record<ItemCategory, string> = {
+  weapon: '⚔️',
+  clothing: '👕',
+  consumable: '🍔',
+  key: '🔑',
+  furniture: '🪑',
+  misc: '📦',
+  currency: '💰',
+}
+
+export interface InventoryItem {
+  id: string
+  name: string
+  description: string
+  icon: string
+  category: ItemCategory
+  rarity: ItemRarity
+  stackable: boolean
+  maxStack: number
+  quantity: number
+  weight: number
+  value: number
+  usable: boolean
+  tradeable: boolean
+}
+
+export interface InventorySlot {
+  slotId: number
+  item: InventoryItem | null
+  locked: boolean
+}
+
+export interface InventoryConfig {
+  maxSlots: number
+  maxWeight: number
+}
+
+export interface PlayerCard {
+  id: string
+  name: string
+  level: CardAccessLevel
+  avatar?: string
+}
+
+export interface DoorState {
+  isOpen: boolean
+  isLocked: boolean
+  accessDenied: boolean
+  lastAccessTime?: Date
+}
+
+export interface LightState {
+  id: string
+  isOn: boolean
+  intensity: number
+  color: string
+}
+
+export interface InteractableState {
+  id: string
+  isActive: boolean
+  data?: Record<string, unknown>
+}
+
+export interface RoomConfig {
+  roomNumber: string
+  floor: number
+  type: string
+  hotel: string
+}
+
+export interface NotificationEntry {
+  id: string
+  message: string
+  type: 'success' | 'error' | 'info' | 'warning'
+  timestamp: Date
+}
+
+export interface PhoneCall {
+  id: string
+  from: string
+  message: string
+  timestamp: Date
+  read: boolean
+}
+
+export interface RoomServiceOrder {
+  id: string
+  item: string
+  quantity: number
+  status: 'pending' | 'preparing' | 'delivered'
+  timestamp: Date
+}
+
+export interface HackingProgress {
+  target: string
+  progress: number
+  isActive: boolean
+  accessGranted: boolean
+}
+
+export interface MusicTrack {
+  id: string
+  title: string
+  artist: string
+  duration: number
+  genre: string
+}
+
+export interface PlayerStats {
+  energy: number
+  hunger: number
+  hygiene: number
+  mood: number
+  money: number
+  reputation: number
+}
+
+export interface PlacedObject {
+  id: string
+  type: string
+  position: [number, number, number]
+  rotation: [number, number, number]
+  scale: [number, number, number]
+}
+
+export interface CorridorApartment {
+  id: string
+  number: string
+  position: [number, number, number]
+  side: 'left' | 'right'
+  isLocked: boolean
+  occupied: boolean
+  lightOn: boolean
+  doorColor: string
+}
+
+export interface ContextMenuState {
+  visible: boolean
+  x: number
+  y: number
+  objectId: string
+  objectType: string
+  actions: ContextAction[]
+}
+
+export interface ContextAction {
+  id: string
+  label: string
+  icon: string
+  disabled?: boolean
+}
+
+
+'use client'
+
+import { useRef, useState } from 'react'
+import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
+import { useEtherWorldStore } from '@/lib/etherworld/store'
+import { CARD_COLORS, type CardAccessLevel } from '@/lib/etherworld/types'
+
+interface SecurityDoorProps {
+  position?: [number, number, number]
+  rotation?: [number, number, number]
+  doorId: 'main' | 'bathroom'
+  requiredLevel?: CardAccessLevel
+}
+
+export function SecurityDoor({ 
+  position = [0, 0, 0], 
+  rotation = [0, 0, 0],
+  doorId,
+  requiredLevel = 'resident'
+}: SecurityDoorProps) {
+  const { mainDoor, bathroomDoor, attemptDoorAccess, playerCard } = useEtherWorldStore()
+  const door = doorId === 'main' ? mainDoor : bathroomDoor
+  const doorRef = useRef<THREE.Group>(null)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const targetRotation = useRef(0)
+  
+  // Door animation
+  useFrame(() => {
+    if (doorRef.current) {
+      const target = door.isOpen ? -Math.PI / 2 : 0
+      targetRotation.current = target
+      
+      const currentRotation = doorRef.current.rotation.y
+      const diff = target - currentRotation
+      
+      if (Math.abs(diff) > 0.01) {
+        doorRef.current.rotation.y += diff * 0.1
+        setIsAnimating(true)
+      } else {
+        doorRef.current.rotation.y = target
+        setIsAnimating(false)
+      }
+    }
+  })
+  
+  const handleDoorClick = () => {
+    if (!isAnimating) {
+      attemptDoorAccess(doorId, playerCard)
+    }
+  }
+  
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Door frame */}
+      <DoorFrame />
+      
+      {/* Door panel (hinged on left side) */}
+      <group ref={doorRef} position={[-0.45, 0, 0]}>
+        <mesh 
+          position={[0.45, 1.1, 0]} 
+          castShadow 
+          onClick={handleDoorClick}
+        >
+          <boxGeometry args={[0.9, 2.2, 0.08]} />
+          <meshStandardMaterial 
+            color="#1a1a2e" 
+            metalness={0.4} 
+            roughness={0.6} 
+          />
+        </mesh>
+        
+        {/* Door handle */}
+        <mesh position={[0.8, 1.05, 0.06]}>
+          <boxGeometry args={[0.12, 0.04, 0.04]} />
+          <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+        </mesh>
+        <mesh position={[0.82, 1.05, 0.1]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.08, 8]} />
+          <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+        </mesh>
+        
+        {/* Room number plate */}
+        {doorId === 'main' && (
+          <group position={[0.45, 1.8, 0.05]}>
+            <mesh>
+              <boxGeometry args={[0.2, 0.1, 0.01]} />
+              <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+            </mesh>
+          </group>
+        )}
+        
+        {/* Peephole */}
+        {doorId === 'main' && (
+          <mesh position={[0.45, 1.5, 0.045]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.015, 0.015, 0.1, 8]} />
+            <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.5} />
+          </mesh>
+        )}
+      </group>
+      
+      {/* Card reader */}
+      {door.isLocked && (
+        <CardReader 
+          position={[0.6, 1.1, 0.05]} 
+          doorId={doorId}
+          requiredLevel={requiredLevel}
+        />
+      )}
+    </group>
+  )
+}
+
+function DoorFrame() {
+  return (
+    <group>
+      {/* Left frame */}
+      <mesh position={[-0.48, 1.1, 0]} castShadow>
+        <boxGeometry args={[0.08, 2.3, 0.15]} />
+        <meshStandardMaterial color="#111827" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* Right frame */}
+      <mesh position={[0.48, 1.1, 0]} castShadow>
+        <boxGeometry args={[0.08, 2.3, 0.15]} />
+        <meshStandardMaterial color="#111827" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* Top frame */}
+      <mesh position={[0, 2.25, 0]} castShadow>
+        <boxGeometry args={[1.04, 0.08, 0.15]} />
+        <meshStandardMaterial color="#111827" metalness={0.3} roughness={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
+interface CardReaderProps {
+  position: [number, number, number]
+  doorId: 'main' | 'bathroom'
+  requiredLevel: CardAccessLevel
+}
+
+function CardReader({ position, doorId, requiredLevel }: CardReaderProps) {
+  const { mainDoor, bathroomDoor, attemptDoorAccess, playerCard } = useEtherWorldStore()
+  const door = doorId === 'main' ? mainDoor : bathroomDoor
+  const [showPrompt, setShowPrompt] = useState(false)
+  const [lastScanTime, setLastScanTime] = useState(0)
+  const ledRef = useRef<THREE.Mesh>(null)
+  const scanLineRef = useRef<THREE.Mesh>(null)
+  
+  // LED and scan animation
+  useFrame((state) => {
+    if (ledRef.current) {
+      const material = ledRef.current.material as THREE.MeshStandardMaterial
+      
+      if (door.accessDenied) {
+        // Red blinking for denied
+        material.color.setHex(0xef4444)
+        material.emissive.setHex(0xef4444)
+        material.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 20) * 0.5
+      } else if (door.isOpen) {
+        // Green for open
+        material.color.setHex(0x22c55e)
+        material.emissive.setHex(0x22c55e)
+        material.emissiveIntensity = 0.8
+      } else {
+        // Amber idle pulse
+        material.color.setHex(0xf59e0b)
+        material.emissive.setHex(0xf59e0b)
+        material.emissiveIntensity = 0.3 + Math.sin(state.clock.elapsedTime * 2) * 0.2
+      }
+    }
+    
+    // Scan line animation
+    if (scanLineRef.current && Date.now() - lastScanTime < 1000) {
+      const progress = (Date.now() - lastScanTime) / 1000
+      scanLineRef.current.position.y = 0.04 - progress * 0.08
+      scanLineRef.current.visible = true
+    } else if (scanLineRef.current) {
+      scanLineRef.current.visible = false
+    }
+  })
+  
+  const handleScan = () => {
+    setLastScanTime(Date.now())
+    setTimeout(() => {
+      attemptDoorAccess(doorId, playerCard)
+    }, 500)
+  }
+  
+  return (
+    <group position={position}>
+      {/* Reader body */}
+      <mesh castShadow>
+        <boxGeometry args={[0.1, 0.15, 0.03]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Card scan area */}
+      <mesh 
+        position={[0, -0.02, 0.016]}
+        onClick={handleScan}
+        onPointerEnter={() => setShowPrompt(true)}
+        onPointerLeave={() => setShowPrompt(false)}
+      >
+        <boxGeometry args={[0.07, 0.08, 0.005]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Scan line */}
+      <mesh ref={scanLineRef} position={[0, 0, 0.02]} visible={false}>
+        <boxGeometry args={[0.06, 0.005, 0.001]} />
+        <meshStandardMaterial color="#3b82f6" emissive="#3b82f6" emissiveIntensity={2} />
+      </mesh>
+      
+      {/* LED indicator */}
+      <mesh ref={ledRef} position={[0, 0.055, 0.016]}>
+        <boxGeometry args={[0.03, 0.015, 0.005]} />
+        <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.5} />
+      </mesh>
+      
+      {/* Required level indicator */}
+      <mesh position={[0, -0.065, 0.016]}>
+        <boxGeometry args={[0.04, 0.01, 0.002]} />
+        <meshStandardMaterial 
+          color={CARD_COLORS[requiredLevel]} 
+          emissive={CARD_COLORS[requiredLevel]} 
+          emissiveIntensity={0.3} 
+        />
+      </mesh>
+      
+      {/* Prompt tooltip */}
+      {showPrompt && (
+        <Html position={[0.15, 0, 0]} center>
+          <div className="bg-background/95 border border-border px-3 py-2 rounded-lg shadow-xl whitespace-nowrap">
+            <p className="text-xs text-foreground font-medium">Scanner la carte</p>
+            <p className="text-xs text-muted-foreground">Niveau requis: {requiredLevel}</p>
+          </div>
+        </Html>
+      )}
+    </group>
+  )
+}
+
+// ============================================
+// BATHROOM ELEMENTS
+// ============================================
+
+export function BathroomFixtures({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Toilet */}
+      <Toilet position={[0.8, 0, -0.5]} />
+      
+      {/* Sink */}
+      <Sink position={[-0.5, 0, 0.3]} />
+      
+      {/* Shower */}
+      <Shower position={[-0.8, 0, -0.8]} />
+      
+      {/* Mirror */}
+      <mesh position={[-0.5, 1.4, 0.48]}>
+        <boxGeometry args={[0.6, 0.8, 0.02]} />
+        <meshStandardMaterial color="#94a3b8" metalness={1} roughness={0} />
+      </mesh>
+      
+      {/* Towel rack */}
+      <group position={[0.9, 1.2, 0.4]}>
+        <mesh>
+          <boxGeometry args={[0.02, 0.02, 0.4]} />
+          <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+        </mesh>
+        {/* Towel */}
+        <mesh position={[0, -0.15, 0]}>
+          <boxGeometry args={[0.02, 0.3, 0.35]} />
+          <meshStandardMaterial color="#f5f5f5" roughness={0.95} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+function Toilet({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Base */}
+      <mesh position={[0, 0.15, 0]} castShadow>
+        <boxGeometry args={[0.4, 0.3, 0.5]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.3} />
+      </mesh>
+      
+      {/* Tank */}
+      <mesh position={[0, 0.45, -0.18]} castShadow>
+        <boxGeometry args={[0.35, 0.35, 0.15]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.3} />
+      </mesh>
+      
+      {/* Seat */}
+      <mesh position={[0, 0.32, 0.05]}>
+        <boxGeometry args={[0.35, 0.04, 0.4]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.4} />
+      </mesh>
+      
+      {/* Lid */}
+      <mesh position={[0, 0.35, -0.1]} rotation={[-0.3, 0, 0]}>
+        <boxGeometry args={[0.33, 0.02, 0.35]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.4} />
+      </mesh>
+      
+      {/* Flush button */}
+      <mesh position={[0, 0.65, -0.18]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.02, 8]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.8} roughness={0.2} />
+      </mesh>
+    </group>
+  )
+}
+
+function Sink({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Basin */}
+      <mesh position={[0, 0.85, 0]} castShadow>
+        <boxGeometry args={[0.5, 0.1, 0.4]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.2} />
+      </mesh>
+      
+      {/* Inner basin */}
+      <mesh position={[0, 0.82, 0]}>
+        <boxGeometry args={[0.4, 0.08, 0.3]} />
+        <meshStandardMaterial color="#e0e0e0" roughness={0.3} />
+      </mesh>
+      
+      {/* Pedestal */}
+      <mesh position={[0, 0.4, 0]} castShadow>
+        <boxGeometry args={[0.15, 0.8, 0.15]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.3} />
+      </mesh>
+      
+      {/* Faucet */}
+      <mesh position={[0, 0.95, -0.12]}>
+        <boxGeometry args={[0.04, 0.1, 0.04]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0, 0.98, -0.05]} rotation={[Math.PI / 4, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.12, 8]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Handles */}
+      <mesh position={[-0.08, 0.93, -0.12]}>
+        <boxGeometry args={[0.03, 0.04, 0.03]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <mesh position={[0.08, 0.93, -0.12]}>
+        <boxGeometry args={[0.03, 0.04, 0.03]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.8} roughness={0.2} />
+      </mesh>
+    </group>
+  )
+}
+
+function Shower({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Base */}
+      <mesh position={[0, 0.05, 0]} receiveShadow>
+        <boxGeometry args={[1, 0.1, 1]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.4} />
+      </mesh>
+      
+      {/* Glass walls (2 sides) */}
+      <mesh position={[0.48, 1.05, 0]}>
+        <boxGeometry args={[0.02, 2, 1]} />
+        <meshStandardMaterial color="#94a3b8" transparent opacity={0.3} metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0, 1.05, 0.48]}>
+        <boxGeometry args={[1, 2, 0.02]} />
+        <meshStandardMaterial color="#94a3b8" transparent opacity={0.3} metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Shower head */}
+      <mesh position={[-0.3, 2, -0.3]}>
+        <cylinderGeometry args={[0.08, 0.1, 0.05, 16]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Shower arm */}
+      <mesh position={[-0.3, 2.05, -0.4]} rotation={[Math.PI / 6, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.25, 8]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Controls */}
+      <mesh position={[-0.1, 1.2, -0.48]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.02, 16]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.8} roughness={0.2} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// WINDOW WITH CURTAINS
+// ============================================
+
+interface WindowWithCurtainsProps {
+  position?: [number, number, number]
+  rotation?: [number, number, number]
+  size?: [number, number]
+}
+
+export function WindowWithCurtains({ 
+  position = [0, 0, 0], 
+  rotation = [0, 0, 0],
+  size = [3, 2.2]
+}: WindowWithCurtainsProps) {
+  const { interactables, toggleInteractable } = useEtherWorldStore()
+  const curtainOpen = interactables.curtain?.isActive || false
+  
+  const curtainWidth = curtainOpen ? 0.3 : size[0] / 2 - 0.1
+  const leftCurtainX = curtainOpen ? -size[0] / 2 + 0.2 : -size[0] / 4
+  const rightCurtainX = curtainOpen ? size[0] / 2 - 0.2 : size[0] / 4
+  
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Window frame */}
+      <mesh>
+        <boxGeometry args={[size[0] + 0.15, size[1] + 0.15, 0.1]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* Glass */}
+      <mesh position={[0, 0, 0.03]}>
+        <boxGeometry args={[size[0], size[1], 0.02]} />
+        <meshStandardMaterial 
+          color="#1e3a5f" 
+          transparent 
+          opacity={0.4} 
+          metalness={0.9} 
+          roughness={0.1} 
+        />
+      </mesh>
+      
+      {/* City lights visible through window (night effect) */}
+      {[...Array(20)].map((_, i) => (
+        <mesh 
+          key={i} 
+          position={[
+            (Math.random() - 0.5) * size[0] * 0.8,
+            (Math.random() - 0.5) * size[1] * 0.8,
+            -0.02
+          ]}
+        >
+          <boxGeometry args={[0.03, 0.02, 0.01]} />
+          <meshStandardMaterial 
+            color={['#fef3c7', '#fde68a', '#fbbf24', '#f59e0b'][Math.floor(Math.random() * 4)]} 
+            emissive={['#fef3c7', '#fde68a', '#fbbf24', '#f59e0b'][Math.floor(Math.random() * 4)]}
+            emissiveIntensity={0.8}
+          />
+        </mesh>
+      ))}
+      
+      {/* Curtain rod */}
+      <mesh position={[0, size[1] / 2 + 0.15, 0.08]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.02, 0.02, size[0] + 0.4, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Left curtain */}
+      <mesh 
+        position={[leftCurtainX, 0, 0.1]} 
+        onClick={() => toggleInteractable('curtain')}
+        castShadow
+      >
+        <boxGeometry args={[curtainWidth, size[1] + 0.1, 0.05]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} side={THREE.DoubleSide} />
+      </mesh>
+      
+      {/* Right curtain */}
+      <mesh 
+        position={[rightCurtainX, 0, 0.1]} 
+        onClick={() => toggleInteractable('curtain')}
+        castShadow
+      >
+        <boxGeometry args={[curtainWidth, size[1] + 0.1, 0.05]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  )
+}
+
+
+
+
+---------------
+Maison admin 
+'use client'
+
+import { useRef } from 'react'
+import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
+import { useEtherWorldStore } from '@/lib/etherworld/store'
+
+// ============================================
+// BEDROOM FURNITURE
+// ============================================
+
+export function LuxuryBed({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Base/Frame */}
+      <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.2, 0.3, 2.4]} />
+        <meshStandardMaterial color="#1a1a2e" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* Mattress */}
+      <mesh position={[0, 0.4, 0]} castShadow>
+        <boxGeometry args={[2, 0.25, 2.2]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.9} />
+      </mesh>
+      
+      {/* Pillows */}
+      <mesh position={[-0.5, 0.6, -0.85]} castShadow>
+        <boxGeometry args={[0.5, 0.15, 0.4]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.95} />
+      </mesh>
+      <mesh position={[0.5, 0.6, -0.85]} castShadow>
+        <boxGeometry args={[0.5, 0.15, 0.4]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.95} />
+      </mesh>
+      
+      {/* Blanket */}
+      <mesh position={[0, 0.55, 0.3]} castShadow>
+        <boxGeometry args={[1.9, 0.08, 1.4]} />
+        <meshStandardMaterial color="#2d3748" roughness={0.85} />
+      </mesh>
+      
+      {/* Headboard */}
+      <mesh position={[0, 0.9, -1.15]} castShadow>
+        <boxGeometry args={[2.2, 1.2, 0.1]} />
+        <meshStandardMaterial color="#1a1a2e" metalness={0.2} roughness={0.6} />
+      </mesh>
+      
+      {/* Headboard LED strip */}
+      <mesh position={[0, 0.35, -1.1]}>
+        <boxGeometry args={[2, 0.02, 0.02]} />
+        <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Nightstand({ position = [0, 0, 0] as [number, number, number], side = 'left' }: { position?: [number, number, number], side?: 'left' | 'right' }) {
+  const { interactables, toggleInteractable } = useEtherWorldStore()
+  const drawerId = side === 'left' ? 'drawer1' : 'drawer2'
+  const isOpen = interactables[drawerId]?.isActive || false
+  
+  return (
+    <group position={position}>
+      {/* Main body */}
+      <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.5, 0.5, 0.4]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.1} roughness={0.8} />
+      </mesh>
+      
+      {/* Drawer */}
+      <mesh 
+        position={[0, 0.25, isOpen ? 0.25 : 0.18]} 
+        castShadow
+        onClick={() => toggleInteractable(drawerId)}
+      >
+        <boxGeometry args={[0.44, 0.18, 0.1]} />
+        <meshStandardMaterial color="#374151" metalness={0.2} roughness={0.7} />
+      </mesh>
+      
+      {/* Handle */}
+      <mesh position={[0, 0.25, isOpen ? 0.32 : 0.25]}>
+        <boxGeometry args={[0.15, 0.02, 0.02]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Lamp */}
+      <group position={[0, 0.5, 0]}>
+        <mesh position={[0, 0.1, 0]} castShadow>
+          <cylinderGeometry args={[0.08, 0.1, 0.2, 8]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.3} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.3, 0]}>
+          <cylinderGeometry args={[0.12, 0.08, 0.25, 8]} />
+          <meshStandardMaterial color="#fef3c7" emissive="#fef3c7" emissiveIntensity={0.3} transparent opacity={0.9} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+// ============================================
+// LIVING AREA FURNITURE
+// ============================================
+
+export function ModernSofa({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Base */}
+      <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2, 0.15, 0.9]} />
+        <meshStandardMaterial color="#111827" metalness={0.1} roughness={0.9} />
+      </mesh>
+      
+      {/* Seat cushions */}
+      <mesh position={[-0.5, 0.35, 0.05]} castShadow>
+        <boxGeometry args={[0.9, 0.2, 0.7]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      <mesh position={[0.5, 0.35, 0.05]} castShadow>
+        <boxGeometry args={[0.9, 0.2, 0.7]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      
+      {/* Back */}
+      <mesh position={[0, 0.55, -0.35]} castShadow>
+        <boxGeometry args={[2, 0.5, 0.2]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* Armrests */}
+      <mesh position={[-0.95, 0.4, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.35, 0.8]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      <mesh position={[0.95, 0.4, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.35, 0.8]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* Metal legs */}
+      {[[-0.85, 0.05, 0.3], [0.85, 0.05, 0.3], [-0.85, 0.05, -0.3], [0.85, 0.05, -0.3]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.1, 8]} />
+          <meshStandardMaterial color="#4b5563" metalness={0.9} roughness={0.1} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function CoffeeTable({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Glass top */}
+      <mesh position={[0, 0.35, 0]} castShadow>
+        <boxGeometry args={[1, 0.03, 0.6]} />
+        <meshStandardMaterial color="#1e293b" transparent opacity={0.7} metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Metal frame */}
+      <mesh position={[0, 0.17, 0]}>
+        <boxGeometry args={[0.9, 0.02, 0.5]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Legs */}
+      {[[-0.4, 0.17, 0.2], [0.4, 0.17, 0.2], [-0.4, 0.17, -0.2], [0.4, 0.17, -0.2]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]}>
+          <boxGeometry args={[0.03, 0.34, 0.03]} />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+        </mesh>
+      ))}
+      
+      {/* Magazines/Items on table */}
+      <mesh position={[-0.2, 0.38, 0]} rotation={[0, 0.2, 0]}>
+        <boxGeometry args={[0.2, 0.02, 0.15]} />
+        <meshStandardMaterial color="#ef4444" roughness={0.9} />
+      </mesh>
+      <mesh position={[0.15, 0.38, 0.1]}>
+        <cylinderGeometry args={[0.04, 0.03, 0.12, 8]} />
+        <meshStandardMaterial color="#22c55e" transparent opacity={0.6} />
+      </mesh>
+    </group>
+  )
+}
+
+export function TVStand({ position = [0, 0, 0] as [number, number, number] }) {
+  const { interactables, toggleInteractable, toggleLight } = useEtherWorldStore()
+  const tvOn = interactables.tv?.isActive || false
+  const tvRef = useRef<THREE.Mesh>(null)
+  
+  useFrame((state) => {
+    if (tvOn && tvRef.current) {
+      const material = tvRef.current.material as THREE.MeshStandardMaterial
+      material.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.1
+    }
+  })
+  
+  const handleTVClick = () => {
+    toggleInteractable('tv')
+    toggleLight('tv')
+  }
+  
+  return (
+    <group position={position}>
+      {/* TV Unit */}
+      <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.5, 0.4, 0.5]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      
+      {/* Shelves */}
+      <mesh position={[0, 0.45, 0.1]}>
+        <boxGeometry args={[2.3, 0.02, 0.3]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* TV Screen */}
+      <mesh 
+        ref={tvRef}
+        position={[0, 1.1, 0.15]} 
+        castShadow
+        onClick={handleTVClick}
+      >
+        <boxGeometry args={[2, 1.2, 0.05]} />
+        <meshStandardMaterial 
+          color={tvOn ? "#1e3a5f" : "#0a0a0a"} 
+          emissive={tvOn ? "#3b82f6" : "#000000"}
+          emissiveIntensity={tvOn ? 0.5 : 0}
+          metalness={0.9} 
+          roughness={0.1} 
+        />
+      </mesh>
+      
+      {/* TV Frame */}
+      <mesh position={[0, 1.1, 0.12]}>
+        <boxGeometry args={[2.1, 1.3, 0.02]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* TV Stand/Mount */}
+      <mesh position={[0, 0.45, 0.2]}>
+        <boxGeometry args={[0.4, 0.08, 0.15]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* LED strip under TV */}
+      <mesh position={[0, 0.42, 0.26]}>
+        <boxGeometry args={[1.8, 0.02, 0.02]} />
+        <meshStandardMaterial 
+          color={tvOn ? "#8b5cf6" : "#1f2937"} 
+          emissive={tvOn ? "#8b5cf6" : "#000000"} 
+          emissiveIntensity={tvOn ? 1 : 0} 
+        />
+      </mesh>
+      
+      {/* Gaming console */}
+      <mesh position={[-0.6, 0.47, 0.1]}>
+        <boxGeometry args={[0.3, 0.08, 0.2]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.4} roughness={0.6} />
+      </mesh>
+      
+      {/* Soundbar */}
+      <mesh position={[0, 0.47, 0.2]}>
+        <boxGeometry args={[1, 0.06, 0.1]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// DESK & GAMING SETUP
+// ============================================
+
+export function GamingDesk({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const deskLightOn = lights.desk?.isOn || false
+  
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Desktop */}
+      <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.6, 0.04, 0.8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* RGB edge */}
+      <mesh position={[0, 0.73, 0.39]}>
+        <boxGeometry args={[1.6, 0.02, 0.02]} />
+        <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.8} />
+      </mesh>
+      
+      {/* Legs */}
+      <mesh position={[-0.7, 0.37, 0]} castShadow>
+        <boxGeometry args={[0.05, 0.74, 0.7]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[0.7, 0.37, 0]} castShadow>
+        <boxGeometry args={[0.05, 0.74, 0.7]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Monitor */}
+      <mesh position={[0, 1.15, -0.2]} castShadow>
+        <boxGeometry args={[0.9, 0.5, 0.03]} />
+        <meshStandardMaterial color="#0f172a" emissive="#3b82f6" emissiveIntensity={0.3} metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0, 1.15, -0.22]}>
+        <boxGeometry args={[0.95, 0.55, 0.02]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.85, -0.2]}>
+        <boxGeometry args={[0.15, 0.1, 0.1]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* Keyboard */}
+      <mesh position={[0, 0.78, 0.15]}>
+        <boxGeometry args={[0.45, 0.02, 0.15]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.4} roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 0.79, 0.15]}>
+        <boxGeometry args={[0.43, 0.01, 0.13]} />
+        <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.3} />
+      </mesh>
+      
+      {/* Mouse */}
+      <mesh position={[0.35, 0.78, 0.15]}>
+        <boxGeometry args={[0.06, 0.02, 0.1]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Mousepad */}
+      <mesh position={[0.3, 0.77, 0.15]}>
+        <boxGeometry args={[0.3, 0.005, 0.25]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      
+      {/* Desk lamp */}
+      <group position={[-0.6, 0.77, -0.25]}>
+        <mesh position={[0, 0.15, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.3, 8]} />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh position={[0.1, 0.3, 0]} rotation={[0, 0, Math.PI / 4]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.2, 8]} />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh position={[0.2, 0.35, 0]}>
+          <coneGeometry args={[0.08, 0.12, 8]} />
+          <meshStandardMaterial 
+            color={deskLightOn ? "#fef3c7" : "#4b5563"} 
+            emissive={deskLightOn ? "#fef3c7" : "#000000"}
+            emissiveIntensity={deskLightOn ? 0.5 : 0}
+          />
+        </mesh>
+      </group>
+      
+      {/* Gaming chair placeholder position */}
+    </group>
+  )
+}
+
+export function GamingChair({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Base */}
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.3, 0.3, 0.05, 16]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* Pole */}
+      <mesh position={[0, 0.25, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.4, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Seat */}
+      <mesh position={[0, 0.5, 0]} castShadow>
+        <boxGeometry args={[0.5, 0.1, 0.5]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* Back */}
+      <mesh position={[0, 0.9, -0.2]} castShadow>
+        <boxGeometry args={[0.5, 0.7, 0.08]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* Headrest */}
+      <mesh position={[0, 1.35, -0.18]} castShadow>
+        <boxGeometry args={[0.25, 0.15, 0.1]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* RGB strips on sides */}
+      <mesh position={[0.24, 0.9, -0.16]}>
+        <boxGeometry args={[0.02, 0.5, 0.02]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.6} />
+      </mesh>
+      <mesh position={[-0.24, 0.9, -0.16]}>
+        <boxGeometry args={[0.02, 0.5, 0.02]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.6} />
+      </mesh>
+      
+      {/* Armrests */}
+      <mesh position={[0.3, 0.65, 0.05]}>
+        <boxGeometry args={[0.08, 0.2, 0.3]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[-0.3, 0.65, 0.05]}>
+        <boxGeometry args={[0.08, 0.2, 0.3]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// ARCADE MACHINE
+// ============================================
+
+export function ArcadeMachine({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  const { interactables } = useEtherWorldStore()
+  const isActive = interactables.arcade?.isActive || false
+  const screenRef = useRef<THREE.Mesh>(null)
+  
+  useFrame((state) => {
+    if (isActive && screenRef.current) {
+      const material = screenRef.current.material as THREE.MeshStandardMaterial
+      material.emissiveIntensity = 0.6 + Math.sin(state.clock.elapsedTime * 4) * 0.2
+    }
+  })
+  
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Main cabinet */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.7, 1.8, 0.7]} />
+        <meshStandardMaterial color="#1a1a2e" metalness={0.2} roughness={0.8} />
+      </mesh>
+      
+      {/* Screen bezel */}
+      <mesh position={[0, 1.2, 0.32]}>
+        <boxGeometry args={[0.55, 0.5, 0.08]} />
+        <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Screen */}
+      <mesh ref={screenRef} position={[0, 1.2, 0.35]}>
+        <boxGeometry args={[0.48, 0.4, 0.02]} />
+        <meshStandardMaterial 
+          color={isActive ? "#1e40af" : "#0a0a0a"} 
+          emissive={isActive ? "#3b82f6" : "#000000"}
+          emissiveIntensity={isActive ? 0.6 : 0}
+          metalness={0.9} 
+          roughness={0.1} 
+        />
+      </mesh>
+      
+      {/* Control panel */}
+      <mesh position={[0, 0.6, 0.4]} rotation={[-0.3, 0, 0]}>
+        <boxGeometry args={[0.6, 0.3, 0.15]} />
+        <meshStandardMaterial color="#111827" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* Joystick */}
+      <mesh position={[-0.15, 0.7, 0.42]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.1, 8]} />
+        <meshStandardMaterial color="#ef4444" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <mesh position={[-0.15, 0.77, 0.42]}>
+        <sphereGeometry args={[0.035, 8, 8]} />
+        <meshStandardMaterial color="#ef4444" metalness={0.4} roughness={0.6} />
+      </mesh>
+      
+      {/* Buttons */}
+      {[[0.05, '#22c55e'], [0.15, '#3b82f6'], [0.25, '#eab308']].map(([x, color], i) => (
+        <mesh key={i} position={[x as number, 0.72, 0.42]}>
+          <cylinderGeometry args={[0.025, 0.025, 0.02, 8]} />
+          <meshStandardMaterial color={color as string} emissive={color as string} emissiveIntensity={0.3} />
+        </mesh>
+      ))}
+      
+      {/* Coin slot */}
+      <mesh position={[0, 0.3, 0.36]}>
+        <boxGeometry args={[0.08, 0.02, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Marquee light */}
+      <mesh position={[0, 1.7, 0.32]}>
+        <boxGeometry args={[0.55, 0.15, 0.08]} />
+        <meshStandardMaterial 
+          color="#8b5cf6" 
+          emissive="#8b5cf6" 
+          emissiveIntensity={isActive ? 1 : 0.3} 
+        />
+      </mesh>
+      
+      {/* Side art panels */}
+      <mesh position={[0.34, 0.9, 0]}>
+        <boxGeometry args={[0.02, 1.4, 0.5]} />
+        <meshStandardMaterial color="#3b82f6" metalness={0.3} roughness={0.7} />
+      </mesh>
+      <mesh position={[-0.34, 0.9, 0]}>
+        <boxGeometry args={[0.02, 1.4, 0.5]} />
+        <meshStandardMaterial color="#3b82f6" metalness={0.3} roughness={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// MINI BAR & KITCHEN
+// ============================================
+
+export function MiniBar({ position = [0, 0, 0] as [number, number, number] }) {
+  const { interactables, toggleInteractable } = useEtherWorldStore()
+  const fridgeOpen = interactables.fridge?.isActive || false
+  
+  return (
+    <group position={position}>
+      {/* Counter */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.5, 0.05, 0.6]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.4} roughness={0.6} />
+      </mesh>
+      
+      {/* Cabinet base */}
+      <mesh position={[0, 0.43, 0]} castShadow>
+        <boxGeometry args={[1.5, 0.86, 0.55]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      
+      {/* Mini fridge door */}
+      <mesh 
+        position={fridgeOpen ? [-0.35, 0.43, 0.45] : [-0.35, 0.43, 0.28]}
+        rotation={fridgeOpen ? [0, -Math.PI / 3, 0] : [0, 0, 0]}
+        castShadow
+        onClick={() => toggleInteractable('fridge')}
+      >
+        <boxGeometry args={[0.7, 0.8, 0.05]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Fridge handle */}
+      <mesh position={fridgeOpen ? [-0.1, 0.43, 0.65] : [0, 0.43, 0.32]} rotation={fridgeOpen ? [0, -Math.PI / 3, 0] : [0, 0, 0]}>
+        <boxGeometry args={[0.02, 0.15, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Fridge interior light (when open) */}
+      {fridgeOpen && (
+        <pointLight position={[-0.35, 0.43, 0.1]} intensity={0.3} color="#e0f2fe" distance={1} />
+      )}
+      
+      {/* Microwave */}
+      <mesh position={[0.45, 1.15, 0]}>
+        <boxGeometry args={[0.5, 0.3, 0.4]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <mesh position={[0.35, 1.15, 0.21]}>
+        <boxGeometry args={[0.25, 0.2, 0.01]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Coffee machine */}
+      <mesh position={[-0.5, 0.97, 0]}>
+        <boxGeometry args={[0.25, 0.35, 0.3]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[-0.5, 1.17, -0.1]}>
+        <boxGeometry args={[0.2, 0.08, 0.08]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* Bottles on counter */}
+      {[[-0.15, '#22c55e'], [0, '#60a5fa'], [0.15, '#f59e0b']].map(([x, color], i) => (
+        <group key={i} position={[x as number, 1.05, 0.15]}>
+          <mesh>
+            <cylinderGeometry args={[0.03, 0.03, 0.2, 8]} />
+            <meshStandardMaterial color={color as string} transparent opacity={0.7} />
+          </mesh>
+          <mesh position={[0, 0.12, 0]}>
+            <cylinderGeometry args={[0.015, 0.02, 0.05, 8]} />
+            <meshStandardMaterial color="#374151" metalness={0.8} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
+
+// ============================================
+// CLOSET & STORAGE
+// ============================================
+
+export function Wardrobe({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Main body */}
+      <mesh position={[0, 1.1, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.2, 2.2, 0.6]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.1} roughness={0.85} />
+      </mesh>
+      
+      {/* Doors */}
+      <mesh position={[-0.28, 1.1, 0.28]} castShadow>
+        <boxGeometry args={[0.55, 2.1, 0.04]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      <mesh position={[0.28, 1.1, 0.28]} castShadow>
+        <boxGeometry args={[0.55, 2.1, 0.04]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      
+      {/* Handles */}
+      <mesh position={[-0.05, 1.1, 0.32]}>
+        <boxGeometry args={[0.02, 0.15, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.05, 1.1, 0.32]}>
+        <boxGeometry args={[0.02, 0.15, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Mirror on door */}
+      <mesh position={[-0.28, 1.3, 0.305]}>
+        <boxGeometry args={[0.35, 0.8, 0.01]} />
+        <meshStandardMaterial color="#94a3b8" metalness={1} roughness={0} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Safe({ position = [0, 0, 0] as [number, number, number] }) {
+  const { interactables, toggleInteractable } = useEtherWorldStore()
+  const isOpen = interactables.safe?.isActive || false
+  
+  return (
+    <group position={position}>
+      {/* Safe body */}
+      <mesh position={[0, 0.2, 0]} castShadow>
+        <boxGeometry args={[0.4, 0.4, 0.35]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* Door */}
+      <mesh 
+        position={isOpen ? [-0.15, 0.2, 0.25] : [0, 0.2, 0.16]}
+        rotation={isOpen ? [0, -Math.PI / 2.5, 0] : [0, 0, 0]}
+        castShadow
+        onClick={() => toggleInteractable('safe')}
+      >
+        <boxGeometry args={[0.35, 0.35, 0.04]} />
+        <meshStandardMaterial color="#111827" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Keypad */}
+      <mesh position={isOpen ? [-0.05, 0.2, 0.35] : [0.08, 0.2, 0.19]} rotation={isOpen ? [0, -Math.PI / 2.5, 0] : [0, 0, 0]}>
+        <boxGeometry args={[0.1, 0.12, 0.02]} />
+        <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* LED indicator */}
+      <mesh position={isOpen ? [-0.12, 0.28, 0.32] : [0.08, 0.28, 0.19]} rotation={isOpen ? [0, -Math.PI / 2.5, 0] : [0, 0, 0]}>
+        <boxGeometry args={[0.015, 0.015, 0.01]} />
+        <meshStandardMaterial 
+          color={isOpen ? "#22c55e" : "#ef4444"} 
+          emissive={isOpen ? "#22c55e" : "#ef4444"} 
+          emissiveIntensity={0.8} 
+        />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// DECORATIVE ELEMENTS
+// ============================================
+
+export function WallArt({ position = [0, 0, 0] as [number, number, number], size = [1, 0.6] as [number, number] }) {
+  return (
+    <group position={position}>
+      {/* Frame */}
+      <mesh castShadow>
+        <boxGeometry args={[size[0] + 0.05, size[1] + 0.05, 0.03]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Canvas */}
+      <mesh position={[0, 0, 0.02]}>
+        <boxGeometry args={[size[0], size[1], 0.01]} />
+        <meshStandardMaterial color="#1e3a5f" roughness={0.9} />
+      </mesh>
+      
+      {/* Abstract art elements */}
+      <mesh position={[-0.2, 0.1, 0.03]}>
+        <circleGeometry args={[0.12, 16]} />
+        <meshStandardMaterial color="#f59e0b" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.15, -0.05, 0.03]}>
+        <boxGeometry args={[0.2, 0.15, 0.005]} />
+        <meshStandardMaterial color="#8b5cf6" roughness={0.8} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Plant({ position = [0, 0, 0] as [number, number, number], size = 1 }) {
+  return (
+    <group position={position} scale={size}>
+      {/* Pot */}
+      <mesh position={[0, 0.12, 0]} castShadow>
+        <cylinderGeometry args={[0.12, 0.1, 0.24, 8]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      
+      {/* Soil */}
+      <mesh position={[0, 0.23, 0]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.02, 8]} />
+        <meshStandardMaterial color="#1c1917" roughness={1} />
+      </mesh>
+      
+      {/* Plant leaves */}
+      {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+        <mesh 
+          key={i} 
+          position={[
+            Math.sin(angle * Math.PI / 180) * 0.05,
+            0.35 + i * 0.02,
+            Math.cos(angle * Math.PI / 180) * 0.05
+          ]}
+          rotation={[0.3, angle * Math.PI / 180, 0.2]}
+        >
+          <boxGeometry args={[0.08, 0.2, 0.02]} />
+          <meshStandardMaterial color="#15803d" roughness={0.9} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function Rug({ position = [0, 0, 0] as [number, number, number], size = [2, 1.5] as [number, number] }) {
+  return (
+    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={size} />
+      <meshStandardMaterial color="#1f2937" roughness={0.95} />
+    </mesh>
+  )
+}
+
+export function CeilingLight({ position = [0, 0, 0] as [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.ceiling?.isOn || false
+  
+  return (
+    <group position={position}>
+      {/* Fixture */}
+      <mesh>
+        <cylinderGeometry args={[0.15, 0.2, 0.08, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.6} roughness={0.4} />
+      </mesh>
+      
+      {/* Bulb area */}
+      <mesh position={[0, -0.06, 0]}>
+        <cylinderGeometry args={[0.12, 0.12, 0.04, 16]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#374151"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 1 : 0}
+          transparent
+          opacity={isOn ? 0.9 : 1}
+        />
+      </mesh>
+      
+      {/* Spot light */}
+      {isOn && (
+        <spotLight
+          position={[0, -0.1, 0]}
+          angle={Math.PI / 4}
+          penumbra={0.5}
+          intensity={2}
+          color="#fff5e6"
+          castShadow
+          shadow-mapSize={[512, 512]}
+        />
+      )}
+    </group>
+  )
+}
+
+export function NeonSign({ position = [0, 0, 0] as [number, number, number], color }: { position?: [number, number, number], text?: string, color?: string }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.neon?.isOn ?? true
+  
+  return (
+    <group position={position}>
+      {/* Backing plate */}
+      <mesh>
+        <boxGeometry args={[1.2, 0.4, 0.02]} />
+        <meshStandardMaterial color="#0a0a0a" roughness={0.9} />
+      </mesh>
+      
+      {/* Neon tubes (simplified as boxes) */}
+      <mesh position={[0, 0, 0.02]}>
+        <boxGeometry args={[1, 0.15, 0.02]} />
+        <meshStandardMaterial
+          color={isOn ? (color || "#8b5cf6") : "#374151"}
+          emissive={isOn ? (color || "#8b5cf6") : "#000000"}
+          emissiveIntensity={isOn ? 2 : 0}
+        />
+      </mesh>
+
+      {isOn && (
+        <pointLight position={[0, 0, 0.2]} intensity={0.5} color={color || "#8b5cf6"} distance={3} />
+      )}
+    </group>
+  )
+}
+
+// ============================================
+// MISSING FURNITURE - Floor Lamp, Desk Lamp, Bookshelf, Dining Table
+// ============================================
+
+export function FloorLamp({ position = [0, 0, 0] as [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.ceiling?.isOn ?? true
+
+  return (
+    <group position={position}>
+      {/* Base */}
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.15, 0.18, 0.1, 8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Pole */}
+      <mesh position={[0, 0.85, 0]}>
+        <cylinderGeometry args={[0.025, 0.025, 1.5, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Shade */}
+      <mesh position={[0, 1.7, 0]}>
+        <coneGeometry args={[0.25, 0.35, 8, 1, true]} />
+        <meshStandardMaterial color={isOn ? "#fef3c7" : "#1f2937"} side={2} emissive={isOn ? "#fef3c7" : "#000"} emissiveIntensity={isOn ? 0.3 : 0} />
+      </mesh>
+      {/* Bulb */}
+      <mesh position={[0, 1.6, 0]}>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial color={isOn ? "#fef3c7" : "#374151"} emissive={isOn ? "#fef3c7" : "#000"} emissiveIntensity={isOn ? 1 : 0} />
+      </mesh>
+      {isOn && <pointLight position={[0, 1.6, 0]} intensity={0.6} color="#fef3c7" distance={4} />}
+    </group>
+  )
+}
+
+export function DeskLamp({ position = [0, 0, 0] as [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.desk?.isOn ?? false
+
+  return (
+    <group position={position}>
+      {/* Base */}
+      <mesh position={[0, 0.03, 0]}>
+        <cylinderGeometry args={[0.1, 0.12, 0.06, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Arm */}
+      <mesh position={[0, 0.2, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.35, 8]} />
+        <meshStandardMaterial color="#4b5563" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Head */}
+      <mesh position={[0.1, 0.4, 0]} rotation={[0, 0, -Math.PI / 4]}>
+        <coneGeometry args={[0.07, 0.12, 8, 1, true]} />
+        <meshStandardMaterial color={isOn ? "#fef3c7" : "#1f2937"} side={2} emissive={isOn ? "#fef3c7" : "#000"} emissiveIntensity={isOn ? 0.4 : 0} />
+      </mesh>
+      {isOn && <pointLight position={[0.15, 0.35, 0]} intensity={0.5} color="#fef3c7" distance={2} />}
+    </group>
+  )
+}
+
+export function Bookshelf({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  const { toggleInteractable } = useEtherWorldStore()
+
+  const bookColors = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6']
+
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Main frame */}
+      <mesh position={[0, 1.1, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.2, 2.2, 0.35]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.1} roughness={0.85} />
+      </mesh>
+      {/* Shelves */}
+      {[0.3, 0.75, 1.2, 1.65].map((y, i) => (
+        <mesh key={i} position={[0, y, 0]}>
+          <boxGeometry args={[1.15, 0.04, 0.32]} />
+          <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.7} />
+        </mesh>
+      ))}
+      {/* Books per shelf */}
+      {[0.3, 0.75, 1.2, 1.65].map((shelfY, si) => (
+        [...Array(8)].map((_, bi) => (
+          <mesh
+            key={`${si}-${bi}`}
+            position={[-0.5 + bi * 0.13, shelfY + 0.12, 0]}
+            castShadow
+            onClick={() => toggleInteractable('bookshelf_secret')}
+          >
+            <boxGeometry args={[0.1, 0.22, 0.28]} />
+            <meshStandardMaterial color={bookColors[(si * 3 + bi) % bookColors.length]} roughness={0.9} />
+          </mesh>
+        ))
+      ))}
+      {/* Top decoration */}
+      <mesh position={[0.3, 2.25, 0.05]} castShadow>
+        <boxGeometry args={[0.12, 0.18, 0.12]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+    </group>
+  )
+}
+
+export function DiningTable({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Table top */}
+      <mesh position={[0, 0.78, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2, 0.06, 1.2]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.65} />
+      </mesh>
+      {/* Legs */}
+      {[[-0.85, 0.39, -0.5], [0.85, 0.39, -0.5], [-0.85, 0.39, 0.5], [0.85, 0.39, 0.5]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 0.78, 8]} />
+          <meshStandardMaterial color="#374151" metalness={0.6} roughness={0.4} />
+        </mesh>
+      ))}
+      {/* Chairs */}
+      {[[-0.8, 0, -0.9], [0.8, 0, -0.9], [-0.8, 0, 0.9], [0.8, 0, 0.9]].map((pos, i) => (
+        <group key={`chair-${i}`} position={pos as [number, number, number]} rotation={[0, i < 2 ? 0 : Math.PI, 0]}>
+          {/* Seat */}
+          <mesh position={[0, 0.45, 0]} castShadow>
+            <boxGeometry args={[0.45, 0.06, 0.45]} />
+            <meshStandardMaterial color="#1f2937" roughness={0.9} />
+          </mesh>
+          {/* Back */}
+          <mesh position={[0, 0.75, -0.2]} castShadow>
+            <boxGeometry args={[0.42, 0.55, 0.05]} />
+            <meshStandardMaterial color="#1f2937" roughness={0.9} />
+          </mesh>
+          {/* Legs */}
+          {[[-0.18, 0.22, -0.18], [0.18, 0.22, -0.18], [-0.18, 0.22, 0.18], [0.18, 0.22, 0.18]].map((lp, li) => (
+            <mesh key={li} position={lp as [number, number, number]}>
+              <cylinderGeometry args={[0.02, 0.02, 0.44, 6]} />
+              <meshStandardMaterial color="#374151" metalness={0.5} roughness={0.5} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+      {/* Table items */}
+      {/* Plate */}
+      <mesh position={[0, 0.82, 0]}>
+        <cylinderGeometry args={[0.18, 0.18, 0.01, 16]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.3} metalness={0.1} />
+      </mesh>
+      {/* Glass */}
+      <mesh position={[0.25, 0.85, 0]}>
+        <cylinderGeometry args={[0.04, 0.03, 0.12, 8]} />
+        <meshStandardMaterial color="#94a3b8" transparent opacity={0.4} metalness={0.9} roughness={0.1} />
+      </mesh>
+      {/* Candle */}
+      <mesh position={[-0.3, 0.84, 0.1]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.1, 8]} />
+        <meshStandardMaterial color="#fef3c7" />
+      </mesh>
+      <mesh position={[-0.3, 0.9, 0.1]}>
+        <sphereGeometry args={[0.012, 6, 6]} />
+        <meshStandardMaterial color="#f97316" emissive="#f97316" emissiveIntensity={1} />
+      </mesh>
+      <pointLight position={[-0.3, 0.9, 0.1]} intensity={0.2} color="#f97316" distance={1.5} />
+    </group>
+  )
+}
+
+// ============================================
+// KITCHEN FURNITURE
+// ============================================
+
+export function KitchenIsland({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Counter top */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.8, 0.06, 0.8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.4} roughness={0.6} />
+      </mesh>
+      {/* Base cabinets */}
+      <mesh position={[0, 0.45, 0]} castShadow>
+        <boxGeometry args={[1.8, 0.84, 0.75]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      {/* Cabinet doors */}
+      {[-0.45, 0, 0.45].map((x, i) => (
+        <mesh key={i} position={[x, 0.45, 0.38]} castShadow>
+          <boxGeometry args={[0.55, 0.75, 0.04]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.3} roughness={0.7} />
+        </mesh>
+      ))}
+      {/* Handles */}
+      {[-0.45, 0, 0.45].map((x, i) => (
+        <mesh key={`h-${i}`} position={[x, 0.45, 0.42]}>
+          <boxGeometry args={[0.02, 0.12, 0.02]} />
+          <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+        </mesh>
+      ))}
+      {/* Stools */}
+      {[-0.6, 0, 0.6].map((x, i) => (
+        <group key={`stool-${i}`} position={[x, 0, -0.6]}>
+          <mesh position={[0, 0.65, 0]} castShadow>
+            <cylinderGeometry args={[0.18, 0.18, 0.04, 12]} />
+            <meshStandardMaterial color="#1f2937" roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 0.35, 0]}>
+            <cylinderGeometry args={[0.04, 0.04, 0.6, 8]} />
+            <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 0.05, 0]}>
+            <cylinderGeometry args={[0.15, 0.15, 0.04, 12]} />
+            <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
+
+export function Refrigerator({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Main body */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.7, 1.8, 0.65]} />
+        <meshStandardMaterial color="#e5e5e5" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* Freezer door */}
+      <mesh position={[0, 1.45, 0.33]} castShadow>
+        <boxGeometry args={[0.65, 0.6, 0.03]} />
+        <meshStandardMaterial color="#d4d4d4" metalness={0.7} roughness={0.2} />
+      </mesh>
+      {/* Fridge door */}
+      <mesh position={[0, 0.65, 0.33]} castShadow>
+        <boxGeometry args={[0.65, 1, 0.03]} />
+        <meshStandardMaterial color="#d4d4d4" metalness={0.7} roughness={0.2} />
+      </mesh>
+      {/* Handle */}
+      <mesh position={[0.25, 0.9, 0.36]}>
+        <boxGeometry args={[0.02, 0.4, 0.03]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      {/* Dispenser */}
+      <mesh position={[0, 1.55, 0.35]}>
+        <boxGeometry args={[0.15, 0.08, 0.01]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function OvenStove({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Body */}
+      <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.6, 0.9, 0.55]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* Oven door */}
+      <mesh position={[0, 0.3, 0.28]} castShadow>
+        <boxGeometry args={[0.5, 0.4, 0.03]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Oven window */}
+      <mesh position={[0, 0.3, 0.3]}>
+        <boxGeometry args={[0.35, 0.25, 0.01]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.1} transparent opacity={0.7} />
+      </mesh>
+      {/* Stovetop */}
+      <mesh position={[0, 0.92, 0]}>
+        <boxGeometry args={[0.58, 0.03, 0.53]} />
+        <meshStandardMaterial color="#111827" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Burners */}
+      {[[-0.12, -0.1], [0.12, -0.1], [-0.12, 0.1], [0.12, 0.1]].map(([x, z], i) => (
+        <mesh key={i} position={[x, 0.94, z]}>
+          <cylinderGeometry args={[0.06, 0.06, 0.01, 16]} />
+          <meshStandardMaterial color="#1a1a1a" metalness={0.9} roughness={0.1} />
+        </mesh>
+      ))}
+      {/* Control knobs */}
+      {[-0.15, -0.05, 0.05, 0.15].map((x, i) => (
+        <mesh key={`k-${i}`} position={[x, 0.92, 0.28]}>
+          <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
+          <meshStandardMaterial color="#6b7280" metalness={0.8} roughness={0.2} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function KitchenSink({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Counter */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.8, 0.06, 0.5]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.4} roughness={0.6} />
+      </mesh>
+      {/* Basin */}
+      <mesh position={[0, 0.78, 0]}>
+        <boxGeometry args={[0.5, 0.15, 0.35]} />
+        <meshStandardMaterial color="#111827" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* Faucet */}
+      <mesh position={[0, 1.05, -0.15]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.3, 8]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0, 1.2, -0.05]} rotation={[Math.PI / 4, 0, 0]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.15, 8]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      {/* Base cabinet */}
+      <mesh position={[0, 0.43, 0]} castShadow>
+        <boxGeometry args={[0.78, 0.8, 0.48]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+    </group>
+  )
+}
+
+export function BarStool({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.65, 0]} castShadow>
+        <cylinderGeometry args={[0.18, 0.2, 0.04, 12]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.35, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.6, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.15, 0.15, 0.04, 12]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* Footrest */}
+      <mesh position={[0, 0.3, 0]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.02, 12]} />
+        <meshStandardMaterial color="#374151" metalness={0.6} roughness={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
+export function WineRack({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  const bottleColors = ['#7c3aed', '#dc2626', '#f59e0b', '#3b82f6', '#22c55e']
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Frame */}
+      <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.6, 1.2, 0.3]} />
+        <meshStandardMaterial color="#1a1a2e" metalness={0.2} roughness={0.8} />
+      </mesh>
+      {/* Shelves */}
+      {[0.2, 0.5, 0.8, 1.1].map((y, i) => (
+        <mesh key={i} position={[0, y, 0]}>
+          <boxGeometry args={[0.55, 0.02, 0.28]} />
+          <meshStandardMaterial color="#111827" metalness={0.3} roughness={0.7} />
+        </mesh>
+      ))}
+      {/* Bottles */}
+      {[0.2, 0.5, 0.8, 1.1].map((shelfY, si) =>
+        [0, 1, 2].map((bi) => (
+          <group key={`${si}-${bi}`} position={[-0.15 + bi * 0.15, shelfY + 0.08, 0]}>
+            <mesh>
+              <cylinderGeometry args={[0.025, 0.025, 0.15, 8]} />
+              <meshStandardMaterial color={bottleColors[(si + bi) % bottleColors.length]} transparent opacity={0.7} />
+            </mesh>
+            <mesh position={[0, 0.09, 0]}>
+              <cylinderGeometry args={[0.012, 0.018, 0.04, 8]} />
+              <meshStandardMaterial color="#374151" metalness={0.8} />
+            </mesh>
+          </group>
+        ))
+      )}
+    </group>
+  )
+}
+
+export function Dishwasher({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      <mesh position={[0, 0.45, 0]} castShadow>
+        <boxGeometry args={[0.6, 0.9, 0.55]} />
+        <meshStandardMaterial color="#e5e5e5" metalness={0.5} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.45, 0.28]} castShadow>
+        <boxGeometry args={[0.55, 0.8, 0.03]} />
+        <meshStandardMaterial color="#d4d4d4" metalness={0.6} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.7, 0.31]}>
+        <boxGeometry args={[0.4, 0.25, 0.01]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.2, 0.45, 0.31]}>
+        <boxGeometry args={[0.02, 0.15, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// EXTERIOR / BALCONY FURNITURE
+// ============================================
+
+export function OutdoorLounge({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Sofa base */}
+      <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.8, 0.35, 0.8]} />
+        <meshStandardMaterial color="#374151" roughness={0.95} />
+      </mesh>
+      {/* Cushions */}
+      <mesh position={[-0.4, 0.42, 0]} castShadow>
+        <boxGeometry args={[0.8, 0.1, 0.65]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      <mesh position={[0.4, 0.42, 0]} castShadow>
+        <boxGeometry args={[0.8, 0.1, 0.65]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      {/* Back */}
+      <mesh position={[0, 0.55, -0.35]} castShadow>
+        <boxGeometry args={[1.8, 0.4, 0.1]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      {/* Armrests */}
+      <mesh position={[-0.85, 0.4, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.3, 0.7]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      <mesh position={[0.85, 0.4, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.3, 0.7]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      {/* Legs */}
+      {[[-0.75, 0.03, 0.3], [0.75, 0.03, 0.3], [-0.75, 0.03, -0.3], [0.75, 0.03, -0.3]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]}>
+          <boxGeometry args={[0.05, 0.06, 0.05]} />
+          <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function HotTub({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Outer shell */}
+      <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.6, 0.6, 1.6]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      {/* Inner basin */}
+      <mesh position={[0, 0.35, 0]}>
+        <boxGeometry args={[1.4, 0.5, 1.4]} />
+        <meshStandardMaterial color="#0c4a6e" metalness={0.1} roughness={0.9} />
+      </mesh>
+      {/* Water surface */}
+      <mesh position={[0, 0.55, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[1.35, 1.35]} />
+        <meshStandardMaterial color="#0ea5e9" transparent opacity={0.6} metalness={0.3} roughness={0.4} />
+      </mesh>
+      {/* Jets */}
+      {[[-0.5, 0.4, -0.5], [0.5, 0.4, -0.5], [-0.5, 0.4, 0.5], [0.5, 0.4, 0.5]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]} rotation={[0, Math.PI / 4 * i, 0]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.05, 8]} />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+        </mesh>
+      ))}
+      {/* Control panel */}
+      <mesh position={[0, 0.65, 0.82]}>
+        <boxGeometry args={[0.3, 0.15, 0.05]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function GardenTable({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.5, 0.5, 0.04, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 0.37, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.74, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.3, 0.3, 0.04, 12]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function PottedTree({ position = [0, 0, 0] as [number, number, number], size = 1 }) {
+  return (
+    <group position={position} scale={size}>
+      {/* Pot */}
+      <mesh position={[0, 0.2, 0]} castShadow>
+        <cylinderGeometry args={[0.2, 0.15, 0.4, 8]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      {/* Trunk */}
+      <mesh position={[0, 0.7, 0]} castShadow>
+        <cylinderGeometry args={[0.04, 0.06, 0.6, 8]} />
+        <meshStandardMaterial color="#5c3a1e" roughness={0.95} />
+      </mesh>
+      {/* Foliage layers */}
+      <mesh position={[0, 1.1, 0]} castShadow>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshStandardMaterial color="#15803d" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 1.35, 0]} castShadow>
+        <sphereGeometry args={[0.22, 8, 8]} />
+        <meshStandardMaterial color="#166534" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 1.55, 0]} castShadow>
+        <sphereGeometry args={[0.14, 8, 8]} />
+        <meshStandardMaterial color="#14532d" roughness={0.9} />
+      </mesh>
+    </group>
+  )
+}
+
+export function FirePit({ position = [0, 0, 0] as [number, number, number] }) {
+  const flameRef = useRef<THREE.Mesh>(null)
+
+  useFrame((state) => {
+    if (flameRef.current) {
+      flameRef.current.scale.x = 1 + Math.sin(state.clock.elapsedTime * 7) * 0.1
+      flameRef.current.scale.y = 1 + Math.sin(state.clock.elapsedTime * 5) * 0.15
+    }
+  })
+
+  return (
+    <group position={position}>
+      {/* Stone ring */}
+      <mesh position={[0, 0.1, 0]} castShadow>
+        <torusGeometry args={[0.4, 0.08, 8, 16]} />
+        <meshStandardMaterial color="#374151" roughness={0.95} />
+      </mesh>
+      {/* Interior */}
+      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.35, 16]} />
+        <meshStandardMaterial color="#1c1917" roughness={1} />
+      </mesh>
+      {/* Logs */}
+      <mesh position={[0, 0.08, 0]} rotation={[0, 0, Math.PI / 6]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.4, 6]} />
+        <meshStandardMaterial color="#5c3a1e" roughness={0.95} />
+      </mesh>
+      <mesh position={[0, 0.08, 0]} rotation={[0, Math.PI / 2, -Math.PI / 6]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.4, 6]} />
+        <meshStandardMaterial color="#5c3a1e" roughness={0.95} />
+      </mesh>
+      {/* Flame */}
+      <mesh ref={flameRef} position={[0, 0.25, 0]}>
+        <coneGeometry args={[0.12, 0.35, 8]} />
+        <meshStandardMaterial color="#f97316" emissive="#f97316" emissiveIntensity={1.5} transparent opacity={0.8} />
+      </mesh>
+      {/* Embers */}
+      <mesh position={[0, 0.1, 0]}>
+        <sphereGeometry args={[0.08, 6, 6]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.8} />
+      </mesh>
+      <pointLight position={[0, 0.3, 0]} intensity={1} color="#f97316" distance={4} />
+    </group>
+  )
+}
+
+export function OutdoorLamp({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Base */}
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.12, 0.15, 0.1, 8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Pole */}
+      <mesh position={[0, 1.2, 0]}>
+        <cylinderGeometry args={[0.025, 0.025, 2.3, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Lamp head */}
+      <mesh position={[0, 2.4, 0]}>
+        <boxGeometry args={[0.2, 0.08, 0.2]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.6} roughness={0.4} />
+      </mesh>
+      {/* Bulb */}
+      <mesh position={[0, 2.35, 0]}>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial color="#fef3c7" emissive="#fef3c7" emissiveIntensity={1} />
+      </mesh>
+      <pointLight position={[0, 2.3, 0]} intensity={0.8} color="#fef3c7" distance={5} />
+    </group>
+  )
+}
+
+export function BalconyRailing({ position = [0, 0, 0] as [number, number, number], size = [3, 1] as [number, number] }) {
+  return (
+    <group position={position}>
+      {/* Top rail */}
+      <mesh position={[0, size[1], 0]}>
+        <boxGeometry args={[size[0], 0.04, 0.04]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Bottom rail */}
+      <mesh position={[0, 0.05, 0]}>
+        <boxGeometry args={[size[0], 0.04, 0.04]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Balusters */}
+      {Array.from({ length: Math.floor(size[0] / 0.15) }).map((_, i) => {
+        const x = -size[0] / 2 + 0.075 + i * 0.15
+        return (
+          <mesh key={i} position={[x, size[1] / 2, 0]}>
+            <boxGeometry args={[0.02, size[1], 0.02]} />
+            <meshStandardMaterial color="#4b5563" metalness={0.7} roughness={0.3} />
+          </mesh>
+        )
+      })}
+      {/* Posts */}
+      <mesh position={[-size[0] / 2, size[1] / 2 + 0.05, 0]}>
+        <boxGeometry args={[0.06, size[1] + 0.1, 0.06]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <mesh position={[size[0] / 2, size[1] / 2 + 0.05, 0]}>
+        <boxGeometry args={[0.06, size[1] + 0.1, 0.06]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+    </group>
+  )
+}
+
+export function SunLounger({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Frame */}
+      <mesh position={[0, 0.15, 0]} castShadow>
+        <boxGeometry args={[0.7, 0.04, 1.8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      {/* Back rest (angled) */}
+      <mesh position={[0, 0.4, -0.7]} rotation={[0.4, 0, 0]} castShadow>
+        <boxGeometry args={[0.65, 0.03, 0.6]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      {/* Seat cushion */}
+      <mesh position={[0, 0.2, 0.15]} castShadow>
+        <boxGeometry args={[0.6, 0.06, 1.2]} />
+        <meshStandardMaterial color="#374151" roughness={0.95} />
+      </mesh>
+      {/* Legs */}
+      {[[-0.3, 0.07, 0.8], [0.3, 0.07, 0.8], [-0.3, 0.07, -0.8], [0.3, 0.07, -0.8]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]}>
+          <boxGeometry args={[0.03, 0.14, 0.03]} />
+          <meshStandardMaterial color="#374151" metalness={0.6} roughness={0.4} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+// ============================================
+// ADDITIONAL DECOR
+// ============================================
+
+export function CandleSet({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {[0, 0.15, 0.3].map((x, i) => (
+        <group key={i} position={[x, 0, 0]}>
+          <mesh position={[0, 0.08, 0]}>
+            <cylinderGeometry args={[0.02, 0.025, 0.16, 8]} />
+            <meshStandardMaterial color="#fef3c7" roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 0.17, 0]}>
+            <sphereGeometry args={[0.008, 6, 6]} />
+            <meshStandardMaterial color="#f97316" emissive="#f97316" emissiveIntensity={1} />
+          </mesh>
+          <pointLight position={[0, 0.18, 0]} intensity={0.15} color="#f97316" distance={1} />
+        </group>
+      ))}
+      {/* Tray */}
+      <mesh position={[0.15, 0.01, 0]}>
+        <boxGeometry args={[0.5, 0.02, 0.15]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Sculpture({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Base */}
+      <mesh position={[0, 0.05, 0]} castShadow>
+        <boxGeometry args={[0.3, 0.1, 0.3]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* Abstract form */}
+      <mesh position={[0, 0.35, 0]} castShadow>
+        <torusGeometry args={[0.12, 0.04, 8, 16]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <mesh position={[0, 0.55, 0]} castShadow>
+        <sphereGeometry args={[0.08, 8, 8]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} roughness={0.1} />
+      </mesh>
+    </group>
+  )
+}
+
+export function VaseFlowers({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Vase */}
+      <mesh position={[0, 0.15, 0]} castShadow>
+        <cylinderGeometry args={[0.06, 0.08, 0.3, 8]} />
+        <meshStandardMaterial color="#1e3a5f" metalness={0.3} roughness={0.7} />
+      </mesh>
+      {/* Stems */}
+      {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+        <mesh
+          key={i}
+          position={[
+            Math.sin((angle * Math.PI) / 180) * 0.02,
+            0.35 + i * 0.02,
+            Math.cos((angle * Math.PI) / 180) * 0.02,
+          ]}
+          rotation={[0.2, (angle * Math.PI) / 180, 0.1]}
+        >
+          <cylinderGeometry args={[0.003, 0.003, 0.15, 4]} />
+          <meshStandardMaterial color="#15803d" />
+        </mesh>
+      ))}
+      {/* Flower heads */}
+      {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+        <mesh
+          key={`f-${i}`}
+          position={[
+            Math.sin((angle * Math.PI) / 180) * 0.04,
+            0.42 + i * 0.015,
+            Math.cos((angle * Math.PI) / 180) * 0.04,
+          ]}
+        >
+          <sphereGeometry args={[0.015, 6, 6]} />
+          <meshStandardMaterial color={['#ef4444', '#f59e0b', '#ec4899', '#8b5cf6', '#3b82f6', '#22c55e'][i]} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function Clock({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Frame */}
+      <mesh castShadow>
+        <cylinderGeometry args={[0.2, 0.2, 0.04, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* Face */}
+      <mesh position={[0, 0, 0.02]}>
+        <cylinderGeometry args={[0.17, 0.17, 0.01, 16]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.9} />
+      </mesh>
+      {/* Hour marks */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i * Math.PI * 2) / 12
+        return (
+          <mesh
+            key={i}
+            position={[Math.sin(angle) * 0.14, Math.cos(angle) * 0.14, 0.03]}
+          >
+            <boxGeometry args={[0.01, 0.02, 0.005]} />
+            <meshStandardMaterial color="#1a1a1a" />
+          </mesh>
+        )
+      })}
+      {/* Hour hand */}
+      <mesh position={[0, 0.05, 0.035]} rotation={[0, 0, -0.5]}>
+        <boxGeometry args={[0.012, 0.1, 0.005]} />
+        <meshStandardMaterial color="#1a1a1a" />
+      </mesh>
+      {/* Minute hand */}
+      <mesh position={[0.03, 0.06, 0.035]} rotation={[0, 0, -1.2]}>
+        <boxGeometry args={[0.008, 0.12, 0.005]} />
+        <meshStandardMaterial color="#374151" />
+      </mesh>
+      {/* Center dot */}
+      <mesh position={[0, 0, 0.035]}>
+        <sphereGeometry args={[0.008, 6, 6]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.3} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Mirror({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number], size = [0.6, 1.2] as [number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Frame */}
+      <mesh castShadow>
+        <boxGeometry args={[size[0] + 0.06, size[1] + 0.06, 0.04]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      {/* Mirror surface */}
+      <mesh position={[0, 0, 0.02]}>
+        <boxGeometry args={[size[0], size[1], 0.01]} />
+        <meshStandardMaterial color="#94a3b8" metalness={1} roughness={0} />
+      </mesh>
+    </group>
+  )
+}
+
+export function CurtainSet({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number], width = 2 }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Rod */}
+      <mesh position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, width, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Brackets */}
+      <mesh position={[-width / 2, -0.02, 0.02]}>
+        <boxGeometry args={[0.04, 0.04, 0.04]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[width / 2, -0.02, 0.02]}>
+        <boxGeometry args={[0.04, 0.04, 0.04]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Left curtain */}
+      <mesh position={[-width / 4, -0.7, 0.02]} castShadow>
+        <boxGeometry args={[width / 2 - 0.05, 1.4, 0.02]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.95} side={2} />
+      </mesh>
+      {/* Right curtain */}
+      <mesh position={[width / 4, -0.7, 0.02]} castShadow>
+        <boxGeometry args={[width / 2 - 0.05, 1.4, 0.02]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.95} side={2} />
+      </mesh>
+    </group>
+  )
+}
+
+'use client'
+
+import { Suspense, useState, useEffect, useCallback } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls, Environment } from '@react-three/drei'
+
+// Room components
+import { RoomArchitecture, RoomLighting, SpawnParticles } from './room-architecture'
+import { SecurityDoor, BathroomFixtures, WindowWithCurtains } from './door-system'
+import {
+  LuxuryBed,
+  Nightstand,
+  ModernSofa,
+  CoffeeTable,
+  TVStand,
+  GamingDesk,
+  GamingChair,
+  ArcadeMachine,
+  MiniBar,
+  Wardrobe,
+  Safe,
+  WallArt,
+  Plant,
+  Rug,
+  CeilingLight,
+  NeonSign,
+  FloorLamp,
+  DeskLamp,
+  Bookshelf,
+  DiningTable,
+  KitchenIsland,
+  Refrigerator,
+  OvenStove,
+  KitchenSink,
+  BarStool,
+  WineRack,
+  Dishwasher,
+  OutdoorLounge,
+  HotTub,
+  GardenTable,
+  PottedTree,
+  FirePit,
+  OutdoorLamp,
+  BalconyRailing,
+  SunLounger,
+  CandleSet,
+  Sculpture,
+  VaseFlowers,
+  Clock,
+  Mirror,
+  CurtainSet,
+} from './furniture'
+import {
+  HackingTerminal,
+  HotelPhone,
+  Jacuzzi,
+  MusicSystem,
+  SmartMirror,
+  VendingMachine,
+  SmartHomePad,
+  Fireplace,
+  TrophyCabinet,
+  RoomServicePanel,
+  SecurityPanel,
+  CoffeeMachine,
+  NewsTablet,
+} from './interactive-objects'
+import { useEtherWorldStore } from '@/lib/etherworld/store'
+
+export function EtherWorldRoom() {
+  const [showSpawnParticles, setShowSpawnParticles] = useState(true)
+  const { showContextMenu } = useEtherWorldStore()
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSpawnParticles(false)
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleContextMenu = useCallback((e: MouseEvent) => {
+    e.preventDefault()
+    const target = e.target as HTMLElement
+    const objectEl = target.closest('[data-object-type]')
+    if (objectEl) {
+      const objectType = objectEl.getAttribute('data-object-type') || 'unknown'
+      showContextMenu(e.clientX, e.clientY, objectType, objectType)
+    }
+  }, [showContextMenu])
+
+  useEffect(() => {
+    const canvas = document.querySelector('canvas')
+    if (canvas) {
+      canvas.addEventListener('contextmenu', handleContextMenu)
+      return () => canvas.removeEventListener('contextmenu', handleContextMenu)
+    }
+  }, [handleContextMenu])
+
+  return (
+    <div className="w-full h-screen bg-background">
+      <Canvas
+        shadows
+        camera={{ position: [10, 6, 12], fov: 50 }}
+        gl={{ antialias: true }}
+      >
+        <Suspense fallback={null}>
+          {/* Environment and lighting */}
+          <Environment preset="night" />
+          <RoomLighting />
+          <fog attach="fog" args={['#0a0a0f', 12, 35]} />
+
+          {/* Room structure */}
+          <RoomArchitecture />
+
+          {/* Spawn effect */}
+          <SpawnParticles active={showSpawnParticles} />
+
+          {/* === BEDROOM AREA (back right) === */}
+          <group data-object-type="LuxuryBed">
+            <LuxuryBed position={[3, 0, -6]} />
+          </group>
+          <Nightstand position={[1.5, 0, -6.5]} side="left" />
+          <Nightstand position={[4.5, 0, -6.5]} side="right" />
+          <FloorLamp position={[5.5, 0, -7]} />
+          <HotelPhone position={[1.5, 0.52, -6.5]} />
+          <SmartMirror position={[6.85, 1.6, -5.5]} rotation={[0, -Math.PI / 2, 0]} />
+          <Mirror position={[6.85, 1.6, -3]} rotation={[0, -Math.PI / 2, 0]} size={[0.5, 1]} />
+          <CandleSet position={[4.5, 0.52, -6.8]} />
+
+          {/* === LIVING AREA (center) === */}
+          <group data-object-type="ModernSofa">
+            <ModernSofa position={[0, 0, 0]} rotation={[0, Math.PI, 0]} />
+          </group>
+          <ModernSofa position={[-3, 0, -2]} rotation={[0, Math.PI / 2, 0]} />
+          <group data-object-type="CoffeeTable">
+            <CoffeeTable position={[-1, 0, -1.5]} />
+          </group>
+          <group data-object-type="TVStand">
+            <TVStand position={[-5.5, 0, -1.5]} />
+          </group>
+          <FloorLamp position={[-5.5, 0, 1.5]} />
+          <Rug position={[-1, 0.01, -1]} size={[4, 4]} />
+          <MusicSystem position={[-5.3, 0.5, -0.5]} />
+          <NewsTablet position={[-1, 0.38, -1.5]} rotation={[-Math.PI / 2 + 0.2, 0, 0.2]} />
+          <Fireplace position={[-6.75, 1.2, -3]} rotation={[0, Math.PI / 2, 0]} />
+          <VaseFlowers position={[-1, 0.38, -1.2]} />
+          <Sculpture position={[-2, 0, -3]} rotation={[0, 0.3, 0]} />
+          <Clock position={[-6.85, 2.5, -1]} rotation={[0, Math.PI / 2, 0]} />
+
+          {/* === DINING AREA (front left) === */}
+          <DiningTable position={[-4, 0, 5]} />
+          <FloorLamp position={[-6, 0, 6.5]} />
+          <RoomServicePanel position={[-6.85, 1.4, 5]} rotation={[0, Math.PI / 2, 0]} />
+          <CandleSet position={[-4, 0.84, 5]} />
+
+          {/* === KITCHEN AREA (front left extension) === */}
+          <KitchenIsland position={[-4, 0, 8]} />
+          <Refrigerator position={[-6.5, 0, 8.5]} rotation={[0, Math.PI / 2, 0]} />
+          <OvenStove position={[-6.5, 0, 7]} rotation={[0, Math.PI / 2, 0]} />
+          <KitchenSink position={[-6.5, 0, 5.5]} rotation={[0, Math.PI / 2, 0]} />
+          <WineRack position={[-6.5, 0, 6.5]} rotation={[0, Math.PI / 2, 0]} />
+          <Dishwasher position={[-6.5, 0, 9.5]} rotation={[0, Math.PI / 2, 0]} />
+          <BarStool position={[-3.2, 0, 7.5]} />
+          <BarStool position={[-4, 0, 7.5]} />
+          <BarStool position={[-4.8, 0, 7.5]} />
+
+          {/* === GAMING CORNER (right side) === */}
+          <GamingDesk position={[5.5, 0, 2]} rotation={[0, -Math.PI / 2, 0]} />
+          <GamingChair position={[4.2, 0, 2]} rotation={[0, Math.PI / 2, 0]} />
+          <DeskLamp position={[5.8, 0.77, 1.5]} />
+          <ArcadeMachine position={[5.8, 0, -2]} rotation={[0, -Math.PI / 2, 0]} />
+          <Rug position={[5, 0.01, 2]} size={[2.5, 3]} />
+          <HackingTerminal position={[5.5, 0, 4.5]} />
+          <TrophyCabinet position={[6.3, 0, 4]} />
+
+          {/* === MINI BAR / KITCHEN (front right) === */}
+          <MiniBar position={[4, 0, 6.5]} />
+          <CoffeeMachine position={[3.0, 0.95, 6.2]} />
+          <VendingMachine position={[6.5, 0, 7]} rotation={[0, -Math.PI / 2, 0]} />
+
+          {/* === SPA / JACUZZI AREA (front corner left) === */}
+          <Jacuzzi position={[-5, 0, 6.5]} />
+
+          {/* === BALCONY / EXTERIOR (through window) === */}
+          <OutdoorLounge position={[0, 0, -10.5]} />
+          <HotTub position={[-3, 0, -10.5]} />
+          <GardenTable position={[3, 0, -10.5]} />
+          <PottedTree position={[5, 0, -10]} size={1.2} />
+          <PottedTree position={[-5, 0, -10]} size={0.8} />
+          <FirePit position={[0, 0, -12]} />
+          <OutdoorLamp position={[-4, 0, -11]} />
+          <OutdoorLamp position={[4, 0, -11]} />
+          <BalconyRailing position={[0, 0, -9.5]} size={[8, 1.1]} />
+          <SunLounger position={[2, 0, -11.5]} rotation={[0, 0.3, 0]} />
+          <SunLounger position={[-2, 0, -11.5]} rotation={[0, -0.3, 0]} />
+
+          {/* === STORAGE & BOOKSHELF === */}
+          <Wardrobe position={[6, 0, -5]} rotation={[0, -Math.PI / 2, 0]} />
+          <Safe position={[5.5, 0, -7.5]} />
+          <Bookshelf position={[-6, 0, -5]} rotation={[0, Math.PI / 2, 0]} />
+
+          {/* === WALL PANELS (interactive controls) === */}
+          <SmartHomePad position={[-0.8, 1.4, 8.82]} rotation={[0, Math.PI, 0]} />
+          <SecurityPanel position={[0.8, 1.4, 8.82]} rotation={[0, Math.PI, 0]} />
+          <SmartHomePad position={[6.85, 1.5, -7.5]} rotation={[0, -Math.PI / 2, 0]} />
+
+          {/* === DECORATIVE ELEMENTS === */}
+          <WallArt position={[6.9, 1.8, 0]} size={[0.8, 0.5]} />
+          <WallArt position={[6.9, 1.8, -4]} size={[1, 0.6]} />
+          <WallArt position={[0, 1.8, -8.9]} size={[1.5, 0.9]} />
+          <WallArt position={[-4, 1.8, -8.9]} size={[1.2, 0.7]} />
+
+          <Plant position={[6, 0, 5]} size={1.4} />
+          <Plant position={[-6, 0, 7]} size={1.2} />
+          <Plant position={[-6.5, 0, -2]} size={0.9} />
+          <Plant position={[2, 0, 7]} size={1} />
+          <Plant position={[0, 0.77, 5.5]} size={0.5} />
+          <PottedTree position={[6.5, 0, -7.5]} size={0.7} />
+
+          <Rug position={[3, 0.01, -5]} size={[3, 3.5]} />
+
+          <NeonSign position={[6.85, 2.4, -6]} />
+          <NeonSign position={[-6.85, 2.2, 3]} text="LOUNGE" color="#22c55e" />
+
+          <CurtainSet position={[0, 2.8, -8.9]} width={6} />
+          <CurtainSet position={[6.9, 2.8, 2]} rotation={[0, -Math.PI / 2, 0]} width={4} />
+
+          <VaseFlowers position={[-4, 0.84, 5.2]} />
+          <Sculpture position={[6, 0, 2]} rotation={[0, Math.PI / 4, 0]} />
+
+          <CeilingLight position={[0, 3.45, 0]} />
+          <CeilingLight position={[3, 3.45, -5]} />
+          <CeilingLight position={[-3, 3.45, -5]} />
+          <CeilingLight position={[3, 3.45, 5]} />
+          <CeilingLight position={[-3, 3.45, 5]} />
+
+          {/* === DOORS === */}
+          <SecurityDoor
+            position={[0, 0, 8.9]}
+            rotation={[0, Math.PI, 0]}
+            doorId="main"
+            requiredLevel="resident"
+          />
+          <SecurityDoor
+            position={[-5, 0, -4]}
+            rotation={[0, 0, 0]}
+            doorId="bathroom"
+            requiredLevel="guest"
+          />
+
+          {/* === BATHROOM === */}
+          <BathroomFixtures position={[-5, 0, -7]} />
+
+          {/* === WINDOWS - panoramic === */}
+          <WindowWithCurtains
+            position={[0, 1.8, -8.9]}
+            rotation={[0, 0, 0]}
+            size={[6, 2.5]}
+          />
+          <WindowWithCurtains
+            position={[6.9, 1.8, 2]}
+            rotation={[0, -Math.PI / 2, 0]}
+            size={[4, 2]}
+          />
+
+          {/* Camera controls */}
+          <OrbitControls
+            makeDefault
+            minDistance={4}
+            maxDistance={20}
+            minPolarAngle={Math.PI / 6}
+            maxPolarAngle={Math.PI / 2.2}
+            target={[0, 1, 0]}
+            enableDamping
+            dampingFactor={0.05}
+          />
+        </Suspense>
+      </Canvas>
+    </div>
+  )
+}
+
+'use client'
+
+import { useState, useCallback } from 'react'
+import { useEtherWorldStore } from '@/lib/etherworld/store'
+import { RARITY_COLORS, CATEGORY_ICONS, type InventoryItem, type ItemCategory, type ItemRarity } from '@/lib/etherworld/types'
+import { cn } from '@/lib/utils'
+import {
+  X,
+  Package,
+  Trash2,
+  Weight,
+  Grid3x3,
+} from 'lucide-react'
+
+type SortMode = 'name' | 'rarity' | 'category' | 'weight' | 'value'
+
+const RARITY_ORDER: Record<ItemRarity, number> = {
+  common: 0,
+  uncommon: 1,
+  rare: 2,
+  epic: 3,
+  legendary: 4,
+}
+
+export function InventoryPanel() {
+  const {
+    inventoryOpen,
+    inventory,
+    inventoryConfig,
+    selectedSlot,
+    toggleInventory,
+    removeItem,
+    useItem,
+    moveItem,
+    selectSlot,
+    playerStats,
+  } = useEtherWorldStore()
+
+  const [sortMode, setSortMode] = useState<SortMode>('name')
+  const [filterCategory, setFilterCategory] = useState<ItemCategory | 'all'>('all')
+  const [dragFrom, setDragFrom] = useState<number | null>(null)
+
+  const totalWeight = inventory.reduce((sum, s) => sum + (s.item ? s.item.weight * s.item.quantity : 0), 0)
+
+  const sortedInventory = [...inventory].sort((a, b) => {
+    if (!a.item && !b.item) return 0
+    if (!a.item) return 1
+    if (!b.item) return -1
+    switch (sortMode) {
+      case 'rarity':
+        return RARITY_ORDER[b.item.rarity] - RARITY_ORDER[a.item.rarity]
+      case 'category':
+        return a.item.category.localeCompare(b.item.category)
+      case 'weight':
+        return b.item.weight - a.item.weight
+      case 'value':
+        return b.item.value - a.item.value
+      default:
+        return a.item.name.localeCompare(b.item.name)
+    }
+  })
+
+  const filteredInventory = filterCategory === 'all'
+    ? sortedInventory
+    : sortedInventory.filter((s) => s.item?.category === filterCategory)
+
+  const handleDrop = useCallback((toSlot: number) => {
+    if (dragFrom !== null && dragFrom !== toSlot) {
+      moveItem(dragFrom, toSlot)
+    }
+    setDragFrom(null)
+  }, [dragFrom, moveItem])
+
+  if (!inventoryOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-[160] flex items-center justify-center pointer-events-none">
+      <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-zinc-900/95 backdrop-blur-md border border-zinc-700/50 rounded-xl shadow-2xl w-[640px] max-h-[80vh] flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700/50">
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-amber-400" />
+              <span className="text-sm font-bold text-white tracking-wider">INVENTAIRE</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 text-[10px] text-zinc-400">
+                <Weight className="w-3 h-3" />
+                <span>{totalWeight.toFixed(1)}/{inventoryConfig.maxWeight}kg</span>
+              </div>
+              <div className="flex items-center gap-1 text-[10px] text-zinc-400">
+                <Grid3x3 className="w-3 h-3" />
+                <span>{inventory.filter((s) => s.item).length}/{inventoryConfig.maxSlots}</span>
+              </div>
+              <button onClick={toggleInventory} className="p-1 hover:bg-zinc-700/50 rounded transition-colors">
+                <X className="w-4 h-4 text-zinc-400" />
+              </button>
+            </div>
+          </div>
+
+          {/* Toolbar */}
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-700/30">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Tri:</span>
+              {(['name', 'rarity', 'category', 'weight', 'value'] as SortMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setSortMode(mode)}
+                  className={cn(
+                    "px-2 py-0.5 rounded text-[10px] font-semibold transition-all",
+                    sortMode === mode
+                      ? "bg-amber-500/20 text-amber-400"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  {mode === 'name' ? 'Nom' : mode === 'rarity' ? 'Rareté' : mode === 'category' ? 'Type' : mode === 'weight' ? 'Poids' : 'Valeur'}
+                </button>
+              ))}
+            </div>
+            <div className="ml-auto flex items-center gap-1">
+              <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Filtre:</span>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value as ItemCategory | 'all')}
+                className="bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-[10px] text-zinc-300"
+              >
+                <option value="all">Tous</option>
+                {Object.entries(CATEGORY_ICONS).map(([cat, icon]) => (
+                  <option key={cat} value={cat}>{icon} {cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Grid */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-8 gap-1.5">
+              {filteredInventory.map((slot) => (
+                <InventorySlotComponent
+                  key={slot.slotId}
+                  slot={slot}
+                  isSelected={selectedSlot === slot.slotId}
+                  onSelect={() => selectSlot(slot.slotId)}
+                  onUse={() => useItem(slot.slotId)}
+                  onRemove={() => removeItem(slot.slotId)}
+                  onDragStart={() => setDragFrom(slot.slotId)}
+                  onDrop={() => handleDrop(slot.slotId)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Selected item detail */}
+          {selectedSlot !== null && (() => {
+            const slot = inventory.find((s) => s.slotId === selectedSlot)
+            if (!slot?.item) return null
+            const item = slot.item
+            return (
+              <div className="border-t border-zinc-700/30 px-4 py-3">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl border"
+                    style={{
+                      borderColor: RARITY_COLORS[item.rarity],
+                      backgroundColor: `${RARITY_COLORS[item.rarity]}15`,
+                    }}
+                  >
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white">{item.name}</span>
+                      <span
+                        className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded"
+                        style={{
+                          color: RARITY_COLORS[item.rarity],
+                          backgroundColor: `${RARITY_COLORS[item.rarity]}20`,
+                        }}
+                      >
+                        {item.rarity}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-0.5">{item.description}</p>
+                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-zinc-500">
+                      <span>{CATEGORY_ICONS[item.category]} {item.category}</span>
+                      <span>Poids: {item.weight}kg</span>
+                      <span>Valeur: {item.value}cr</span>
+                      {item.stackable && <span>x{item.quantity}/{item.maxStack}</span>}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {item.usable && (
+                      <button
+                        onClick={() => useItem(slot.slotId)}
+                        className="px-3 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded text-[10px] font-bold tracking-wider transition-colors border border-emerald-500/30"
+                      >
+                        UTILISER
+                      </button>
+                    )}
+                    {item.tradeable && (
+                      <button
+                        onClick={() => removeItem(slot.slotId)}
+                        className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-[10px] font-bold tracking-wider transition-colors border border-red-500/30"
+                      >
+                        JETER
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Player stats bar */}
+          <div className="border-t border-zinc-700/30 px-4 py-2">
+            <div className="grid grid-cols-3 gap-2 text-[10px]">
+              {[
+                { label: 'Energie', value: playerStats.energy, color: '#22c55e' },
+                { label: 'Faim', value: playerStats.hunger, color: '#f59e0b' },
+                { label: 'Humeur', value: playerStats.mood, color: '#8b5cf6' },
+              ].map((stat) => (
+                <div key={stat.label} className="flex items-center gap-1.5">
+                  <span className="text-zinc-500 w-10">{stat.label}</span>
+                  <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${stat.value}%`, backgroundColor: stat.color }}
+                    />
+                  </div>
+                  <span className="text-zinc-400 w-6 text-right">{stat.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function InventorySlotComponent({
+  slot,
+  isSelected,
+  onSelect,
+  onUse,
+  onRemove,
+  onDragStart,
+  onDrop,
+}: {
+  slot: { slotId: number; item: InventoryItem | null; locked: boolean }
+  isSelected: boolean
+  onSelect: () => void
+  onUse: () => void
+  onRemove: () => void
+  onDragStart: () => void
+  onDrop: () => void
+}) {
+  const item = slot.item
+  const rarityColor = item ? RARITY_COLORS[item.rarity] : '#374151'
+
+  return (
+    <div
+      draggable={!!item}
+      onDragStart={onDragStart}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={onDrop}
+      onClick={onSelect}
+      onDoubleClick={item?.usable ? onUse : undefined}
+      className={cn(
+        "relative aspect-square rounded-lg border-2 flex flex-col items-center justify-center cursor-pointer transition-all group",
+        isSelected
+          ? "border-amber-400 bg-amber-400/10 shadow-lg shadow-amber-400/20"
+          : slot.locked
+            ? "border-zinc-800 bg-zinc-900/50 cursor-not-allowed"
+            : item
+              ? "border-zinc-700 bg-zinc-800/50 hover:border-zinc-500 hover:bg-zinc-700/30"
+              : "border-zinc-800/50 bg-zinc-900/30 hover:border-zinc-700"
+      )}
+      style={!isSelected && item ? { borderColor: `${rarityColor}40` } : undefined}
+    >
+      {item ? (
+        <>
+          <span className="text-lg">{item.icon}</span>
+          {item.quantity > 1 && (
+            <span className="absolute bottom-0.5 right-1 text-[9px] font-bold text-zinc-300">
+              {item.quantity}
+            </span>
+          )}
+          <div
+            className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-lg"
+            style={{ backgroundColor: rarityColor }}
+          />
+          <button
+            onClick={(e) => { e.stopPropagation(); onRemove() }}
+            className="absolute -top-1 -right-1 w-4 h-4 bg-red-500/80 rounded-full items-center justify-center text-white text-[8px] hidden group-hover:flex"
+          >
+            <Trash2 className="w-2.5 h-2.5" />
+          </button>
+        </>
+      ) : slot.locked ? (
+        <X className="w-3 h-3 text-zinc-700" />
+      ) : null}
+    </div>
+  )
+}
+
+'use client'
+
+import { useRef } from 'react'
+import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
+import { useEtherWorldStore } from '@/lib/etherworld/store'
+
+// Room dimensions - EXPANDED x2
+const ROOM_WIDTH = 14
+const ROOM_DEPTH = 18
+const ROOM_HEIGHT = 3.5
+const WALL_THICKNESS = 0.18
+const BATHROOM_WIDTH = 4
+const BATHROOM_DEPTH = 5
+
+export function RoomArchitecture() {
+  return (
+    <group>
+      {/* Main Floor - Parquet */}
+      <Floor />
+      
+      {/* Ceiling */}
+      <Ceiling />
+      
+      {/* Walls */}
+      <Walls />
+      
+      {/* Bathroom partition */}
+      <BathroomPartition />
+    </group>
+  )
+}
+
+function Floor() {
+  
+  return (
+    <group>
+      {/* Main room floor - dark parquet */}
+      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[ROOM_WIDTH, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1615" roughness={0.7} metalness={0.1} />
+      </mesh>
+      
+      {/* Parquet pattern overlay */}
+      {[...Array(10)].map((_, row) => (
+        [...Array(8)].map((_, col) => (
+          <mesh 
+            key={`${row}-${col}`}
+            position={[
+              -ROOM_WIDTH / 2 + 0.5 + col * 1,
+              0.001,
+              -ROOM_DEPTH / 2 + 0.5 + row * 1
+            ]}
+            rotation={[-Math.PI / 2, 0, (row + col) % 2 === 0 ? 0 : Math.PI / 2]}
+            receiveShadow
+          >
+            <planeGeometry args={[0.95, 0.2]} />
+            <meshStandardMaterial 
+              color={(row + col) % 2 === 0 ? "#1f1b1a" : "#252120"} 
+              roughness={0.6} 
+            />
+          </mesh>
+        ))
+      ))}
+      
+      {/* Bathroom floor - tiles */}
+      <mesh 
+        position={[-ROOM_WIDTH / 2 + BATHROOM_WIDTH / 2 + WALL_THICKNESS, 0.002, -ROOM_DEPTH / 2 + BATHROOM_DEPTH / 2 + WALL_THICKNESS]} 
+        rotation={[-Math.PI / 2, 0, 0]} 
+        receiveShadow
+      >
+        <planeGeometry args={[BATHROOM_WIDTH - 0.1, BATHROOM_DEPTH - 0.1]} />
+        <meshStandardMaterial color="#374151" roughness={0.3} metalness={0.2} />
+      </mesh>
+      
+      {/* Tile grid for bathroom */}
+      {[...Array(6)].map((_, row) => (
+        [...Array(5)].map((_, col) => (
+          <mesh 
+            key={`bath-${row}-${col}`}
+            position={[
+              -ROOM_WIDTH / 2 + 0.4 + col * 0.5,
+              0.003,
+              -ROOM_DEPTH / 2 + 0.4 + row * 0.5
+            ]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry args={[0.48, 0.48]} />
+            <meshStandardMaterial color="#4b5563" roughness={0.2} />
+          </mesh>
+        ))
+      ))}
+    </group>
+  )
+}
+
+function Ceiling() {
+  const { lights } = useEtherWorldStore()
+  const ceilingOn = lights.ceiling?.isOn ?? true
+  
+  return (
+    <group>
+      {/* Main ceiling */}
+      <mesh position={[0, ROOM_HEIGHT, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[ROOM_WIDTH, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Main recessed lighting track - center */}
+      <mesh position={[0, ROOM_HEIGHT - 0.02, 0]}>
+        <boxGeometry args={[0.12, 0.05, ROOM_DEPTH - 2]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Side lighting tracks */}
+      <mesh position={[-3, ROOM_HEIGHT - 0.02, 0]}>
+        <boxGeometry args={[0.1, 0.04, ROOM_DEPTH - 4]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[3, ROOM_HEIGHT - 0.02, 0]}>
+        <boxGeometry args={[0.1, 0.04, ROOM_DEPTH - 4]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* LED strip perimeter */}
+      <LEDStrip position={[0, ROOM_HEIGHT - 0.08, 0]} width={ROOM_WIDTH - 1} depth={ROOM_DEPTH - 1} isOn={ceilingOn} />
+      
+      {/* Ceiling spots - 3x5 grid */}
+      {[-4, 0, 4].map((x, xi) => (
+        [-6, -3, 0, 3, 6].map((z, zi) => (
+          <CeilingSpot key={`${xi}-${zi}`} position={[x, ROOM_HEIGHT - 0.05, z]} />
+        ))
+      ))}
+      
+      {/* Accent LED panels */}
+      <LEDPanel position={[-5, ROOM_HEIGHT - 0.03, -6]} size={[1.5, 1]} color="#8b5cf6" />
+      <LEDPanel position={[5, ROOM_HEIGHT - 0.03, -6]} size={[1.5, 1]} color="#3b82f6" />
+      <LEDPanel position={[5, ROOM_HEIGHT - 0.03, 6]} size={[1.5, 1]} color="#22c55e" />
+      
+      {/* AC unit - larger */}
+      <mesh position={[4, ROOM_HEIGHT - 0.18, -7]}>
+        <boxGeometry args={[1.8, 0.3, 0.45]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.4} />
+      </mesh>
+      <mesh position={[4, ROOM_HEIGHT - 0.34, -7]}>
+        <boxGeometry args={[1.5, 0.02, 0.25]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.5} />
+      </mesh>
+      
+      {/* Smoke detector */}
+      <mesh position={[-2, ROOM_HEIGHT - 0.05, 3]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.04, 16]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.7} />
+      </mesh>
+      <mesh position={[-2, ROOM_HEIGHT - 0.07, 3]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.02, 8]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.3} />
+      </mesh>
+    </group>
+  )
+}
+
+// LED Strip around ceiling perimeter
+function LEDStrip({ position, width, depth, isOn }: { position: [number, number, number], width: number, depth: number, isOn: boolean }) {
+  return (
+    <group position={position}>
+      {/* Front */}
+      <mesh position={[0, 0, depth / 2]}>
+        <boxGeometry args={[width, 0.02, 0.04]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+      {/* Back */}
+      <mesh position={[0, 0, -depth / 2]}>
+        <boxGeometry args={[width, 0.02, 0.04]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+      {/* Left */}
+      <mesh position={[-width / 2, 0, 0]}>
+        <boxGeometry args={[0.04, 0.02, depth]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+      {/* Right */}
+      <mesh position={[width / 2, 0, 0]}>
+        <boxGeometry args={[0.04, 0.02, depth]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+// LED Panel accent light
+function LEDPanel({ position, size, color }: { position: [number, number, number], size: [number, number], color: string }) {
+  return (
+    <mesh position={position}>
+      <boxGeometry args={[size[0], 0.02, size[1]]} />
+      <meshStandardMaterial 
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.5}
+        transparent
+        opacity={0.8}
+      />
+    </mesh>
+  )
+}
+
+function CeilingSpot({ position }: { position: [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.ceiling?.isOn ?? true
+  
+  return (
+    <group position={position}>
+      <mesh>
+        <cylinderGeometry args={[0.08, 0.1, 0.05, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, -0.03, 0]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.02, 16]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#374151"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.8 : 0}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+function Walls() {
+  return (
+    <group>
+      {/* Back wall (with window) */}
+      <mesh position={[0, ROOM_HEIGHT / 2, -ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[ROOM_WIDTH, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Front wall (with main door) - left part */}
+      <mesh position={[-ROOM_WIDTH / 2 + 1.5, ROOM_HEIGHT / 2, ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[3, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Front wall - right part */}
+      <mesh position={[ROOM_WIDTH / 2 - 1.5, ROOM_HEIGHT / 2, ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[3, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Front wall - above door */}
+      <mesh position={[0, ROOM_HEIGHT - 0.35, ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[2, 0.7, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Left wall */}
+      <mesh position={[-ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[WALL_THICKNESS, ROOM_HEIGHT, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Right wall */}
+      <mesh position={[ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[WALL_THICKNESS, ROOM_HEIGHT, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Baseboard trim */}
+      <Baseboards />
+      
+      {/* Crown molding */}
+      <CrownMolding />
+    </group>
+  )
+}
+
+function Baseboards() {
+  const baseboardHeight = 0.1
+  const baseboardDepth = 0.02
+  
+  return (
+    <group>
+      {/* Back wall */}
+      <mesh position={[0, baseboardHeight / 2, -ROOM_DEPTH / 2 + WALL_THICKNESS / 2 + baseboardDepth / 2]}>
+        <boxGeometry args={[ROOM_WIDTH - WALL_THICKNESS * 2, baseboardHeight, baseboardDepth]} />
+        <meshStandardMaterial color="#111827" roughness={0.7} />
+      </mesh>
+      
+      {/* Left wall */}
+      <mesh position={[-ROOM_WIDTH / 2 + WALL_THICKNESS / 2 + baseboardDepth / 2, baseboardHeight / 2, 0]}>
+        <boxGeometry args={[baseboardDepth, baseboardHeight, ROOM_DEPTH - WALL_THICKNESS * 2]} />
+        <meshStandardMaterial color="#111827" roughness={0.7} />
+      </mesh>
+      
+      {/* Right wall */}
+      <mesh position={[ROOM_WIDTH / 2 - WALL_THICKNESS / 2 - baseboardDepth / 2, baseboardHeight / 2, 0]}>
+        <boxGeometry args={[baseboardDepth, baseboardHeight, ROOM_DEPTH - WALL_THICKNESS * 2]} />
+        <meshStandardMaterial color="#111827" roughness={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
+function CrownMolding() {
+  const moldingSize = 0.08
+  
+  return (
+    <group>
+      {/* Back wall */}
+      <mesh position={[0, ROOM_HEIGHT - moldingSize / 2, -ROOM_DEPTH / 2 + WALL_THICKNESS / 2 + moldingSize / 2]}>
+        <boxGeometry args={[ROOM_WIDTH, moldingSize, moldingSize]} />
+        <meshStandardMaterial color="#111827" roughness={0.6} />
+      </mesh>
+      
+      {/* Left wall */}
+      <mesh position={[-ROOM_WIDTH / 2 + WALL_THICKNESS / 2 + moldingSize / 2, ROOM_HEIGHT - moldingSize / 2, 0]}>
+        <boxGeometry args={[moldingSize, moldingSize, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#111827" roughness={0.6} />
+      </mesh>
+      
+      {/* Right wall */}
+      <mesh position={[ROOM_WIDTH / 2 - WALL_THICKNESS / 2 - moldingSize / 2, ROOM_HEIGHT - moldingSize / 2, 0]}>
+        <boxGeometry args={[moldingSize, moldingSize, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#111827" roughness={0.6} />
+      </mesh>
+    </group>
+  )
+}
+
+function BathroomPartition() {
+  const doorWidth = 0.8
+  const wallStartX = -ROOM_WIDTH / 2 + WALL_THICKNESS
+  const wallEndX = wallStartX + BATHROOM_WIDTH
+  const wallZ = -ROOM_DEPTH / 2 + BATHROOM_DEPTH + WALL_THICKNESS
+  
+  return (
+    <group>
+      {/* Partition wall - left of door */}
+      <mesh position={[wallStartX + 0.5, ROOM_HEIGHT / 2, wallZ]} castShadow receiveShadow>
+        <boxGeometry args={[1, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.85} />
+      </mesh>
+      
+      {/* Partition wall - right of door */}
+      <mesh position={[wallEndX - 0.5, ROOM_HEIGHT / 2, wallZ]} castShadow receiveShadow>
+        <boxGeometry args={[1, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.85} />
+      </mesh>
+      
+      {/* Above door */}
+      <mesh position={[wallStartX + BATHROOM_WIDTH / 2, ROOM_HEIGHT - 0.35, wallZ]} castShadow receiveShadow>
+        <boxGeometry args={[doorWidth + 0.2, 0.7, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.85} />
+      </mesh>
+      
+      {/* Back bathroom wall (partial, for depth) */}
+      <mesh position={[wallStartX + BATHROOM_WIDTH / 2, ROOM_HEIGHT / 2, -ROOM_DEPTH / 2 + WALL_THICKNESS]}>
+        <boxGeometry args={[BATHROOM_WIDTH, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#374151" roughness={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// LIGHTING SYSTEM
+// ============================================
+
+export function RoomLighting() {
+  const { lights } = useEtherWorldStore()
+  
+  return (
+    <group>
+      {/* Ambient base */}
+      <ambientLight intensity={0.15} color="#1a1a2e" />
+      
+      {/* Main ceiling lights */}
+      {lights.ceiling?.isOn && (
+        <>
+          <spotLight
+            position={[0, 2.9, -2]}
+            angle={Math.PI / 4}
+            penumbra={0.5}
+            intensity={1.5}
+            color="#fff5e6"
+            castShadow
+            shadow-mapSize={[1024, 1024]}
+          />
+          <spotLight
+            position={[0, 2.9, 0]}
+            angle={Math.PI / 4}
+            penumbra={0.5}
+            intensity={1.5}
+            color="#fff5e6"
+            castShadow
+          />
+          <spotLight
+            position={[0, 2.9, 2]}
+            angle={Math.PI / 4}
+            penumbra={0.5}
+            intensity={1.5}
+            color="#fff5e6"
+            castShadow
+          />
+        </>
+      )}
+      
+      {/* Desk lamp */}
+      {lights.desk?.isOn && (
+        <pointLight
+          position={[3.2, 1.5, 2]}
+          intensity={0.8}
+          color="#fef3c7"
+          distance={3}
+          castShadow
+        />
+      )}
+      
+      {/* Bathroom light */}
+      {lights.bathroom?.isOn && (
+        <pointLight
+          position={[-2.5, 2.5, -3.5]}
+          intensity={1}
+          color="#ffffff"
+          distance={4}
+        />
+      )}
+      
+      {/* TV ambient */}
+      {lights.tv?.isOn && (
+        <pointLight
+          position={[-2, 1.5, -3]}
+          intensity={0.4}
+          color="#3b82f6"
+          distance={4}
+        />
+      )}
+      
+      {/* Neon accent */}
+      {lights.neon?.isOn && (
+        <pointLight
+          position={[2, 2.2, -4.5]}
+          intensity={0.5}
+          color="#8b5cf6"
+          distance={4}
+        />
+      )}
+      
+      {/* Window light (moonlight/city) */}
+      <directionalLight
+        position={[0, 3, -8]}
+        intensity={0.2}
+        color="#6366f1"
+      />
+    </group>
+  )
+}
+
+// ============================================
+// SPAWN PARTICLES
+// ============================================
+
+export function SpawnParticles({ active }: { active: boolean }) {
+  const particlesRef = useRef<THREE.Points>(null)
+  const particleCount = 100
+  
+  const positions = useRef<Float32Array>(
+    new Float32Array(particleCount * 3).map((_, i) => {
+      const idx = i % 3
+      if (idx === 0) return (Math.random() - 0.5) * 3 // x
+      if (idx === 1) return Math.random() * 2 + 0.5 // y
+      return (Math.random() - 0.5) * 3 // z
+    })
+  )
+  
+  useFrame((state) => {
+    if (particlesRef.current && active) {
+      const positions = particlesRef.current.geometry.attributes.position.array as Float32Array
+      
+      for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3
+        positions[i3 + 1] += 0.01 + Math.sin(state.clock.elapsedTime + i) * 0.005
+        
+        if (positions[i3 + 1] > 3) {
+          positions[i3 + 1] = 0.5
+        }
+      }
+      
+      particlesRef.current.geometry.attributes.position.needsUpdate = true
+      particlesRef.current.rotation.y += 0.001
+    }
+  })
+  
+  if (!active) return null
+  
+  return (
+    <points ref={particlesRef} position={[0, 0, 0]}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions.current, 3]}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.03}
+        color="#8b5cf6"
+        transparent
+        opacity={0.6}
+        sizeAttenuation
+      />
+    </points>
+  )
+}
+
+export interface DoorControllerState {
+  id: string
+  roomId: string
+  isLocked: boolean
+  isAnimating: boolean
+  lastInteraction: number
+  accessLog: AccessLogEntry[]
+}
+
+export interface AccessLogEntry {
+  timestamp: number
+  cardLevel: string
+  granted: boolean
+}
+
+const DOOR_OPEN_SPEED = 3.5
+const AUTO_CLOSE_DELAY = 5000
+
+export function createDoorController(id: string, roomId: string, isLocked: boolean): DoorControllerState {
+  return {
+    id,
+    roomId,
+    isLocked,
+    isAnimating: false,
+    lastInteraction: 0,
+    accessLog: [],
+  }
+}
+
+export function validateAccess(
+  doorState: DoorControllerState,
+  cardLevel: number,
+  requiredLevel: number
+): { granted: boolean; doorState: DoorControllerState } {
+  const granted = cardLevel >= requiredLevel
+  const logEntry: AccessLogEntry = {
+    timestamp: Date.now(),
+    cardLevel: cardLevel.toString(),
+    granted,
+  }
+
+  return {
+    granted,
+    doorState: {
+      ...doorState,
+      lastInteraction: Date.now(),
+      isAnimating: true,
+      accessLog: [...doorState.accessLog.slice(-19), logEntry],
+    },
+  }
+}
+
+export function calculateDoorAngle(
+  currentAngle: number,
+  targetAngle: number,
+  deltaTime: number
+): number {
+  const diff = targetAngle - currentAngle
+  if (Math.abs(diff) < 0.01) return targetAngle
+  return currentAngle + diff * Math.min(deltaTime * DOOR_OPEN_SPEED, 1)
+}
+
+export function shouldAutoClose(doorState: DoorControllerState): boolean {
+  return (
+    !doorState.isLocked &&
+    !doorState.isAnimating &&
+    Date.now() - doorState.lastInteraction > AUTO_CLOSE_DELAY
+  )
+}
+
+export { DOOR_OPEN_SPEED, AUTO_CLOSE_DELAY }
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/*
+  ============================================================
+  THEME CONFIGURATION
+  ============================================================
+
+  Theme: neutral (default)
+  Mode:  light (:root) / dark (.dark)
+
+  To switch to dark mode by default, change the ThemeProvider
+  defaultTheme prop in src/main.tsx:
+    <ThemeProvider defaultTheme="dark">
+
+  To change theme colors, replace the OKLCH values below.
+  Visit https://ui.shadcn.com/themes to generate theme CSS.
+
+  To change the base color palette (e.g. stone, zinc, gray),
+  re-initialize with the shadcn CLI:
+    npx shadcn@latest init -t vite --preset nova -y -f
+    npx shadcn@latest init -t vite --preset vega -y -f
+
+  Available presets: nova, vega, maia, lyra, mira
+  Available base colors: neutral, stone, zinc, gray, mauve,
+                         olive, mist, taupe
+
+  CLI non-interactive theme change:
+    npx shadcn@latest init -t vite -d -y -f
+  ============================================================
+*/
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.269 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.371 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.439 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+import { Moon, Sun } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useTheme } from "@/components/theme-provider"
+
+export function ModeToggle() {
+  const { setTheme } = useTheme()
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="icon">
+          <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setTheme("light")}>
+          Light
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("dark")}>
+          Dark
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setTheme("system")}>
+          System
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/* eslint-disable react-refresh/only-export-components */
+import * as React from "react"
+
+type Theme = "dark" | "light" | "system"
+type ResolvedTheme = "dark" | "light"
+
+type ThemeProviderProps = {
+  children: React.ReactNode
+  defaultTheme?: Theme
+  storageKey?: string
+  disableTransitionOnChange?: boolean
+}
+
+type ThemeProviderState = {
+  theme: Theme
+  setTheme: (theme: Theme) => void
+}
+
+const COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)"
+const THEME_VALUES: Theme[] = ["dark", "light", "system"]
+
+const ThemeProviderContext = React.createContext<
+  ThemeProviderState | undefined
+>(undefined)
+
+function isTheme(value: string | null): value is Theme {
+  if (value === null) {
+    return false
+  }
+
+  return THEME_VALUES.includes(value as Theme)
+}
+
+function getSystemTheme(): ResolvedTheme {
+  if (window.matchMedia(COLOR_SCHEME_QUERY).matches) {
+    return "dark"
+  }
+
+  return "light"
+}
+
+function disableTransitionsTemporarily() {
+  const style = document.createElement("style")
+  style.appendChild(
+    document.createTextNode(
+      "*,*::before,*::after{-webkit-transition:none!important;transition:none!important}"
+    )
+  )
+  document.head.appendChild(style)
+
+  return () => {
+    window.getComputedStyle(document.body)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        style.remove()
+      })
+    })
+  }
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  if (target.isContentEditable) {
+    return true
+  }
+
+  const editableParent = target.closest(
+    "input, textarea, select, [contenteditable='true']"
+  )
+  if (editableParent) {
+    return true
+  }
+
+  return false
+}
+
+export function ThemeProvider({
+  children,
+  defaultTheme = "system",
+  storageKey = "theme",
+  disableTransitionOnChange = true,
+  ...props
+}: ThemeProviderProps) {
+  const [theme, setThemeState] = React.useState<Theme>(() => {
+    const storedTheme = localStorage.getItem(storageKey)
+    if (isTheme(storedTheme)) {
+      return storedTheme
+    }
+
+    return defaultTheme
+  })
+
+  const setTheme = React.useCallback(
+    (nextTheme: Theme) => {
+      localStorage.setItem(storageKey, nextTheme)
+      setThemeState(nextTheme)
+    },
+    [storageKey]
+  )
+
+  const applyTheme = React.useCallback(
+    (nextTheme: Theme) => {
+      const root = document.documentElement
+      const resolvedTheme =
+        nextTheme === "system" ? getSystemTheme() : nextTheme
+      const restoreTransitions = disableTransitionOnChange
+        ? disableTransitionsTemporarily()
+        : null
+
+      root.classList.remove("light", "dark")
+      root.classList.add(resolvedTheme)
+
+      if (restoreTransitions) {
+        restoreTransitions()
+      }
+    },
+    [disableTransitionOnChange]
+  )
+
+  React.useEffect(() => {
+    applyTheme(theme)
+
+    if (theme !== "system") {
+      return undefined
+    }
+
+    const mediaQuery = window.matchMedia(COLOR_SCHEME_QUERY)
+    const handleChange = () => {
+      applyTheme("system")
+    }
+
+    mediaQuery.addEventListener("change", handleChange)
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange)
+    }
+  }, [theme, applyTheme])
+
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat) {
+        return
+      }
+
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return
+      }
+
+      if (isEditableTarget(event.target)) {
+        return
+      }
+
+      if (event.key.toLowerCase() !== "d") {
+        return
+      }
+
+      setThemeState((currentTheme) => {
+        const nextTheme =
+          currentTheme === "dark"
+            ? "light"
+            : currentTheme === "light"
+              ? "dark"
+              : getSystemTheme() === "dark"
+                ? "light"
+                : "dark"
+
+        localStorage.setItem(storageKey, nextTheme)
+        return nextTheme
+      })
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [storageKey])
+
+  React.useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.storageArea !== localStorage) {
+        return
+      }
+
+      if (event.key !== storageKey) {
+        return
+      }
+
+      if (isTheme(event.newValue)) {
+        setThemeState(event.newValue)
+        return
+      }
+
+      setThemeState(defaultTheme)
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+    }
+  }, [defaultTheme, storageKey])
+
+  const value = React.useMemo(
+    () => ({
+      theme,
+      setTheme,
+    }),
+    [theme, setTheme]
+  )
+
+  return (
+    <ThemeProviderContext.Provider {...props} value={value}>
+      {children}
+    </ThemeProviderContext.Provider>
+  )
+}
+
+export const useTheme = () => {
+  const context = React.useContext(ThemeProviderContext)
+
+  if (context === undefined) {
+    throw new Error("useTheme must be used within a ThemeProvider")
+  }
+
+  return context
+}
+

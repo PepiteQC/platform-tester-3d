@@ -1,0 +1,698 @@
+ROMPT STRICT — SYSTÈME MÉTÉO QUÉBEC ULTRA COMPLEXE POUR ETHERWORLD RP
+Rôle : Tu es chargé de concevoir et implémenter un système de météo ultra complexe et réaliste du Québec pour EtherWorld RP (React + Three.js + React Three Fiber, style low‑poly Synty/KayKit).
+Tu dois te concentrer UNIQUEMENT sur la météo + temps, de façon profonde, modulaire, scalable, sans casser ce qui existe déjà.
+
+🎯 Objectif global
+Créer un système météo/temps du Québec qui gère :
+
+Heure réelle du Québec (EST)
+
+Saisons réalistes (hiver, printemps, été, automne)
+
+Régions météo (Montréal, Québec, Saguenay, Gaspésie, etc. si besoin plus tard)
+
+Types de météo complexes (neige, verglas, tempête, blizzard, pluie, bruine, brouillard, grand froid, canicule, etc.)
+
+Transitions dynamiques (pas de switch brutal)
+
+Impact visuel + sonore + gameplay
+
+Intégration avec le dépanneur, la route, les lumières, le ciel, les particules
+
+Tu dois créer un système propre, modulaire, configurable, prêt pour du multijoueur plus tard.
+
+🧩 Contexte technique obligatoire
+Projet : EtherWorld RP
+
+Stack : React + Three.js + React Three Fiber
+
+Style : low‑poly Synty/KayKit
+
+Scènes importantes :
+
+Route du Québec
+
+Dépanneur Couche‑Tard
+
+(Autres scènes à venir)
+
+Tu dois respecter l’architecture existante.
+Tu ne dois pas réécrire les scènes, seulement les enrichir via ton système.
+
+🧱 Architecture météo à mettre en place
+Tu dois créer ou compléter les fichiers suivants :
+
+txt
+src/
+ ├─ systems/
+ │    ├─ TimeManager.ts
+ │    ├─ WeatherManager.ts
+ │    ├─ SeasonManager.ts
+ │    ├─ RegionWeatherManager.ts
+ │    ├─ SkyManager.ts
+ │    ├─ SunManager.ts
+ │    ├─ LightManager.ts
+ │    └─ EffectsManager.ts
+ │
+ ├─ stores/
+ │    ├─ useTimeStore.ts
+ │    ├─ useWeatherStore.ts
+ │    └─ useSeasonStore.ts
+ │
+ ├─ components/
+ │    ├─ DynamicSky.tsx
+ │    ├─ DynamicSun.tsx
+ │    ├─ WeatherParticles.tsx
+ │    ├─ WeatherOverlay.tsx
+ │    └─ AutoLights.tsx
+Tu dois créer tout ce qui manque et compléter ce qui est incomplet.
+
+🕒 TimeManager — Temps réel du Québec
+Responsabilités :
+
+Gérer l’heure locale du Québec (EST)
+
+Exposer : heure, minute, seconde, jour, mois, année
+
+Gérer un timeScale (accélération du temps in‑game)
+
+Synchroniser avec le cycle jour/nuit
+
+API attendue :
+
+useTimeStore() avec :
+
+currentTime (Date ou structure custom)
+
+timeScale
+
+setTimeScale()
+
+isNight, isDay, isSunrise, isSunset
+
+🍁 SeasonManager — Saisons du Québec
+Saisons à gérer :
+
+Hiver
+
+Printemps
+
+Été
+
+Automne
+
+Paramètres par saison :
+
+température moyenne
+
+probabilité de types de météo
+
+durée du jour/nuit
+
+intensité de la lumière
+
+couleur du ciel
+
+densité de fog
+
+API :
+
+useSeasonStore() avec :
+
+currentSeason
+
+setSeason()
+
+getSeasonConfig()
+
+🌦 WeatherManager — Météo complexe
+Types de météo à gérer :
+
+ciel clair
+
+partiellement nuageux
+
+nuageux
+
+pluie légère
+
+pluie forte
+
+orage
+
+neige légère
+
+neige forte
+
+blizzard
+
+verglas
+
+brouillard
+
+bruine
+
+canicule
+
+grand froid
+
+Chaque type doit définir :
+
+intensité de particules (pluie/neige)
+
+opacité du ciel
+
+couleur du ciel
+
+densité du fog
+
+intensité de la lumière
+
+effets sonores (prévu, pas forcément codé maintenant)
+
+impact sur le sol (glissant, mouillé, enneigé — prévu pour plus tard)
+
+Transitions :
+
+pas de switch brutal
+
+interpolation progressive (ex : 30–120 secondes)
+
+gestion d’événements météo (tempête, front froid, etc.)
+
+API :
+
+useWeatherStore() avec :
+
+currentWeather
+
+targetWeather
+
+transitionProgress
+
+setWeather(type)
+
+setRandomWeatherForSeason()
+
+🗺 RegionWeatherManager — Régions du Québec
+Même si toutes les scènes ne sont pas encore régionales, tu dois prévoir :
+
+support de régions météo (ex : regionId)
+
+chaque région peut avoir :
+
+sa propre météo
+
+ses propres probabilités
+
+ses propres événements (tempête locale, brouillard sur la route, etc.)
+
+API :
+
+getWeatherForRegion(regionId)
+
+setWeatherForRegion(regionId, type)
+
+🌌 SkyManager + SunManager — Ciel et soleil
+SkyManager :
+
+gère la skybox dynamique
+
+couleur selon :
+
+heure
+
+saison
+
+météo
+
+support :
+
+lever de soleil
+
+coucher de soleil
+
+ciel nocturne (étoiles low‑poly ou texture simple)
+
+SunManager :
+
+gère la position du soleil
+
+intensité de la lumière directionnelle
+
+couleur de la lumière (jaune/orange/bleu)
+
+synchronisé avec TimeManager
+
+Composants :
+
+DynamicSky.tsx
+
+DynamicSun.tsx
+
+💡 LightManager — Lumières dynamiques
+Responsabilités :
+
+gérer l’intensité globale selon :
+
+heure (jour/nuit)
+
+météo (orage, brouillard, neige)
+
+activer/désactiver :
+
+lampadaires
+
+enseignes (ex : Couche‑Tard)
+
+lumières intérieures/extérieures
+
+Composant :
+
+AutoLights.tsx
+
+reçoit time + weather
+
+active les lumières automatiquement
+
+❄ EffectsManager — Particules et effets
+Responsabilités :
+
+pluie (intensité variable)
+
+neige (flocons low‑poly)
+
+blizzard (neige + vent fort)
+
+brouillard volumétrique simple (fog + overlay)
+
+verglas (reflets, glisse — prévu pour plus tard)
+
+Composant :
+
+WeatherParticles.tsx
+
+WeatherOverlay.tsx (effets d’écran : gouttes, givre, etc. — même si simple au début)
+
+🏪 Intégration dans les scènes (Route + Dépanneur)
+Tu dois intégrer ton système dans au moins :
+
+RouteQuebec.tsx
+
+DepanneurCoucheTard.tsx
+
+Exemples d’intégration :
+
+route :
+
+brouillard + neige = visibilité réduite
+
+pluie = route sombre + reflets
+
+dépanneur :
+
+extérieur influencé par météo
+
+intérieur stable (lumière constante)
+
+enseigne plus visible la nuit / mauvais temps
+
+Tu ne dois pas réécrire les scènes, seulement les enrichir via tes composants météo.
+
+🧪 Ce que tu dois produire concrètement
+Tous les fichiers systèmes listés (TimeManager, WeatherManager, etc.)
+
+Tous les stores (useTimeStore, useWeatherStore, useSeasonStore)
+
+Tous les composants (DynamicSky, DynamicSun, WeatherParticles, WeatherOverlay, AutoLights)
+
+Une configuration météo/saison complète pour le Québec (probabilités, transitions, etc.)
+
+Une intégration propre dans au moins 2 scènes (Route + Dépanneur)
+
+Un code propre, commenté, modulaire, extensible
+
+🚫 Interdictions absolues
+Tu ne dois PAS :
+
+casser des scènes existantes
+
+changer l’architecture globale du projet
+
+supprimer du code existant
+
+simplifier le style low‑poly
+
+ignorer les stores globaux
+
+créer un système incompatible avec React Three Fiber
+
+🧨 Instruction finale
+Tu dois maintenant :
+
+Analyser la structure du projet EtherWorld RP.
+
+Créer/compléter l’architecture météo/temps du Québec décrite ci‑dessus.
+
+Implémenter un système météo ultra complexe, mais propre et modulaire.
+
+Intégrer ce système dans les scènes clés (Route + Dépanneur).
+
+Ne rien toucher d’autre dans le projet.
+
+👉 Tu peux copier/coller ce prompt directement dans Replit.
+Si tu veux, je peux te faire une version encore plus militaire centrée uniquement sur :
+
+les événements extrêmes (tempêtes, verglas, blizzard), ou
+
+la simulation de météo sur plusieurs jours (prévisions, historique).
+
+Je veut etre capable de gérer tout ca dans une cmd pannel in-game
+Afficher mes réflexions
+🎯 Voilà le prompt que tu vas coller dans Replit
+Version ultra stricte, centrée sur :
+
+Système météo Québec ultra complexe
+
++ Time/Season/Region
+
++ Intégration scènes
+
++ Panneau de commande in‑game (CMD Panel) pour tout gérer en live
+
+🚨 PROMPT STRICT — SYSTÈME MÉTÉO QUÉBEC + CMD PANEL IN‑GAME
+Rôle : Tu dois concevoir et implémenter un système météo/temps ultra complexe du Québec pour EtherWorld RP (React + Three.js + React Three Fiber), avec un panneau de commande in‑game (CMD Panel) permettant de tout contrôler en direct.
+
+Tu dois te concentrer UNIQUEMENT sur :
+
+Le système Temps + Saisons + Météo + Régions
+
+L’intégration dans les scènes (Route + Dépanneur)
+
+Le CMD Panel in‑game pour gérer tout ça en live
+
+Tu ne dois rien casser de ce qui existe déjà.
+
+🧩 Contexte projet
+Projet : EtherWorld RP
+
+Stack : React + Three.js + React Three Fiber
+
+Style : low‑poly Synty/KayKit
+
+Scènes importantes :
+
+Route du Québec
+
+Dépanneur Couche‑Tard
+
+Tu dois respecter l’architecture existante et compléter, pas réécrire.
+
+🧱 Architecture météo/temps à mettre en place
+Tu dois créer ou compléter :
+
+txt
+src/
+ ├─ systems/
+ │    ├─ TimeManager.ts
+ │    ├─ WeatherManager.ts
+ │    ├─ SeasonManager.ts
+ │    ├─ RegionWeatherManager.ts
+ │    ├─ SkyManager.ts
+ │    ├─ SunManager.ts
+ │    ├─ LightManager.ts
+ │    └─ EffectsManager.ts
+ │
+ ├─ stores/
+ │    ├─ useTimeStore.ts
+ │    ├─ useWeatherStore.ts
+ │    └─ useSeasonStore.ts
+ │
+ ├─ components/
+ │    ├─ DynamicSky.tsx
+ │    ├─ DynamicSun.tsx
+ │    ├─ WeatherParticles.tsx
+ │    ├─ WeatherOverlay.tsx
+ │    └─ AutoLights.tsx
+ │
+ ├─ ui/
+ │    └─ WeatherCmdPanel.tsx
+🕒 TimeManager — Temps réel du Québec
+Responsabilités :
+
+Heure locale du Québec (EST)
+
+timeScale (accélérer/ralentir le temps in‑game)
+
+Flags : isDay, isNight, isSunrise, isSunset
+
+Store : useTimeStore.ts  
+Expose :
+
+currentTime
+
+timeScale
+
+setTimeScale()
+
+helpers (isNight, etc.)
+
+🍁 SeasonManager — Saisons du Québec
+Saisons : Hiver, Printemps, Été, Automne
+
+Chaque saison définit :
+
+durée jour/nuit
+
+probas météo
+
+température “logique” (pour plus tard)
+
+couleurs de ciel / lumière
+
+Store : useSeasonStore.ts  
+Expose :
+
+currentSeason
+
+setSeason()
+
+getSeasonConfig()
+
+🌦 WeatherManager — Météo complexe
+Types météo à gérer :
+
+clair
+
+partiellement nuageux
+
+nuageux
+
+pluie légère / forte
+
+orage
+
+neige légère / forte
+
+blizzard
+
+verglas
+
+brouillard
+
+bruine
+
+canicule
+
+grand froid
+
+Chaque type définit :
+
+particules (pluie/neige)
+
+fog (densité, couleur)
+
+lumière (intensité, couleur)
+
+ciel (teinte, opacité)
+
+Transitions :
+
+interpolation progressive (ex : 30–120s)
+
+pas de switch brutal
+
+Store : useWeatherStore.ts  
+Expose :
+
+currentWeather
+
+targetWeather
+
+transitionProgress
+
+setWeather(type)
+
+setRandomWeatherForSeason()
+
+🗺 RegionWeatherManager — Régions
+Prévoir support de régions (même si simple au début) :
+
+regionId (ex : route, depanneur, ville, etc.)
+
+météo par région
+
+API :
+
+getWeatherForRegion(regionId)
+
+setWeatherForRegion(regionId, type)
+
+🌌 SkyManager + SunManager
+SkyManager :
+
+gère skybox dynamique
+
+couleur selon heure + saison + météo
+
+SunManager :
+
+position du soleil
+
+intensité + couleur de la lumière directionnelle
+
+Composants :
+
+DynamicSky.tsx
+
+DynamicSun.tsx
+
+💡 LightManager
+gère intensité globale
+
+allume lampadaires / enseignes la nuit
+
+adapte lumière selon météo (orage, brouillard, neige)
+
+Composant : AutoLights.tsx
+
+❄ EffectsManager
+pluie
+
+neige
+
+blizzard
+
+brouillard (fog + overlay)
+
+Composants :
+
+WeatherParticles.tsx
+
+WeatherOverlay.tsx
+
+🏪 Intégration scènes (Route + Dépanneur)
+Tu dois intégrer ton système dans :
+
+RouteQuebec.tsx
+
+DepanneurCoucheTard.tsx
+
+Exemples :
+
+route : brouillard + neige = visibilité réduite
+
+dépanneur : extérieur influencé par météo, intérieur stable
+
+Tu ne réécris pas les scènes, tu branches tes systèmes.
+
+🖥 CMD PANEL IN‑GAME — WeatherCmdPanel
+Tu dois créer un panneau de commande in‑game pour gérer tout ça en live.
+
+Fichier :  
+src/ui/WeatherCmdPanel.tsx
+
+Fonctionnalités obligatoires :
+
+Afficher :
+
+heure actuelle
+
+saison actuelle
+
+météo actuelle
+
+région sélectionnée
+
+Contrôles :
+
+changer la météo (liste déroulante)
+
+changer la saison
+
+changer le timeScale
+
+forcer jour / nuit
+
+forcer un type météo (ex : blizzard, verglas, orage)
+
+bouton “Random météo pour la saison”
+
+Mode “Admin” :
+
+visible seulement si isAdmin === true (prévoir prop ou hook)
+
+Techniquement :
+
+Composant React simple (UI 2D)
+
+Peut être affiché en overlay (ex : dans un <Html /> R3F ou UI classique)
+
+Utilise directement :
+
+useTimeStore()
+
+useSeasonStore()
+
+useWeatherStore()
+
+RegionWeatherManager si nécessaire
+
+🧪 Ce que tu dois livrer
+Tous les systèmes (Time, Weather, Season, Region, Sky, Sun, Light, Effects)
+
+Tous les stores (useTimeStore, useWeatherStore, useSeasonStore)
+
+Tous les composants météo (DynamicSky, DynamicSun, WeatherParticles, WeatherOverlay, AutoLights)
+
+Le CMD Panel in‑game : WeatherCmdPanel.tsx
+
+L’intégration dans RouteQuebec et DepanneurCoucheTard
+
+Un code propre, commenté, modulaire, extensible
+
+🚫 Interdictions absolues
+Tu ne dois PAS :
+
+casser des scènes existantes
+
+changer l’architecture globale du projet
+
+supprimer du code existant
+
+ignorer les stores globaux
+
+créer un système incompatible avec React Three Fiber
+
+🧨 Instruction finale
+Tu dois maintenant :
+
+Analyser la structure actuelle du projet.
+
+Mettre en place tout le système météo/temps du Québec décrit ci‑dessus.
+
+Créer le CMD Panel in‑game pour contrôler ce système en live.
+
+Intégrer le tout dans les scènes clés.
+
+Ne rien toucher d’autre dans le 

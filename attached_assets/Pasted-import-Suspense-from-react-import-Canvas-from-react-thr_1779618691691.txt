@@ -1,0 +1,82 @@
+import { Suspense } from 'react';
+import { Canvas } from '@react-three/fiber';
+import * as THREE from 'three';
+import { PlayerCharacter } from './components/PlayerCharacter';
+import { GroundGrid, FloatingParticles, SceneLighting } from './components/GameWorld';
+import { GameHUD } from './components/GameHUD';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+
+function LoadingScreen() {
+  return (
+    <div className="fixed inset-0 bg-[#08080e] flex flex-col items-center justify-center z-50">
+      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center mb-4 animate-pulse">
+        <span className="text-white text-2xl">💎</span>
+      </div>
+      <div className="text-white font-bold text-lg mb-2">ETHERWORLD</div>
+      <div className="text-zinc-500 text-xs tracking-[0.2em] uppercase">Chargement...</div>
+      <div className="mt-4 w-48 h-1 bg-zinc-800 rounded-full overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <div className="relative w-screen h-screen overflow-hidden bg-[#08080e]">
+      {/* 3D Canvas */}
+      <Suspense fallback={<LoadingScreen />}>
+        <Canvas
+          shadows
+          dpr={[1, 2]}
+          camera={{ position: [0, 5, -8], fov: 55 }}
+          gl={{
+            antialias: true,
+            toneMapping: THREE.ACESFilmicToneMapping,
+            toneMappingExposure: 1.1,
+          }}
+          onCreated={({ gl }) => {
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.1;
+            gl.shadowMap.enabled = true;
+            gl.shadowMap.type = THREE.PCFSoftShadowMap;
+          }}
+          style={{ position: 'absolute', inset: 0 }}
+        >
+          {/* Fog */}
+          <fog attach="fog" args={['#0a0a14', 20, 80]} />
+
+          {/* Lighting */}
+          <SceneLighting />
+
+          {/* Ground Grid */}
+          <GroundGrid />
+
+          {/* Floating particles */}
+          <FloatingParticles />
+
+          {/* Player */}
+          <PlayerCharacter />
+
+          {/* Post Processing */}
+          <EffectComposer>
+            <Bloom
+              intensity={0.4}
+              luminanceThreshold={0.2}
+              luminanceSmoothing={0.9}
+              mipmapBlur
+            />
+            <Vignette
+              eskil={false}
+              offset={0.2}
+              darkness={0.85}
+            />
+          </EffectComposer>
+        </Canvas>
+      </Suspense>
+
+      {/* HUD Overlay */}
+      <GameHUD />
+    </div>
+  );
+}

@@ -1,0 +1,2210 @@
+'use client'
+
+import { useRef } from 'react'
+import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
+import { useEtherWorldStore } from '@/lib/etherworld/store'
+
+// ============================================
+// BEDROOM FURNITURE
+// ============================================
+
+export function LuxuryBed({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Base/Frame */}
+      <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.2, 0.3, 2.4]} />
+        <meshStandardMaterial color="#1a1a2e" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* Mattress */}
+      <mesh position={[0, 0.4, 0]} castShadow>
+        <boxGeometry args={[2, 0.25, 2.2]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.9} />
+      </mesh>
+      
+      {/* Pillows */}
+      <mesh position={[-0.5, 0.6, -0.85]} castShadow>
+        <boxGeometry args={[0.5, 0.15, 0.4]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.95} />
+      </mesh>
+      <mesh position={[0.5, 0.6, -0.85]} castShadow>
+        <boxGeometry args={[0.5, 0.15, 0.4]} />
+        <meshStandardMaterial color="#e8e8e8" roughness={0.95} />
+      </mesh>
+      
+      {/* Blanket */}
+      <mesh position={[0, 0.55, 0.3]} castShadow>
+        <boxGeometry args={[1.9, 0.08, 1.4]} />
+        <meshStandardMaterial color="#2d3748" roughness={0.85} />
+      </mesh>
+      
+      {/* Headboard */}
+      <mesh position={[0, 0.9, -1.15]} castShadow>
+        <boxGeometry args={[2.2, 1.2, 0.1]} />
+        <meshStandardMaterial color="#1a1a2e" metalness={0.2} roughness={0.6} />
+      </mesh>
+      
+      {/* Headboard LED strip */}
+      <mesh position={[0, 0.35, -1.1]}>
+        <boxGeometry args={[2, 0.02, 0.02]} />
+        <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Nightstand({ position = [0, 0, 0] as [number, number, number], side = 'left' }: { position?: [number, number, number], side?: 'left' | 'right' }) {
+  const { interactables, toggleInteractable } = useEtherWorldStore()
+  const drawerId = side === 'left' ? 'drawer1' : 'drawer2'
+  const isOpen = interactables[drawerId]?.isActive || false
+  
+  return (
+    <group position={position}>
+      {/* Main body */}
+      <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.5, 0.5, 0.4]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.1} roughness={0.8} />
+      </mesh>
+      
+      {/* Drawer */}
+      <mesh 
+        position={[0, 0.25, isOpen ? 0.25 : 0.18]} 
+        castShadow
+        onClick={() => toggleInteractable(drawerId)}
+      >
+        <boxGeometry args={[0.44, 0.18, 0.1]} />
+        <meshStandardMaterial color="#374151" metalness={0.2} roughness={0.7} />
+      </mesh>
+      
+      {/* Handle */}
+      <mesh position={[0, 0.25, isOpen ? 0.32 : 0.25]}>
+        <boxGeometry args={[0.15, 0.02, 0.02]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Lamp */}
+      <group position={[0, 0.5, 0]}>
+        <mesh position={[0, 0.1, 0]} castShadow>
+          <cylinderGeometry args={[0.08, 0.1, 0.2, 8]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.3} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.3, 0]}>
+          <cylinderGeometry args={[0.12, 0.08, 0.25, 8]} />
+          <meshStandardMaterial color="#fef3c7" emissive="#fef3c7" emissiveIntensity={0.3} transparent opacity={0.9} />
+        </mesh>
+      </group>
+    </group>
+  )
+}
+
+// ============================================
+// LIVING AREA FURNITURE
+// ============================================
+
+export function ModernSofa({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Base */}
+      <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2, 0.15, 0.9]} />
+        <meshStandardMaterial color="#111827" metalness={0.1} roughness={0.9} />
+      </mesh>
+      
+      {/* Seat cushions */}
+      <mesh position={[-0.5, 0.35, 0.05]} castShadow>
+        <boxGeometry args={[0.9, 0.2, 0.7]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      <mesh position={[0.5, 0.35, 0.05]} castShadow>
+        <boxGeometry args={[0.9, 0.2, 0.7]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      
+      {/* Back */}
+      <mesh position={[0, 0.55, -0.35]} castShadow>
+        <boxGeometry args={[2, 0.5, 0.2]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* Armrests */}
+      <mesh position={[-0.95, 0.4, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.35, 0.8]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      <mesh position={[0.95, 0.4, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.35, 0.8]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* Metal legs */}
+      {[[-0.85, 0.05, 0.3], [0.85, 0.05, 0.3], [-0.85, 0.05, -0.3], [0.85, 0.05, -0.3]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.1, 8]} />
+          <meshStandardMaterial color="#4b5563" metalness={0.9} roughness={0.1} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function CoffeeTable({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Glass top */}
+      <mesh position={[0, 0.35, 0]} castShadow>
+        <boxGeometry args={[1, 0.03, 0.6]} />
+        <meshStandardMaterial color="#1e293b" transparent opacity={0.7} metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Metal frame */}
+      <mesh position={[0, 0.17, 0]}>
+        <boxGeometry args={[0.9, 0.02, 0.5]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Legs */}
+      {[[-0.4, 0.17, 0.2], [0.4, 0.17, 0.2], [-0.4, 0.17, -0.2], [0.4, 0.17, -0.2]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]}>
+          <boxGeometry args={[0.03, 0.34, 0.03]} />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+        </mesh>
+      ))}
+      
+      {/* Magazines/Items on table */}
+      <mesh position={[-0.2, 0.38, 0]} rotation={[0, 0.2, 0]}>
+        <boxGeometry args={[0.2, 0.02, 0.15]} />
+        <meshStandardMaterial color="#ef4444" roughness={0.9} />
+      </mesh>
+      <mesh position={[0.15, 0.38, 0.1]}>
+        <cylinderGeometry args={[0.04, 0.03, 0.12, 8]} />
+        <meshStandardMaterial color="#22c55e" transparent opacity={0.6} />
+      </mesh>
+    </group>
+  )
+}
+
+export function TVStand({ position = [0, 0, 0] as [number, number, number] }) {
+  const { interactables, toggleInteractable, toggleLight } = useEtherWorldStore()
+  const tvOn = interactables.tv?.isActive || false
+  const tvRef = useRef<THREE.Mesh>(null)
+  
+  useFrame((state) => {
+    if (tvOn && tvRef.current) {
+      const material = tvRef.current.material as THREE.MeshStandardMaterial
+      material.emissiveIntensity = 0.5 + Math.sin(state.clock.elapsedTime * 2) * 0.1
+    }
+  })
+  
+  const handleTVClick = () => {
+    toggleInteractable('tv')
+    toggleLight('tv')
+  }
+  
+  return (
+    <group position={position}>
+      {/* TV Unit */}
+      <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.5, 0.4, 0.5]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      
+      {/* Shelves */}
+      <mesh position={[0, 0.45, 0.1]}>
+        <boxGeometry args={[2.3, 0.02, 0.3]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* TV Screen */}
+      <mesh 
+        ref={tvRef}
+        position={[0, 1.1, 0.15]} 
+        castShadow
+        onClick={handleTVClick}
+      >
+        <boxGeometry args={[2, 1.2, 0.05]} />
+        <meshStandardMaterial 
+          color={tvOn ? "#1e3a5f" : "#0a0a0a"} 
+          emissive={tvOn ? "#3b82f6" : "#000000"}
+          emissiveIntensity={tvOn ? 0.5 : 0}
+          metalness={0.9} 
+          roughness={0.1} 
+        />
+      </mesh>
+      
+      {/* TV Frame */}
+      <mesh position={[0, 1.1, 0.12]}>
+        <boxGeometry args={[2.1, 1.3, 0.02]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* TV Stand/Mount */}
+      <mesh position={[0, 0.45, 0.2]}>
+        <boxGeometry args={[0.4, 0.08, 0.15]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* LED strip under TV */}
+      <mesh position={[0, 0.42, 0.26]}>
+        <boxGeometry args={[1.8, 0.02, 0.02]} />
+        <meshStandardMaterial 
+          color={tvOn ? "#8b5cf6" : "#1f2937"} 
+          emissive={tvOn ? "#8b5cf6" : "#000000"} 
+          emissiveIntensity={tvOn ? 1 : 0} 
+        />
+      </mesh>
+      
+      {/* Gaming console */}
+      <mesh position={[-0.6, 0.47, 0.1]}>
+        <boxGeometry args={[0.3, 0.08, 0.2]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.4} roughness={0.6} />
+      </mesh>
+      
+      {/* Soundbar */}
+      <mesh position={[0, 0.47, 0.2]}>
+        <boxGeometry args={[1, 0.06, 0.1]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// DESK & GAMING SETUP
+// ============================================
+
+export function GamingDesk({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const deskLightOn = lights.desk?.isOn || false
+  
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Desktop */}
+      <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.6, 0.04, 0.8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* RGB edge */}
+      <mesh position={[0, 0.73, 0.39]}>
+        <boxGeometry args={[1.6, 0.02, 0.02]} />
+        <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.8} />
+      </mesh>
+      
+      {/* Legs */}
+      <mesh position={[-0.7, 0.37, 0]} castShadow>
+        <boxGeometry args={[0.05, 0.74, 0.7]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[0.7, 0.37, 0]} castShadow>
+        <boxGeometry args={[0.05, 0.74, 0.7]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Monitor */}
+      <mesh position={[0, 1.15, -0.2]} castShadow>
+        <boxGeometry args={[0.9, 0.5, 0.03]} />
+        <meshStandardMaterial color="#0f172a" emissive="#3b82f6" emissiveIntensity={0.3} metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0, 1.15, -0.22]}>
+        <boxGeometry args={[0.95, 0.55, 0.02]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.85, -0.2]}>
+        <boxGeometry args={[0.15, 0.1, 0.1]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* Keyboard */}
+      <mesh position={[0, 0.78, 0.15]}>
+        <boxGeometry args={[0.45, 0.02, 0.15]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.4} roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 0.79, 0.15]}>
+        <boxGeometry args={[0.43, 0.01, 0.13]} />
+        <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.3} />
+      </mesh>
+      
+      {/* Mouse */}
+      <mesh position={[0.35, 0.78, 0.15]}>
+        <boxGeometry args={[0.06, 0.02, 0.1]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Mousepad */}
+      <mesh position={[0.3, 0.77, 0.15]}>
+        <boxGeometry args={[0.3, 0.005, 0.25]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      
+      {/* Desk lamp */}
+      <group position={[-0.6, 0.77, -0.25]}>
+        <mesh position={[0, 0.15, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.3, 8]} />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh position={[0.1, 0.3, 0]} rotation={[0, 0, Math.PI / 4]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.2, 8]} />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh position={[0.2, 0.35, 0]}>
+          <coneGeometry args={[0.08, 0.12, 8]} />
+          <meshStandardMaterial 
+            color={deskLightOn ? "#fef3c7" : "#4b5563"} 
+            emissive={deskLightOn ? "#fef3c7" : "#000000"}
+            emissiveIntensity={deskLightOn ? 0.5 : 0}
+          />
+        </mesh>
+      </group>
+      
+      {/* Gaming chair placeholder position */}
+    </group>
+  )
+}
+
+export function GamingChair({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Base */}
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.3, 0.3, 0.05, 16]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* Pole */}
+      <mesh position={[0, 0.25, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.4, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Seat */}
+      <mesh position={[0, 0.5, 0]} castShadow>
+        <boxGeometry args={[0.5, 0.1, 0.5]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* Back */}
+      <mesh position={[0, 0.9, -0.2]} castShadow>
+        <boxGeometry args={[0.5, 0.7, 0.08]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* Headrest */}
+      <mesh position={[0, 1.35, -0.18]} castShadow>
+        <boxGeometry args={[0.25, 0.15, 0.1]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      
+      {/* RGB strips on sides */}
+      <mesh position={[0.24, 0.9, -0.16]}>
+        <boxGeometry args={[0.02, 0.5, 0.02]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.6} />
+      </mesh>
+      <mesh position={[-0.24, 0.9, -0.16]}>
+        <boxGeometry args={[0.02, 0.5, 0.02]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.6} />
+      </mesh>
+      
+      {/* Armrests */}
+      <mesh position={[0.3, 0.65, 0.05]}>
+        <boxGeometry args={[0.08, 0.2, 0.3]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[-0.3, 0.65, 0.05]}>
+        <boxGeometry args={[0.08, 0.2, 0.3]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// ARCADE MACHINE
+// ============================================
+
+export function ArcadeMachine({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  const { interactables } = useEtherWorldStore()
+  const isActive = interactables.arcade?.isActive || false
+  const screenRef = useRef<THREE.Mesh>(null)
+  
+  useFrame((state) => {
+    if (isActive && screenRef.current) {
+      const material = screenRef.current.material as THREE.MeshStandardMaterial
+      material.emissiveIntensity = 0.6 + Math.sin(state.clock.elapsedTime * 4) * 0.2
+    }
+  })
+  
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Main cabinet */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.7, 1.8, 0.7]} />
+        <meshStandardMaterial color="#1a1a2e" metalness={0.2} roughness={0.8} />
+      </mesh>
+      
+      {/* Screen bezel */}
+      <mesh position={[0, 1.2, 0.32]}>
+        <boxGeometry args={[0.55, 0.5, 0.08]} />
+        <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Screen */}
+      <mesh ref={screenRef} position={[0, 1.2, 0.35]}>
+        <boxGeometry args={[0.48, 0.4, 0.02]} />
+        <meshStandardMaterial 
+          color={isActive ? "#1e40af" : "#0a0a0a"} 
+          emissive={isActive ? "#3b82f6" : "#000000"}
+          emissiveIntensity={isActive ? 0.6 : 0}
+          metalness={0.9} 
+          roughness={0.1} 
+        />
+      </mesh>
+      
+      {/* Control panel */}
+      <mesh position={[0, 0.6, 0.4]} rotation={[-0.3, 0, 0]}>
+        <boxGeometry args={[0.6, 0.3, 0.15]} />
+        <meshStandardMaterial color="#111827" metalness={0.3} roughness={0.7} />
+      </mesh>
+      
+      {/* Joystick */}
+      <mesh position={[-0.15, 0.7, 0.42]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.1, 8]} />
+        <meshStandardMaterial color="#ef4444" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <mesh position={[-0.15, 0.77, 0.42]}>
+        <sphereGeometry args={[0.035, 8, 8]} />
+        <meshStandardMaterial color="#ef4444" metalness={0.4} roughness={0.6} />
+      </mesh>
+      
+      {/* Buttons */}
+      {[[0.05, '#22c55e'], [0.15, '#3b82f6'], [0.25, '#eab308']].map(([x, color], i) => (
+        <mesh key={i} position={[x as number, 0.72, 0.42]}>
+          <cylinderGeometry args={[0.025, 0.025, 0.02, 8]} />
+          <meshStandardMaterial color={color as string} emissive={color as string} emissiveIntensity={0.3} />
+        </mesh>
+      ))}
+      
+      {/* Coin slot */}
+      <mesh position={[0, 0.3, 0.36]}>
+        <boxGeometry args={[0.08, 0.02, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Marquee light */}
+      <mesh position={[0, 1.7, 0.32]}>
+        <boxGeometry args={[0.55, 0.15, 0.08]} />
+        <meshStandardMaterial 
+          color="#8b5cf6" 
+          emissive="#8b5cf6" 
+          emissiveIntensity={isActive ? 1 : 0.3} 
+        />
+      </mesh>
+      
+      {/* Side art panels */}
+      <mesh position={[0.34, 0.9, 0]}>
+        <boxGeometry args={[0.02, 1.4, 0.5]} />
+        <meshStandardMaterial color="#3b82f6" metalness={0.3} roughness={0.7} />
+      </mesh>
+      <mesh position={[-0.34, 0.9, 0]}>
+        <boxGeometry args={[0.02, 1.4, 0.5]} />
+        <meshStandardMaterial color="#3b82f6" metalness={0.3} roughness={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// MINI BAR & KITCHEN
+// ============================================
+
+export function MiniBar({ position = [0, 0, 0] as [number, number, number] }) {
+  const { interactables, toggleInteractable } = useEtherWorldStore()
+  const fridgeOpen = interactables.fridge?.isActive || false
+  
+  return (
+    <group position={position}>
+      {/* Counter */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.5, 0.05, 0.6]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.4} roughness={0.6} />
+      </mesh>
+      
+      {/* Cabinet base */}
+      <mesh position={[0, 0.43, 0]} castShadow>
+        <boxGeometry args={[1.5, 0.86, 0.55]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      
+      {/* Mini fridge door */}
+      <mesh 
+        position={fridgeOpen ? [-0.35, 0.43, 0.45] : [-0.35, 0.43, 0.28]}
+        rotation={fridgeOpen ? [0, -Math.PI / 3, 0] : [0, 0, 0]}
+        castShadow
+        onClick={() => toggleInteractable('fridge')}
+      >
+        <boxGeometry args={[0.7, 0.8, 0.05]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Fridge handle */}
+      <mesh position={fridgeOpen ? [-0.1, 0.43, 0.65] : [0, 0.43, 0.32]} rotation={fridgeOpen ? [0, -Math.PI / 3, 0] : [0, 0, 0]}>
+        <boxGeometry args={[0.02, 0.15, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Fridge interior light (when open) */}
+      {fridgeOpen && (
+        <pointLight position={[-0.35, 0.43, 0.1]} intensity={0.3} color="#e0f2fe" distance={1} />
+      )}
+      
+      {/* Microwave */}
+      <mesh position={[0.45, 1.15, 0]}>
+        <boxGeometry args={[0.5, 0.3, 0.4]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.6} roughness={0.4} />
+      </mesh>
+      <mesh position={[0.35, 1.15, 0.21]}>
+        <boxGeometry args={[0.25, 0.2, 0.01]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Coffee machine */}
+      <mesh position={[-0.5, 0.97, 0]}>
+        <boxGeometry args={[0.25, 0.35, 0.3]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[-0.5, 1.17, -0.1]}>
+        <boxGeometry args={[0.2, 0.08, 0.08]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* Bottles on counter */}
+      {[[-0.15, '#22c55e'], [0, '#60a5fa'], [0.15, '#f59e0b']].map(([x, color], i) => (
+        <group key={i} position={[x as number, 1.05, 0.15]}>
+          <mesh>
+            <cylinderGeometry args={[0.03, 0.03, 0.2, 8]} />
+            <meshStandardMaterial color={color as string} transparent opacity={0.7} />
+          </mesh>
+          <mesh position={[0, 0.12, 0]}>
+            <cylinderGeometry args={[0.015, 0.02, 0.05, 8]} />
+            <meshStandardMaterial color="#374151" metalness={0.8} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
+
+// ============================================
+// CLOSET & STORAGE
+// ============================================
+
+export function Wardrobe({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Main body */}
+      <mesh position={[0, 1.1, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.2, 2.2, 0.6]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.1} roughness={0.85} />
+      </mesh>
+      
+      {/* Doors */}
+      <mesh position={[-0.28, 1.1, 0.28]} castShadow>
+        <boxGeometry args={[0.55, 2.1, 0.04]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      <mesh position={[0.28, 1.1, 0.28]} castShadow>
+        <boxGeometry args={[0.55, 2.1, 0.04]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      
+      {/* Handles */}
+      <mesh position={[-0.05, 1.1, 0.32]}>
+        <boxGeometry args={[0.02, 0.15, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.05, 1.1, 0.32]}>
+        <boxGeometry args={[0.02, 0.15, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      
+      {/* Mirror on door */}
+      <mesh position={[-0.28, 1.3, 0.305]}>
+        <boxGeometry args={[0.35, 0.8, 0.01]} />
+        <meshStandardMaterial color="#94a3b8" metalness={1} roughness={0} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Safe({ position = [0, 0, 0] as [number, number, number] }) {
+  const { interactables, toggleInteractable } = useEtherWorldStore()
+  const isOpen = interactables.safe?.isActive || false
+  
+  return (
+    <group position={position}>
+      {/* Safe body */}
+      <mesh position={[0, 0.2, 0]} castShadow>
+        <boxGeometry args={[0.4, 0.4, 0.35]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.3} />
+      </mesh>
+      
+      {/* Door */}
+      <mesh 
+        position={isOpen ? [-0.15, 0.2, 0.25] : [0, 0.2, 0.16]}
+        rotation={isOpen ? [0, -Math.PI / 2.5, 0] : [0, 0, 0]}
+        castShadow
+        onClick={() => toggleInteractable('safe')}
+      >
+        <boxGeometry args={[0.35, 0.35, 0.04]} />
+        <meshStandardMaterial color="#111827" metalness={0.8} roughness={0.2} />
+      </mesh>
+      
+      {/* Keypad */}
+      <mesh position={isOpen ? [-0.05, 0.2, 0.35] : [0.08, 0.2, 0.19]} rotation={isOpen ? [0, -Math.PI / 2.5, 0] : [0, 0, 0]}>
+        <boxGeometry args={[0.1, 0.12, 0.02]} />
+        <meshStandardMaterial color="#0a0a0a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* LED indicator */}
+      <mesh position={isOpen ? [-0.12, 0.28, 0.32] : [0.08, 0.28, 0.19]} rotation={isOpen ? [0, -Math.PI / 2.5, 0] : [0, 0, 0]}>
+        <boxGeometry args={[0.015, 0.015, 0.01]} />
+        <meshStandardMaterial 
+          color={isOpen ? "#22c55e" : "#ef4444"} 
+          emissive={isOpen ? "#22c55e" : "#ef4444"} 
+          emissiveIntensity={0.8} 
+        />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// DECORATIVE ELEMENTS
+// ============================================
+
+export function WallArt({ position = [0, 0, 0] as [number, number, number], size = [1, 0.6] as [number, number] }) {
+  return (
+    <group position={position}>
+      {/* Frame */}
+      <mesh castShadow>
+        <boxGeometry args={[size[0] + 0.05, size[1] + 0.05, 0.03]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Canvas */}
+      <mesh position={[0, 0, 0.02]}>
+        <boxGeometry args={[size[0], size[1], 0.01]} />
+        <meshStandardMaterial color="#1e3a5f" roughness={0.9} />
+      </mesh>
+      
+      {/* Abstract art elements */}
+      <mesh position={[-0.2, 0.1, 0.03]}>
+        <circleGeometry args={[0.12, 16]} />
+        <meshStandardMaterial color="#f59e0b" roughness={0.8} />
+      </mesh>
+      <mesh position={[0.15, -0.05, 0.03]}>
+        <boxGeometry args={[0.2, 0.15, 0.005]} />
+        <meshStandardMaterial color="#8b5cf6" roughness={0.8} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Plant({ position = [0, 0, 0] as [number, number, number], size = 1 }) {
+  return (
+    <group position={position} scale={size}>
+      {/* Pot */}
+      <mesh position={[0, 0.12, 0]} castShadow>
+        <cylinderGeometry args={[0.12, 0.1, 0.24, 8]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      
+      {/* Soil */}
+      <mesh position={[0, 0.23, 0]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.02, 8]} />
+        <meshStandardMaterial color="#1c1917" roughness={1} />
+      </mesh>
+      
+      {/* Plant leaves */}
+      {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+        <mesh 
+          key={i} 
+          position={[
+            Math.sin(angle * Math.PI / 180) * 0.05,
+            0.35 + i * 0.02,
+            Math.cos(angle * Math.PI / 180) * 0.05
+          ]}
+          rotation={[0.3, angle * Math.PI / 180, 0.2]}
+        >
+          <boxGeometry args={[0.08, 0.2, 0.02]} />
+          <meshStandardMaterial color="#15803d" roughness={0.9} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function Rug({ position = [0, 0, 0] as [number, number, number], size = [2, 1.5] as [number, number] }) {
+  return (
+    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={size} />
+      <meshStandardMaterial color="#1f2937" roughness={0.95} />
+    </mesh>
+  )
+}
+
+export function CeilingLight({ position = [0, 0, 0] as [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.ceiling?.isOn || false
+  
+  return (
+    <group position={position}>
+      {/* Fixture */}
+      <mesh>
+        <cylinderGeometry args={[0.15, 0.2, 0.08, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.6} roughness={0.4} />
+      </mesh>
+      
+      {/* Bulb area */}
+      <mesh position={[0, -0.06, 0]}>
+        <cylinderGeometry args={[0.12, 0.12, 0.04, 16]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#374151"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 1 : 0}
+          transparent
+          opacity={isOn ? 0.9 : 1}
+        />
+      </mesh>
+      
+      {/* Spot light */}
+      {isOn && (
+        <spotLight
+          position={[0, -0.1, 0]}
+          angle={Math.PI / 4}
+          penumbra={0.5}
+          intensity={2}
+          color="#fff5e6"
+          castShadow
+          shadow-mapSize={[512, 512]}
+        />
+      )}
+    </group>
+  )
+}
+
+export function NeonSign({ position = [0, 0, 0] as [number, number, number], color }: { position?: [number, number, number], text?: string, color?: string }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.neon?.isOn ?? true
+  
+  return (
+    <group position={position}>
+      {/* Backing plate */}
+      <mesh>
+        <boxGeometry args={[1.2, 0.4, 0.02]} />
+        <meshStandardMaterial color="#0a0a0a" roughness={0.9} />
+      </mesh>
+      
+      {/* Neon tubes (simplified as boxes) */}
+      <mesh position={[0, 0, 0.02]}>
+        <boxGeometry args={[1, 0.15, 0.02]} />
+        <meshStandardMaterial
+          color={isOn ? (color || "#8b5cf6") : "#374151"}
+          emissive={isOn ? (color || "#8b5cf6") : "#000000"}
+          emissiveIntensity={isOn ? 2 : 0}
+        />
+      </mesh>
+
+      {isOn && (
+        <pointLight position={[0, 0, 0.2]} intensity={0.5} color={color || "#8b5cf6"} distance={3} />
+      )}
+    </group>
+  )
+}
+
+// ============================================
+// MISSING FURNITURE - Floor Lamp, Desk Lamp, Bookshelf, Dining Table
+// ============================================
+
+export function FloorLamp({ position = [0, 0, 0] as [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.ceiling?.isOn ?? true
+
+  return (
+    <group position={position}>
+      {/* Base */}
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.15, 0.18, 0.1, 8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Pole */}
+      <mesh position={[0, 0.85, 0]}>
+        <cylinderGeometry args={[0.025, 0.025, 1.5, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Shade */}
+      <mesh position={[0, 1.7, 0]}>
+        <coneGeometry args={[0.25, 0.35, 8, 1, true]} />
+        <meshStandardMaterial color={isOn ? "#fef3c7" : "#1f2937"} side={2} emissive={isOn ? "#fef3c7" : "#000"} emissiveIntensity={isOn ? 0.3 : 0} />
+      </mesh>
+      {/* Bulb */}
+      <mesh position={[0, 1.6, 0]}>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial color={isOn ? "#fef3c7" : "#374151"} emissive={isOn ? "#fef3c7" : "#000"} emissiveIntensity={isOn ? 1 : 0} />
+      </mesh>
+      {isOn && <pointLight position={[0, 1.6, 0]} intensity={0.6} color="#fef3c7" distance={4} />}
+    </group>
+  )
+}
+
+export function DeskLamp({ position = [0, 0, 0] as [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.desk?.isOn ?? false
+
+  return (
+    <group position={position}>
+      {/* Base */}
+      <mesh position={[0, 0.03, 0]}>
+        <cylinderGeometry args={[0.1, 0.12, 0.06, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Arm */}
+      <mesh position={[0, 0.2, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.35, 8]} />
+        <meshStandardMaterial color="#4b5563" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Head */}
+      <mesh position={[0.1, 0.4, 0]} rotation={[0, 0, -Math.PI / 4]}>
+        <coneGeometry args={[0.07, 0.12, 8, 1, true]} />
+        <meshStandardMaterial color={isOn ? "#fef3c7" : "#1f2937"} side={2} emissive={isOn ? "#fef3c7" : "#000"} emissiveIntensity={isOn ? 0.4 : 0} />
+      </mesh>
+      {isOn && <pointLight position={[0.15, 0.35, 0]} intensity={0.5} color="#fef3c7" distance={2} />}
+    </group>
+  )
+}
+
+export function Bookshelf({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  const { toggleInteractable } = useEtherWorldStore()
+
+  const bookColors = ['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6']
+
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Main frame */}
+      <mesh position={[0, 1.1, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.2, 2.2, 0.35]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.1} roughness={0.85} />
+      </mesh>
+      {/* Shelves */}
+      {[0.3, 0.75, 1.2, 1.65].map((y, i) => (
+        <mesh key={i} position={[0, y, 0]}>
+          <boxGeometry args={[1.15, 0.04, 0.32]} />
+          <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.7} />
+        </mesh>
+      ))}
+      {/* Books per shelf */}
+      {[0.3, 0.75, 1.2, 1.65].map((shelfY, si) => (
+        [...Array(8)].map((_, bi) => (
+          <mesh
+            key={`${si}-${bi}`}
+            position={[-0.5 + bi * 0.13, shelfY + 0.12, 0]}
+            castShadow
+            onClick={() => toggleInteractable('bookshelf_secret')}
+          >
+            <boxGeometry args={[0.1, 0.22, 0.28]} />
+            <meshStandardMaterial color={bookColors[(si * 3 + bi) % bookColors.length]} roughness={0.9} />
+          </mesh>
+        ))
+      ))}
+      {/* Top decoration */}
+      <mesh position={[0.3, 2.25, 0.05]} castShadow>
+        <boxGeometry args={[0.12, 0.18, 0.12]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+    </group>
+  )
+}
+
+export function DiningTable({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Table top */}
+      <mesh position={[0, 0.78, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2, 0.06, 1.2]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.65} />
+      </mesh>
+      {/* Legs */}
+      {[[-0.85, 0.39, -0.5], [0.85, 0.39, -0.5], [-0.85, 0.39, 0.5], [0.85, 0.39, 0.5]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 0.78, 8]} />
+          <meshStandardMaterial color="#374151" metalness={0.6} roughness={0.4} />
+        </mesh>
+      ))}
+      {/* Chairs */}
+      {[[-0.8, 0, -0.9], [0.8, 0, -0.9], [-0.8, 0, 0.9], [0.8, 0, 0.9]].map((pos, i) => (
+        <group key={`chair-${i}`} position={pos as [number, number, number]} rotation={[0, i < 2 ? 0 : Math.PI, 0]}>
+          {/* Seat */}
+          <mesh position={[0, 0.45, 0]} castShadow>
+            <boxGeometry args={[0.45, 0.06, 0.45]} />
+            <meshStandardMaterial color="#1f2937" roughness={0.9} />
+          </mesh>
+          {/* Back */}
+          <mesh position={[0, 0.75, -0.2]} castShadow>
+            <boxGeometry args={[0.42, 0.55, 0.05]} />
+            <meshStandardMaterial color="#1f2937" roughness={0.9} />
+          </mesh>
+          {/* Legs */}
+          {[[-0.18, 0.22, -0.18], [0.18, 0.22, -0.18], [-0.18, 0.22, 0.18], [0.18, 0.22, 0.18]].map((lp, li) => (
+            <mesh key={li} position={lp as [number, number, number]}>
+              <cylinderGeometry args={[0.02, 0.02, 0.44, 6]} />
+              <meshStandardMaterial color="#374151" metalness={0.5} roughness={0.5} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+      {/* Table items */}
+      {/* Plate */}
+      <mesh position={[0, 0.82, 0]}>
+        <cylinderGeometry args={[0.18, 0.18, 0.01, 16]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.3} metalness={0.1} />
+      </mesh>
+      {/* Glass */}
+      <mesh position={[0.25, 0.85, 0]}>
+        <cylinderGeometry args={[0.04, 0.03, 0.12, 8]} />
+        <meshStandardMaterial color="#94a3b8" transparent opacity={0.4} metalness={0.9} roughness={0.1} />
+      </mesh>
+      {/* Candle */}
+      <mesh position={[-0.3, 0.84, 0.1]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.1, 8]} />
+        <meshStandardMaterial color="#fef3c7" />
+      </mesh>
+      <mesh position={[-0.3, 0.9, 0.1]}>
+        <sphereGeometry args={[0.012, 6, 6]} />
+        <meshStandardMaterial color="#f97316" emissive="#f97316" emissiveIntensity={1} />
+      </mesh>
+      <pointLight position={[-0.3, 0.9, 0.1]} intensity={0.2} color="#f97316" distance={1.5} />
+    </group>
+  )
+}
+
+// ============================================
+// KITCHEN FURNITURE
+// ============================================
+
+export function KitchenIsland({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Counter top */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.8, 0.06, 0.8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.4} roughness={0.6} />
+      </mesh>
+      {/* Base cabinets */}
+      <mesh position={[0, 0.45, 0]} castShadow>
+        <boxGeometry args={[1.8, 0.84, 0.75]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+      {/* Cabinet doors */}
+      {[-0.45, 0, 0.45].map((x, i) => (
+        <mesh key={i} position={[x, 0.45, 0.38]} castShadow>
+          <boxGeometry args={[0.55, 0.75, 0.04]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.3} roughness={0.7} />
+        </mesh>
+      ))}
+      {/* Handles */}
+      {[-0.45, 0, 0.45].map((x, i) => (
+        <mesh key={`h-${i}`} position={[x, 0.45, 0.42]}>
+          <boxGeometry args={[0.02, 0.12, 0.02]} />
+          <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+        </mesh>
+      ))}
+      {/* Stools */}
+      {[-0.6, 0, 0.6].map((x, i) => (
+        <group key={`stool-${i}`} position={[x, 0, -0.6]}>
+          <mesh position={[0, 0.65, 0]} castShadow>
+            <cylinderGeometry args={[0.18, 0.18, 0.04, 12]} />
+            <meshStandardMaterial color="#1f2937" roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 0.35, 0]}>
+            <cylinderGeometry args={[0.04, 0.04, 0.6, 8]} />
+            <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 0.05, 0]}>
+            <cylinderGeometry args={[0.15, 0.15, 0.04, 12]} />
+            <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
+
+export function Refrigerator({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Main body */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.7, 1.8, 0.65]} />
+        <meshStandardMaterial color="#e5e5e5" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* Freezer door */}
+      <mesh position={[0, 1.45, 0.33]} castShadow>
+        <boxGeometry args={[0.65, 0.6, 0.03]} />
+        <meshStandardMaterial color="#d4d4d4" metalness={0.7} roughness={0.2} />
+      </mesh>
+      {/* Fridge door */}
+      <mesh position={[0, 0.65, 0.33]} castShadow>
+        <boxGeometry args={[0.65, 1, 0.03]} />
+        <meshStandardMaterial color="#d4d4d4" metalness={0.7} roughness={0.2} />
+      </mesh>
+      {/* Handle */}
+      <mesh position={[0.25, 0.9, 0.36]}>
+        <boxGeometry args={[0.02, 0.4, 0.03]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      {/* Dispenser */}
+      <mesh position={[0, 1.55, 0.35]}>
+        <boxGeometry args={[0.15, 0.08, 0.01]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function OvenStove({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Body */}
+      <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.6, 0.9, 0.55]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* Oven door */}
+      <mesh position={[0, 0.3, 0.28]} castShadow>
+        <boxGeometry args={[0.5, 0.4, 0.03]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Oven window */}
+      <mesh position={[0, 0.3, 0.3]}>
+        <boxGeometry args={[0.35, 0.25, 0.01]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.1} transparent opacity={0.7} />
+      </mesh>
+      {/* Stovetop */}
+      <mesh position={[0, 0.92, 0]}>
+        <boxGeometry args={[0.58, 0.03, 0.53]} />
+        <meshStandardMaterial color="#111827" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Burners */}
+      {[[-0.12, -0.1], [0.12, -0.1], [-0.12, 0.1], [0.12, 0.1]].map(([x, z], i) => (
+        <mesh key={i} position={[x, 0.94, z]}>
+          <cylinderGeometry args={[0.06, 0.06, 0.01, 16]} />
+          <meshStandardMaterial color="#1a1a1a" metalness={0.9} roughness={0.1} />
+        </mesh>
+      ))}
+      {/* Control knobs */}
+      {[-0.15, -0.05, 0.05, 0.15].map((x, i) => (
+        <mesh key={`k-${i}`} position={[x, 0.92, 0.28]}>
+          <cylinderGeometry args={[0.015, 0.015, 0.02, 8]} />
+          <meshStandardMaterial color="#6b7280" metalness={0.8} roughness={0.2} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function KitchenSink({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Counter */}
+      <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.8, 0.06, 0.5]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.4} roughness={0.6} />
+      </mesh>
+      {/* Basin */}
+      <mesh position={[0, 0.78, 0]}>
+        <boxGeometry args={[0.5, 0.15, 0.35]} />
+        <meshStandardMaterial color="#111827" metalness={0.6} roughness={0.3} />
+      </mesh>
+      {/* Faucet */}
+      <mesh position={[0, 1.05, -0.15]}>
+        <cylinderGeometry args={[0.015, 0.015, 0.3, 8]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0, 1.2, -0.05]} rotation={[Math.PI / 4, 0, 0]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.15, 8]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+      {/* Base cabinet */}
+      <mesh position={[0, 0.43, 0]} castShadow>
+        <boxGeometry args={[0.78, 0.8, 0.48]} />
+        <meshStandardMaterial color="#111827" metalness={0.2} roughness={0.8} />
+      </mesh>
+    </group>
+  )
+}
+
+export function BarStool({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.65, 0]} castShadow>
+        <cylinderGeometry args={[0.18, 0.2, 0.04, 12]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.35, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.6, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.15, 0.15, 0.04, 12]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* Footrest */}
+      <mesh position={[0, 0.3, 0]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.02, 12]} />
+        <meshStandardMaterial color="#374151" metalness={0.6} roughness={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
+export function WineRack({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  const bottleColors = ['#7c3aed', '#dc2626', '#f59e0b', '#3b82f6', '#22c55e']
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Frame */}
+      <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.6, 1.2, 0.3]} />
+        <meshStandardMaterial color="#1a1a2e" metalness={0.2} roughness={0.8} />
+      </mesh>
+      {/* Shelves */}
+      {[0.2, 0.5, 0.8, 1.1].map((y, i) => (
+        <mesh key={i} position={[0, y, 0]}>
+          <boxGeometry args={[0.55, 0.02, 0.28]} />
+          <meshStandardMaterial color="#111827" metalness={0.3} roughness={0.7} />
+        </mesh>
+      ))}
+      {/* Bottles */}
+      {[0.2, 0.5, 0.8, 1.1].map((shelfY, si) =>
+        [0, 1, 2].map((bi) => (
+          <group key={`${si}-${bi}`} position={[-0.15 + bi * 0.15, shelfY + 0.08, 0]}>
+            <mesh>
+              <cylinderGeometry args={[0.025, 0.025, 0.15, 8]} />
+              <meshStandardMaterial color={bottleColors[(si + bi) % bottleColors.length]} transparent opacity={0.7} />
+            </mesh>
+            <mesh position={[0, 0.09, 0]}>
+              <cylinderGeometry args={[0.012, 0.018, 0.04, 8]} />
+              <meshStandardMaterial color="#374151" metalness={0.8} />
+            </mesh>
+          </group>
+        ))
+      )}
+    </group>
+  )
+}
+
+export function Dishwasher({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      <mesh position={[0, 0.45, 0]} castShadow>
+        <boxGeometry args={[0.6, 0.9, 0.55]} />
+        <meshStandardMaterial color="#e5e5e5" metalness={0.5} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.45, 0.28]} castShadow>
+        <boxGeometry args={[0.55, 0.8, 0.03]} />
+        <meshStandardMaterial color="#d4d4d4" metalness={0.6} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.7, 0.31]}>
+        <boxGeometry args={[0.4, 0.25, 0.01]} />
+        <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.1} />
+      </mesh>
+      <mesh position={[0.2, 0.45, 0.31]}>
+        <boxGeometry args={[0.02, 0.15, 0.02]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.9} roughness={0.1} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// EXTERIOR / BALCONY FURNITURE
+// ============================================
+
+export function OutdoorLounge({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Sofa base */}
+      <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.8, 0.35, 0.8]} />
+        <meshStandardMaterial color="#374151" roughness={0.95} />
+      </mesh>
+      {/* Cushions */}
+      <mesh position={[-0.4, 0.42, 0]} castShadow>
+        <boxGeometry args={[0.8, 0.1, 0.65]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      <mesh position={[0.4, 0.42, 0]} castShadow>
+        <boxGeometry args={[0.8, 0.1, 0.65]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.95} />
+      </mesh>
+      {/* Back */}
+      <mesh position={[0, 0.55, -0.35]} castShadow>
+        <boxGeometry args={[1.8, 0.4, 0.1]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      {/* Armrests */}
+      <mesh position={[-0.85, 0.4, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.3, 0.7]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      <mesh position={[0.85, 0.4, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.3, 0.7]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      {/* Legs */}
+      {[[-0.75, 0.03, 0.3], [0.75, 0.03, 0.3], [-0.75, 0.03, -0.3], [0.75, 0.03, -0.3]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]}>
+          <boxGeometry args={[0.05, 0.06, 0.05]} />
+          <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function HotTub({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Outer shell */}
+      <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.6, 0.6, 1.6]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      {/* Inner basin */}
+      <mesh position={[0, 0.35, 0]}>
+        <boxGeometry args={[1.4, 0.5, 1.4]} />
+        <meshStandardMaterial color="#0c4a6e" metalness={0.1} roughness={0.9} />
+      </mesh>
+      {/* Water surface */}
+      <mesh position={[0, 0.55, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[1.35, 1.35]} />
+        <meshStandardMaterial color="#0ea5e9" transparent opacity={0.6} metalness={0.3} roughness={0.4} />
+      </mesh>
+      {/* Jets */}
+      {[[-0.5, 0.4, -0.5], [0.5, 0.4, -0.5], [-0.5, 0.4, 0.5], [0.5, 0.4, 0.5]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]} rotation={[0, Math.PI / 4 * i, 0]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.05, 8]} />
+          <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+        </mesh>
+      ))}
+      {/* Control panel */}
+      <mesh position={[0, 0.65, 0.82]}>
+        <boxGeometry args={[0.3, 0.15, 0.05]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function GardenTable({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.5, 0.5, 0.04, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 0.37, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.74, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.3, 0.3, 0.04, 12]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function PottedTree({ position = [0, 0, 0] as [number, number, number], size = 1 }) {
+  return (
+    <group position={position} scale={size}>
+      {/* Pot */}
+      <mesh position={[0, 0.2, 0]} castShadow>
+        <cylinderGeometry args={[0.2, 0.15, 0.4, 8]} />
+        <meshStandardMaterial color="#374151" roughness={0.9} />
+      </mesh>
+      {/* Trunk */}
+      <mesh position={[0, 0.7, 0]} castShadow>
+        <cylinderGeometry args={[0.04, 0.06, 0.6, 8]} />
+        <meshStandardMaterial color="#5c3a1e" roughness={0.95} />
+      </mesh>
+      {/* Foliage layers */}
+      <mesh position={[0, 1.1, 0]} castShadow>
+        <sphereGeometry args={[0.3, 8, 8]} />
+        <meshStandardMaterial color="#15803d" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 1.35, 0]} castShadow>
+        <sphereGeometry args={[0.22, 8, 8]} />
+        <meshStandardMaterial color="#166534" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 1.55, 0]} castShadow>
+        <sphereGeometry args={[0.14, 8, 8]} />
+        <meshStandardMaterial color="#14532d" roughness={0.9} />
+      </mesh>
+    </group>
+  )
+}
+
+export function FirePit({ position = [0, 0, 0] as [number, number, number] }) {
+  const flameRef = useRef<THREE.Mesh>(null)
+
+  useFrame((state) => {
+    if (flameRef.current) {
+      flameRef.current.scale.x = 1 + Math.sin(state.clock.elapsedTime * 7) * 0.1
+      flameRef.current.scale.y = 1 + Math.sin(state.clock.elapsedTime * 5) * 0.15
+    }
+  })
+
+  return (
+    <group position={position}>
+      {/* Stone ring */}
+      <mesh position={[0, 0.1, 0]} castShadow>
+        <torusGeometry args={[0.4, 0.08, 8, 16]} />
+        <meshStandardMaterial color="#374151" roughness={0.95} />
+      </mesh>
+      {/* Interior */}
+      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.35, 16]} />
+        <meshStandardMaterial color="#1c1917" roughness={1} />
+      </mesh>
+      {/* Logs */}
+      <mesh position={[0, 0.08, 0]} rotation={[0, 0, Math.PI / 6]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.4, 6]} />
+        <meshStandardMaterial color="#5c3a1e" roughness={0.95} />
+      </mesh>
+      <mesh position={[0, 0.08, 0]} rotation={[0, Math.PI / 2, -Math.PI / 6]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.4, 6]} />
+        <meshStandardMaterial color="#5c3a1e" roughness={0.95} />
+      </mesh>
+      {/* Flame */}
+      <mesh ref={flameRef} position={[0, 0.25, 0]}>
+        <coneGeometry args={[0.12, 0.35, 8]} />
+        <meshStandardMaterial color="#f97316" emissive="#f97316" emissiveIntensity={1.5} transparent opacity={0.8} />
+      </mesh>
+      {/* Embers */}
+      <mesh position={[0, 0.1, 0]}>
+        <sphereGeometry args={[0.08, 6, 6]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.8} />
+      </mesh>
+      <pointLight position={[0, 0.3, 0]} intensity={1} color="#f97316" distance={4} />
+    </group>
+  )
+}
+
+export function OutdoorLamp({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Base */}
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.12, 0.15, 0.1, 8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Pole */}
+      <mesh position={[0, 1.2, 0]}>
+        <cylinderGeometry args={[0.025, 0.025, 2.3, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Lamp head */}
+      <mesh position={[0, 2.4, 0]}>
+        <boxGeometry args={[0.2, 0.08, 0.2]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.6} roughness={0.4} />
+      </mesh>
+      {/* Bulb */}
+      <mesh position={[0, 2.35, 0]}>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshStandardMaterial color="#fef3c7" emissive="#fef3c7" emissiveIntensity={1} />
+      </mesh>
+      <pointLight position={[0, 2.3, 0]} intensity={0.8} color="#fef3c7" distance={5} />
+    </group>
+  )
+}
+
+export function BalconyRailing({ position = [0, 0, 0] as [number, number, number], size = [3, 1] as [number, number] }) {
+  return (
+    <group position={position}>
+      {/* Top rail */}
+      <mesh position={[0, size[1], 0]}>
+        <boxGeometry args={[size[0], 0.04, 0.04]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Bottom rail */}
+      <mesh position={[0, 0.05, 0]}>
+        <boxGeometry args={[size[0], 0.04, 0.04]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Balusters */}
+      {Array.from({ length: Math.floor(size[0] / 0.15) }).map((_, i) => {
+        const x = -size[0] / 2 + 0.075 + i * 0.15
+        return (
+          <mesh key={i} position={[x, size[1] / 2, 0]}>
+            <boxGeometry args={[0.02, size[1], 0.02]} />
+            <meshStandardMaterial color="#4b5563" metalness={0.7} roughness={0.3} />
+          </mesh>
+        )
+      })}
+      {/* Posts */}
+      <mesh position={[-size[0] / 2, size[1] / 2 + 0.05, 0]}>
+        <boxGeometry args={[0.06, size[1] + 0.1, 0.06]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <mesh position={[size[0] / 2, size[1] / 2 + 0.05, 0]}>
+        <boxGeometry args={[0.06, size[1] + 0.1, 0.06]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+    </group>
+  )
+}
+
+export function SunLounger({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Frame */}
+      <mesh position={[0, 0.15, 0]} castShadow>
+        <boxGeometry args={[0.7, 0.04, 1.8]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      {/* Back rest (angled) */}
+      <mesh position={[0, 0.4, -0.7]} rotation={[0.4, 0, 0]} castShadow>
+        <boxGeometry args={[0.65, 0.03, 0.6]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.9} />
+      </mesh>
+      {/* Seat cushion */}
+      <mesh position={[0, 0.2, 0.15]} castShadow>
+        <boxGeometry args={[0.6, 0.06, 1.2]} />
+        <meshStandardMaterial color="#374151" roughness={0.95} />
+      </mesh>
+      {/* Legs */}
+      {[[-0.3, 0.07, 0.8], [0.3, 0.07, 0.8], [-0.3, 0.07, -0.8], [0.3, 0.07, -0.8]].map((pos, i) => (
+        <mesh key={i} position={pos as [number, number, number]}>
+          <boxGeometry args={[0.03, 0.14, 0.03]} />
+          <meshStandardMaterial color="#374151" metalness={0.6} roughness={0.4} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+// ============================================
+// ADDITIONAL DECOR
+// ============================================
+
+export function CandleSet({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {[0, 0.15, 0.3].map((x, i) => (
+        <group key={i} position={[x, 0, 0]}>
+          <mesh position={[0, 0.08, 0]}>
+            <cylinderGeometry args={[0.02, 0.025, 0.16, 8]} />
+            <meshStandardMaterial color="#fef3c7" roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 0.17, 0]}>
+            <sphereGeometry args={[0.008, 6, 6]} />
+            <meshStandardMaterial color="#f97316" emissive="#f97316" emissiveIntensity={1} />
+          </mesh>
+          <pointLight position={[0, 0.18, 0]} intensity={0.15} color="#f97316" distance={1} />
+        </group>
+      ))}
+      {/* Tray */}
+      <mesh position={[0.15, 0.01, 0]}>
+        <boxGeometry args={[0.5, 0.02, 0.15]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Sculpture({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Base */}
+      <mesh position={[0, 0.05, 0]} castShadow>
+        <boxGeometry args={[0.3, 0.1, 0.3]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* Abstract form */}
+      <mesh position={[0, 0.35, 0]} castShadow>
+        <torusGeometry args={[0.12, 0.04, 8, 16]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.8} roughness={0.2} />
+      </mesh>
+      <mesh position={[0, 0.55, 0]} castShadow>
+        <sphereGeometry args={[0.08, 8, 8]} />
+        <meshStandardMaterial color="#9ca3af" metalness={0.9} roughness={0.1} />
+      </mesh>
+    </group>
+  )
+}
+
+export function VaseFlowers({ position = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position}>
+      {/* Vase */}
+      <mesh position={[0, 0.15, 0]} castShadow>
+        <cylinderGeometry args={[0.06, 0.08, 0.3, 8]} />
+        <meshStandardMaterial color="#1e3a5f" metalness={0.3} roughness={0.7} />
+      </mesh>
+      {/* Stems */}
+      {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+        <mesh
+          key={i}
+          position={[
+            Math.sin((angle * Math.PI) / 180) * 0.02,
+            0.35 + i * 0.02,
+            Math.cos((angle * Math.PI) / 180) * 0.02,
+          ]}
+          rotation={[0.2, (angle * Math.PI) / 180, 0.1]}
+        >
+          <cylinderGeometry args={[0.003, 0.003, 0.15, 4]} />
+          <meshStandardMaterial color="#15803d" />
+        </mesh>
+      ))}
+      {/* Flower heads */}
+      {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+        <mesh
+          key={`f-${i}`}
+          position={[
+            Math.sin((angle * Math.PI) / 180) * 0.04,
+            0.42 + i * 0.015,
+            Math.cos((angle * Math.PI) / 180) * 0.04,
+          ]}
+        >
+          <sphereGeometry args={[0.015, 6, 6]} />
+          <meshStandardMaterial color={['#ef4444', '#f59e0b', '#ec4899', '#8b5cf6', '#3b82f6', '#22c55e'][i]} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+export function Clock({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Frame */}
+      <mesh castShadow>
+        <cylinderGeometry args={[0.2, 0.2, 0.04, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* Face */}
+      <mesh position={[0, 0, 0.02]}>
+        <cylinderGeometry args={[0.17, 0.17, 0.01, 16]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.9} />
+      </mesh>
+      {/* Hour marks */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i * Math.PI * 2) / 12
+        return (
+          <mesh
+            key={i}
+            position={[Math.sin(angle) * 0.14, Math.cos(angle) * 0.14, 0.03]}
+          >
+            <boxGeometry args={[0.01, 0.02, 0.005]} />
+            <meshStandardMaterial color="#1a1a1a" />
+          </mesh>
+        )
+      })}
+      {/* Hour hand */}
+      <mesh position={[0, 0.05, 0.035]} rotation={[0, 0, -0.5]}>
+        <boxGeometry args={[0.012, 0.1, 0.005]} />
+        <meshStandardMaterial color="#1a1a1a" />
+      </mesh>
+      {/* Minute hand */}
+      <mesh position={[0.03, 0.06, 0.035]} rotation={[0, 0, -1.2]}>
+        <boxGeometry args={[0.008, 0.12, 0.005]} />
+        <meshStandardMaterial color="#374151" />
+      </mesh>
+      {/* Center dot */}
+      <mesh position={[0, 0, 0.035]}>
+        <sphereGeometry args={[0.008, 6, 6]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.3} />
+      </mesh>
+    </group>
+  )
+}
+
+export function Mirror({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number], size = [0.6, 1.2] as [number, number] }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Frame */}
+      <mesh castShadow>
+        <boxGeometry args={[size[0] + 0.06, size[1] + 0.06, 0.04]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.3} roughness={0.7} />
+      </mesh>
+      {/* Mirror surface */}
+      <mesh position={[0, 0, 0.02]}>
+        <boxGeometry args={[size[0], size[1], 0.01]} />
+        <meshStandardMaterial color="#94a3b8" metalness={1} roughness={0} />
+      </mesh>
+    </group>
+  )
+}
+
+export function CurtainSet({ position = [0, 0, 0] as [number, number, number], rotation = [0, 0, 0] as [number, number, number], width = 2 }) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Rod */}
+      <mesh position={[0, 0, 0]}>
+        <cylinderGeometry args={[0.015, 0.015, width, 8]} />
+        <meshStandardMaterial color="#374151" metalness={0.8} roughness={0.2} />
+      </mesh>
+      {/* Brackets */}
+      <mesh position={[-width / 2, -0.02, 0.02]}>
+        <boxGeometry args={[0.04, 0.04, 0.04]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[width / 2, -0.02, 0.02]}>
+        <boxGeometry args={[0.04, 0.04, 0.04]} />
+        <meshStandardMaterial color="#374151" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Left curtain */}
+      <mesh position={[-width / 4, -0.7, 0.02]} castShadow>
+        <boxGeometry args={[width / 2 - 0.05, 1.4, 0.02]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.95} side={2} />
+      </mesh>
+      {/* Right curtain */}
+      <mesh position={[width / 4, -0.7, 0.02]} castShadow>
+        <boxGeometry args={[width / 2 - 0.05, 1.4, 0.02]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.95} side={2} />
+      </mesh>
+    </group>
+  )
+}
+
+
+'use client'
+
+import { useRef } from 'react'
+import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
+import { useEtherWorldStore } from '@/lib/etherworld/store'
+
+// Room dimensions - EXPANDED x2
+const ROOM_WIDTH = 14
+const ROOM_DEPTH = 18
+const ROOM_HEIGHT = 3.5
+const WALL_THICKNESS = 0.18
+const BATHROOM_WIDTH = 4
+const BATHROOM_DEPTH = 5
+
+export function RoomArchitecture() {
+  return (
+    <group>
+      {/* Main Floor - Parquet */}
+      <Floor />
+      
+      {/* Ceiling */}
+      <Ceiling />
+      
+      {/* Walls */}
+      <Walls />
+      
+      {/* Bathroom partition */}
+      <BathroomPartition />
+    </group>
+  )
+}
+
+function Floor() {
+  
+  return (
+    <group>
+      {/* Main room floor - dark parquet */}
+      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[ROOM_WIDTH, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1615" roughness={0.7} metalness={0.1} />
+      </mesh>
+      
+      {/* Parquet pattern overlay */}
+      {[...Array(10)].map((_, row) => (
+        [...Array(8)].map((_, col) => (
+          <mesh 
+            key={`${row}-${col}`}
+            position={[
+              -ROOM_WIDTH / 2 + 0.5 + col * 1,
+              0.001,
+              -ROOM_DEPTH / 2 + 0.5 + row * 1
+            ]}
+            rotation={[-Math.PI / 2, 0, (row + col) % 2 === 0 ? 0 : Math.PI / 2]}
+            receiveShadow
+          >
+            <planeGeometry args={[0.95, 0.2]} />
+            <meshStandardMaterial 
+              color={(row + col) % 2 === 0 ? "#1f1b1a" : "#252120"} 
+              roughness={0.6} 
+            />
+          </mesh>
+        ))
+      ))}
+      
+      {/* Bathroom floor - tiles */}
+      <mesh 
+        position={[-ROOM_WIDTH / 2 + BATHROOM_WIDTH / 2 + WALL_THICKNESS, 0.002, -ROOM_DEPTH / 2 + BATHROOM_DEPTH / 2 + WALL_THICKNESS]} 
+        rotation={[-Math.PI / 2, 0, 0]} 
+        receiveShadow
+      >
+        <planeGeometry args={[BATHROOM_WIDTH - 0.1, BATHROOM_DEPTH - 0.1]} />
+        <meshStandardMaterial color="#374151" roughness={0.3} metalness={0.2} />
+      </mesh>
+      
+      {/* Tile grid for bathroom */}
+      {[...Array(6)].map((_, row) => (
+        [...Array(5)].map((_, col) => (
+          <mesh 
+            key={`bath-${row}-${col}`}
+            position={[
+              -ROOM_WIDTH / 2 + 0.4 + col * 0.5,
+              0.003,
+              -ROOM_DEPTH / 2 + 0.4 + row * 0.5
+            ]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          >
+            <planeGeometry args={[0.48, 0.48]} />
+            <meshStandardMaterial color="#4b5563" roughness={0.2} />
+          </mesh>
+        ))
+      ))}
+    </group>
+  )
+}
+
+function Ceiling() {
+  const { lights } = useEtherWorldStore()
+  const ceilingOn = lights.ceiling?.isOn ?? true
+  
+  return (
+    <group>
+      {/* Main ceiling */}
+      <mesh position={[0, ROOM_HEIGHT, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[ROOM_WIDTH, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Main recessed lighting track - center */}
+      <mesh position={[0, ROOM_HEIGHT - 0.02, 0]}>
+        <boxGeometry args={[0.12, 0.05, ROOM_DEPTH - 2]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* Side lighting tracks */}
+      <mesh position={[-3, ROOM_HEIGHT - 0.02, 0]}>
+        <boxGeometry args={[0.1, 0.04, ROOM_DEPTH - 4]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      <mesh position={[3, ROOM_HEIGHT - 0.02, 0]}>
+        <boxGeometry args={[0.1, 0.04, ROOM_DEPTH - 4]} />
+        <meshStandardMaterial color="#111827" metalness={0.5} roughness={0.5} />
+      </mesh>
+      
+      {/* LED strip perimeter */}
+      <LEDStrip position={[0, ROOM_HEIGHT - 0.08, 0]} width={ROOM_WIDTH - 1} depth={ROOM_DEPTH - 1} isOn={ceilingOn} />
+      
+      {/* Ceiling spots - 3x5 grid */}
+      {[-4, 0, 4].map((x, xi) => (
+        [-6, -3, 0, 3, 6].map((z, zi) => (
+          <CeilingSpot key={`${xi}-${zi}`} position={[x, ROOM_HEIGHT - 0.05, z]} />
+        ))
+      ))}
+      
+      {/* Accent LED panels */}
+      <LEDPanel position={[-5, ROOM_HEIGHT - 0.03, -6]} size={[1.5, 1]} color="#8b5cf6" />
+      <LEDPanel position={[5, ROOM_HEIGHT - 0.03, -6]} size={[1.5, 1]} color="#3b82f6" />
+      <LEDPanel position={[5, ROOM_HEIGHT - 0.03, 6]} size={[1.5, 1]} color="#22c55e" />
+      
+      {/* AC unit - larger */}
+      <mesh position={[4, ROOM_HEIGHT - 0.18, -7]}>
+        <boxGeometry args={[1.8, 0.3, 0.45]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.4} />
+      </mesh>
+      <mesh position={[4, ROOM_HEIGHT - 0.34, -7]}>
+        <boxGeometry args={[1.5, 0.02, 0.25]} />
+        <meshStandardMaterial color="#e5e5e5" roughness={0.5} />
+      </mesh>
+      
+      {/* Smoke detector */}
+      <mesh position={[-2, ROOM_HEIGHT - 0.05, 3]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.04, 16]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.7} />
+      </mesh>
+      <mesh position={[-2, ROOM_HEIGHT - 0.07, 3]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.02, 8]} />
+        <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.3} />
+      </mesh>
+    </group>
+  )
+}
+
+// LED Strip around ceiling perimeter
+function LEDStrip({ position, width, depth, isOn }: { position: [number, number, number], width: number, depth: number, isOn: boolean }) {
+  return (
+    <group position={position}>
+      {/* Front */}
+      <mesh position={[0, 0, depth / 2]}>
+        <boxGeometry args={[width, 0.02, 0.04]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+      {/* Back */}
+      <mesh position={[0, 0, -depth / 2]}>
+        <boxGeometry args={[width, 0.02, 0.04]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+      {/* Left */}
+      <mesh position={[-width / 2, 0, 0]}>
+        <boxGeometry args={[0.04, 0.02, depth]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+      {/* Right */}
+      <mesh position={[width / 2, 0, 0]}>
+        <boxGeometry args={[0.04, 0.02, depth]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#1f2937"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.4 : 0}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+// LED Panel accent light
+function LEDPanel({ position, size, color }: { position: [number, number, number], size: [number, number], color: string }) {
+  return (
+    <mesh position={position}>
+      <boxGeometry args={[size[0], 0.02, size[1]]} />
+      <meshStandardMaterial 
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.5}
+        transparent
+        opacity={0.8}
+      />
+    </mesh>
+  )
+}
+
+function CeilingSpot({ position }: { position: [number, number, number] }) {
+  const { lights } = useEtherWorldStore()
+  const isOn = lights.ceiling?.isOn ?? true
+  
+  return (
+    <group position={position}>
+      <mesh>
+        <cylinderGeometry args={[0.08, 0.1, 0.05, 16]} />
+        <meshStandardMaterial color="#1f2937" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, -0.03, 0]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.02, 16]} />
+        <meshStandardMaterial 
+          color={isOn ? "#fef3c7" : "#374151"} 
+          emissive={isOn ? "#fef3c7" : "#000000"}
+          emissiveIntensity={isOn ? 0.8 : 0}
+        />
+      </mesh>
+    </group>
+  )
+}
+
+function Walls() {
+  return (
+    <group>
+      {/* Back wall (with window) */}
+      <mesh position={[0, ROOM_HEIGHT / 2, -ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[ROOM_WIDTH, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Front wall (with main door) - left part */}
+      <mesh position={[-ROOM_WIDTH / 2 + 1.5, ROOM_HEIGHT / 2, ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[3, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Front wall - right part */}
+      <mesh position={[ROOM_WIDTH / 2 - 1.5, ROOM_HEIGHT / 2, ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[3, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Front wall - above door */}
+      <mesh position={[0, ROOM_HEIGHT - 0.35, ROOM_DEPTH / 2]} castShadow receiveShadow>
+        <boxGeometry args={[2, 0.7, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Left wall */}
+      <mesh position={[-ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[WALL_THICKNESS, ROOM_HEIGHT, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Right wall */}
+      <mesh position={[ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[WALL_THICKNESS, ROOM_HEIGHT, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
+      </mesh>
+      
+      {/* Baseboard trim */}
+      <Baseboards />
+      
+      {/* Crown molding */}
+      <CrownMolding />
+    </group>
+  )
+}
+
+function Baseboards() {
+  const baseboardHeight = 0.1
+  const baseboardDepth = 0.02
+  
+  return (
+    <group>
+      {/* Back wall */}
+      <mesh position={[0, baseboardHeight / 2, -ROOM_DEPTH / 2 + WALL_THICKNESS / 2 + baseboardDepth / 2]}>
+        <boxGeometry args={[ROOM_WIDTH - WALL_THICKNESS * 2, baseboardHeight, baseboardDepth]} />
+        <meshStandardMaterial color="#111827" roughness={0.7} />
+      </mesh>
+      
+      {/* Left wall */}
+      <mesh position={[-ROOM_WIDTH / 2 + WALL_THICKNESS / 2 + baseboardDepth / 2, baseboardHeight / 2, 0]}>
+        <boxGeometry args={[baseboardDepth, baseboardHeight, ROOM_DEPTH - WALL_THICKNESS * 2]} />
+        <meshStandardMaterial color="#111827" roughness={0.7} />
+      </mesh>
+      
+      {/* Right wall */}
+      <mesh position={[ROOM_WIDTH / 2 - WALL_THICKNESS / 2 - baseboardDepth / 2, baseboardHeight / 2, 0]}>
+        <boxGeometry args={[baseboardDepth, baseboardHeight, ROOM_DEPTH - WALL_THICKNESS * 2]} />
+        <meshStandardMaterial color="#111827" roughness={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
+function CrownMolding() {
+  const moldingSize = 0.08
+  
+  return (
+    <group>
+      {/* Back wall */}
+      <mesh position={[0, ROOM_HEIGHT - moldingSize / 2, -ROOM_DEPTH / 2 + WALL_THICKNESS / 2 + moldingSize / 2]}>
+        <boxGeometry args={[ROOM_WIDTH, moldingSize, moldingSize]} />
+        <meshStandardMaterial color="#111827" roughness={0.6} />
+      </mesh>
+      
+      {/* Left wall */}
+      <mesh position={[-ROOM_WIDTH / 2 + WALL_THICKNESS / 2 + moldingSize / 2, ROOM_HEIGHT - moldingSize / 2, 0]}>
+        <boxGeometry args={[moldingSize, moldingSize, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#111827" roughness={0.6} />
+      </mesh>
+      
+      {/* Right wall */}
+      <mesh position={[ROOM_WIDTH / 2 - WALL_THICKNESS / 2 - moldingSize / 2, ROOM_HEIGHT - moldingSize / 2, 0]}>
+        <boxGeometry args={[moldingSize, moldingSize, ROOM_DEPTH]} />
+        <meshStandardMaterial color="#111827" roughness={0.6} />
+      </mesh>
+    </group>
+  )
+}
+
+function BathroomPartition() {
+  const doorWidth = 0.8
+  const wallStartX = -ROOM_WIDTH / 2 + WALL_THICKNESS
+  const wallEndX = wallStartX + BATHROOM_WIDTH
+  const wallZ = -ROOM_DEPTH / 2 + BATHROOM_DEPTH + WALL_THICKNESS
+  
+  return (
+    <group>
+      {/* Partition wall - left of door */}
+      <mesh position={[wallStartX + 0.5, ROOM_HEIGHT / 2, wallZ]} castShadow receiveShadow>
+        <boxGeometry args={[1, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.85} />
+      </mesh>
+      
+      {/* Partition wall - right of door */}
+      <mesh position={[wallEndX - 0.5, ROOM_HEIGHT / 2, wallZ]} castShadow receiveShadow>
+        <boxGeometry args={[1, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.85} />
+      </mesh>
+      
+      {/* Above door */}
+      <mesh position={[wallStartX + BATHROOM_WIDTH / 2, ROOM_HEIGHT - 0.35, wallZ]} castShadow receiveShadow>
+        <boxGeometry args={[doorWidth + 0.2, 0.7, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#1f2937" roughness={0.85} />
+      </mesh>
+      
+      {/* Back bathroom wall (partial, for depth) */}
+      <mesh position={[wallStartX + BATHROOM_WIDTH / 2, ROOM_HEIGHT / 2, -ROOM_DEPTH / 2 + WALL_THICKNESS]}>
+        <boxGeometry args={[BATHROOM_WIDTH, ROOM_HEIGHT, WALL_THICKNESS]} />
+        <meshStandardMaterial color="#374151" roughness={0.4} />
+      </mesh>
+    </group>
+  )
+}
+
+// ============================================
+// LIGHTING SYSTEM
+// ============================================
+
+export function RoomLighting() {
+  const { lights } = useEtherWorldStore()
+  
+  return (
+    <group>
+      {/* Ambient base */}
+      <ambientLight intensity={0.15} color="#1a1a2e" />
+      
+      {/* Main ceiling lights */}
+      {lights.ceiling?.isOn && (
+        <>
+          <spotLight
+            position={[0, 2.9, -2]}
+            angle={Math.PI / 4}
+            penumbra={0.5}
+            intensity={1.5}
+            color="#fff5e6"
+            castShadow
+            shadow-mapSize={[1024, 1024]}
+          />
+          <spotLight
+            position={[0, 2.9, 0]}
+            angle={Math.PI / 4}
+            penumbra={0.5}
+            intensity={1.5}
+            color="#fff5e6"
+            castShadow
+          />
+          <spotLight
+            position={[0, 2.9, 2]}
+            angle={Math.PI / 4}
+            penumbra={0.5}
+            intensity={1.5}
+            color="#fff5e6"
+            castShadow
+          />
+        </>
+      )}
+      
+      {/* Desk lamp */}
+      {lights.desk?.isOn && (
+        <pointLight
+          position={[3.2, 1.5, 2]}
+          intensity={0.8}
+          color="#fef3c7"
+          distance={3}
+          castShadow
+        />
+      )}
+      
+      {/* Bathroom light */}
+      {lights.bathroom?.isOn && (
+        <pointLight
+          position={[-2.5, 2.5, -3.5]}
+          intensity={1}
+          color="#ffffff"
+          distance={4}
+        />
+      )}
+      
+      {/* TV ambient */}
+      {lights.tv?.isOn && (
+        <pointLight
+          position={[-2, 1.5, -3]}
+          intensity={0.4}
+          color="#3b82f6"
+          distance={4}
+        />
+      )}
+      
+      {/* Neon accent */}
+      {lights.neon?.isOn && (
+        <pointLight
+          position={[2, 2.2, -4.5]}
+          intensity={0.5}
+          color="#8b5cf6"
+          distance={4}
+        />
+      )}
+      
+      {/* Window light (moonlight/city) */}
+      <directionalLight
+        position={[0, 3, -8]}
+        intensity={0.2}
+        color="#6366f1"
+      />
+    </group>
+  )
+}
+
+// ============================================
+// SPAWN PARTICLES
+// ============================================
+
+export function SpawnParticles({ active }: { active: boolean }) {
+  const particlesRef = useRef<THREE.Points>(null)
+  const particleCount = 100
+  
+  const positions = useRef<Float32Array>(
+    new Float32Array(particleCount * 3).map((_, i) => {
+      const idx = i % 3
+      if (idx === 0) return (Math.random() - 0.5) * 3 // x
+      if (idx === 1) return Math.random() * 2 + 0.5 // y
+      return (Math.random() - 0.5) * 3 // z
+    })
+  )
+  
+  useFrame((state) => {
+    if (particlesRef.current && active) {
+      const positions = particlesRef.current.geometry.attributes.position.array as Float32Array
+      
+      for (let i = 0; i < particleCount; i++) {
+        const i3 = i * 3
+        positions[i3 + 1] += 0.01 + Math.sin(state.clock.elapsedTime + i) * 0.005
+        
+        if (positions[i3 + 1] > 3) {
+          positions[i3 + 1] = 0.5
+        }
+      }
+      
+      particlesRef.current.geometry.attributes.position.needsUpdate = true
+      particlesRef.current.rotation.y += 0.001
+    }
+  })
+  
+  if (!active) return null
+  
+  return (
+    <points ref={particlesRef} position={[0, 0, 0]}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions.current, 3]}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.03}
+        color="#8b5cf6"
+        transparent
+        opacity={0.6}
+        sizeAttenuation
+      />
+    </points>
+  )
+}

@@ -1,0 +1,122 @@
+'use client'
+
+import { Suspense, useState, useCallback } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
+import { OrbitControls } from '@react-three/drei'
+import { useGameState } from '@/lib/etherworld/store'
+import { LoadingScreen } from './components/ui/LoadingScreen'
+
+export default function EtherWorldApp() {
+  const [sessionStarted, setSessionStarted] = useState(false)
+  const { placedObjects, selectedModelType, ghostPosition } = useGameState()
+
+  return (
+    <div className="relative w-screen h-screen overflow-hidden bg-[#08080e]">
+      {!sessionStarted && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/95">
+          <div className="text-center space-y-4 p-8">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mx-auto">
+              <span className="text-white text-3xl">💎</span>
+            </div>
+            <h1 className="text-4xl font-black text-white">ETHERWORLD RP</h1>
+            <p className="text-zinc-400 text-sm">Builder Mode & Roleplay World Builder</p>
+            <button
+              onClick={() => {
+                setSessionStarted(true)
+                useGameState.getState().setSessionActive(true)
+              }}
+              className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold rounded-lg hover:opacity-90 transition-opacity"
+            >
+              Entrer dans le monde
+            </button>
+          </div>
+        </div>
+      )}
+
+      <Suspense fallback={<LoadingScreen />}>
+        <Canvas
+          shadows
+          dpr={[1, 2]}
+          camera={{ position: [0, 10, 12], fov: 55 }}
+          gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
+          onCreated={({ gl }) => {
+            gl.toneMapping = THREE.ACESFilmicToneMapping
+            gl.toneMappingExposure = 1.1
+            gl.shadowMap.enabled = true
+            gl.shadowMap.type = THREE.PCFSoftShadowMap
+          }}
+          style={{ position: 'absolute', inset: 0 }}
+        >
+          {/* Lighting */}
+          <ambientLight intensity={0.4} color="#1a1a2e" />
+          <directionalLight
+            position={[10, 20, 10]}
+            intensity={0.6}
+            castShadow
+            shadow-mapSize-width={1024}
+            shadow-mapSize-height={1024}
+          />
+
+          {/* Ground */}
+          <Ground />
+
+          {/* Placed Objects */}
+          {placedObjects.map((obj) => (
+            <Object3D key={obj.id} object={obj} />
+          ))}
+
+          {/* Ghost Preview */}
+          {ghostPosition && selectedModelType && (
+            <GhostPreview position={ghostPosition} />
+          )}
+
+          <OrbitControls minDistance={4} maxDistance={20} enableDamping dampingFactor={0.05} />
+        </Canvas>
+      </Suspense>
+    </div>
+  )
+}
+
+// Ground component
+function Ground() {
+  return (
+    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+      <planeGeometry args={[200, 200]} />
+      <meshStandardMaterial color="#0a0a14" roughness={0.9} metalness={0.1} />
+    </mesh>
+  )
+}
+
+// Object3D placeholder
+function Object3D({ object }: { object: any }) {
+  const { selectedPlacedId } = useGameState()
+  const isSelected = selectedPlacedId === object.id
+
+  return (
+    <group position={object.position as [number, number, number]} rotation={[0, object.rotation, 0]} scale={[object.scale, object.scale, object.scale]}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial 
+        color={isSelected ? '#00e0ff' : '#ffffff'} 
+        transparent={isSelected}
+        opacity={isSelected ? 0.8 : 1}
+      />
+    </group>
+  )
+}
+
+// Ghost preview
+function GhostPreview({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      <boxGeometry args={[1, 1, 1]} />
+      <meshStandardMaterial color="#00e0ff" transparent opacity={0.5} depthWrite={false} />
+      
+      {/* Placement ring */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
+        <ringGeometry args={[0.4, 0.6, 32]} />
+        <meshBasicMaterial color="#00e0ff" transparent opacity={0.6} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  )
+}
